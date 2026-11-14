@@ -1,0 +1,10 @@
+# 更新の確認。配布元の URL は配布物のヘッダー(@updateURL、@downloadURL)から読むので、ここには書かない
+
+# 確認の間隔(時間)
+checkIntervalHours: 24
+
+# 更新の確認で通信してよい配布元のホスト。Tampermonkey の @connect に出力する
+# ここに無い配布元から導入した場合は、確認しない
+connect:
+  - raw.githubusercontent.com
+  - update.greasyfork.org

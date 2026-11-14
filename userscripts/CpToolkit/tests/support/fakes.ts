@@ -4,7 +4,9 @@ import type {KeyValueStore, StoredValue} from "@application/ports/key-value-stor
 import type {PageBridge} from "@application/ports/page-bridge";
 import type {Logger} from "@application/ports/logger";
 import type {PageLifecycle} from "@application/ports/page-lifecycle";
+import type {ScriptHost} from "@application/ports/script-host";
 import type {HttpClient, HttpRequest, HttpResponse, Ticker} from "@application/ports/services";
+import {UpdateChecker} from "@application/update/update-checker";
 
 export class MemoryStore implements KeyValueStore {
 	private readonly values = new Map<string, unknown>();
@@ -28,6 +30,34 @@ export class MemoryStore implements KeyValueStore {
 		this.values.set(key, value);
 		this.listeners.get(key)?.(value);
 	}
+}
+
+/** 導入されたスクリプトの情報。更新元の URL は、既定では持たない。 */
+function createFakeHost(overrides: Partial<ScriptHost> = {}): ScriptHost {
+	return {
+		name: "CP Toolkit",
+		version: "1.2.3",
+		updateUrl: null,
+		downloadUrl: null,
+		registerCommand: () => undefined,
+		...overrides,
+	};
+}
+
+/** 更新の確認。既定では更新元が無く、通信しない。 */
+export function createFakeUpdates(options: {
+	host?: Partial<ScriptHost>;
+	http?: HttpClient;
+	state?: KeyValueStore;
+	allowedHosts?: readonly string[];
+} = {}): UpdateChecker {
+	return new UpdateChecker({
+		host: createFakeHost(options.host),
+		http: options.http ?? new FakeHttpClient(() => ({status: 404, text: ""})),
+		state: options.state ?? new MemoryStore(),
+		allowedHosts: options.allowedHosts ?? ["updates.example"],
+		intervalHours: 24,
+	});
 }
 
 export const immediateLifecycle: PageLifecycle = {

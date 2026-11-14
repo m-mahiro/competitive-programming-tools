@@ -97,7 +97,7 @@ YAML の型は `scripts/gen-data-types.ts` が `<name>.d.yaml.ts` として生�
 
 機能が記憶する値は、以前の版が書いた形のまま残ることがあります。`KeyValueStore` の値はキャストせず、`readStored` と `domain/validation/guards.ts` で形を確かめて読みます。
 
-`@match` は `data/judges/*.yaml` の `matches` から、`@connect` は `data/runners.yaml` の `connect` から生成するので、`meta.json` には書きません。
+`@match` は `data/judges/*.yaml` の `matches` から、`@connect` は `data/runners.yaml` と `data/update.yaml` の `connect` から生成するので、`meta.json` には書きません。
 
 コメントの書き方は `data/languages.yaml` にあります。
 
@@ -134,6 +134,17 @@ YAML の型は `scripts/gen-data-types.ts` が `<name>.d.yaml.ts` として生�
 `SameOriginHttpClient` は表示中のサイトにしか送りません。外部のサービスは `data/runners.yaml` の `external` に書き、利用者が選んだときだけ使います。内部エラーで次の候補へ切り替わるときも、`external` の実行環境は選びません。
 
 ページの文脈で動くライブラリ(KaTeX、Prettify、Pyodide)は `data/libraries.yaml` と `data/runners.yaml` に置き、npm の版番号か GitHub のコミットの SHA で固定して、integrity で検証します。読み込んだ先でさらに別のファイルを検証なしで読むもの(Prettify の `run_prettify.js` など)は使いません。Pyodide は AtCoder と同じ Python の版の系列から選びます。
+
+### 更新の確認
+
+新しいバージョンがあるかは、導入されたスクリプト自身のヘッダーの `@updateURL` を取得して確かめます(`application/update/update-checker.ts`)。URL をコードに持たないので、GitHub から入れても Greasy Fork から入れても、入れた場所を見に行きます。Greasy Fork は配布のときにこの項目を自分の URL へ書き換えます。
+
+- 取得するのはヘッダーだけ(`Range` で先頭の 8KB)。`@version` を今のバージョンと比べる
+- 通信してよい配布元は `data/update.yaml` の `connect` に書く。ここに無い配布元から導入した場合は、確かめない。Tampermonkey が接続の許可を求める画面を出さないようにするため
+- 確認は1日に1回。通信の前に時刻を書き、失敗しても次の間隔まで繰り返さない
+- 知らせるのはバージョンごとに1回。設定画面には、新しいバージョンがある間ずっとリンクを出す
+- 更新は、`@downloadURL` を新しいタブで開くだけ。入れ替えは UserScript の管理ツールが行う
+- ページごとに ON/OFF する機能ではないので、`features` の機能としては登録せず、起動の処理(`app/bootstrap.ts`)と設定画面に組み込む
 
 ### ヘッダーとフッター
 

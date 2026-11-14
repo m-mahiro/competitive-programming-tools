@@ -8,7 +8,7 @@ import {FeatureRuntime} from "@application/feature/runtime";
 import {SettingsService} from "@application/settings/settings-service";
 import {createSettingsPanel} from "@features/settings-panel/index";
 import {addNavigationEntry} from "@features/settings-panel/navigation-entry";
-import {createFakeServices, immediateLifecycle, MemoryStore, RecordingLogger} from "../support/fakes";
+import {createFakeServices, createFakeUpdates, FakeHttpClient, immediateLifecycle, MemoryStore, RecordingLogger} from "../support/fakes";
 
 const translate = createTranslator(() => "ja");
 
@@ -65,7 +65,7 @@ describe("設定画面", () => {
 		});
 		runtime.start();
 		await runtime.settled();
-		createSettingsPanel({features, settings, runtime, translate, version: "1.2.3"}).open();
+		createSettingsPanel({features, settings, runtime, translate, updates: createFakeUpdates()}).open();
 		const host = document.body.lastElementChild;
 		if (!host?.shadowRoot) throw new Error("設定画面が表示されていません");
 		return host.shadowRoot;
@@ -99,6 +99,48 @@ describe("設定画面", () => {
 		expect(query<HTMLDialogElement>(root, "dialog").open).toBe(true);
 	});
 
+	test("新しいバージョンがあれば入手先へのリンクを出し、確認のボタンで確かめ直す", async () => {
+		let latest = "1.2.3";
+		const http = new FakeHttpClient(() => ({status: 200, text: `// @version ${latest}\n`}));
+		const updates = createFakeUpdates({
+			host: {updateUrl: "https://updates.example/tool.meta.js", downloadUrl: "https://updates.example/tool.user.js"},
+			http,
+		});
+		const features = [liveFeature];
+		settings = new SettingsService(new MemoryStore());
+		runtime = new FeatureRuntime({
+			features,
+			page: matchPage(judges, "https://atcoder.jp/home"),
+			lifecycle: immediateLifecycle,
+			settings,
+			services: createFakeServices(),
+			logger: new RecordingLogger(),
+		});
+		createSettingsPanel({features, settings, runtime, translate, updates}).open();
+		const root = document.body.lastElementChild?.shadowRoot;
+		if (!root) throw new Error("設定画面が表示されていません");
+
+		// 開いただけでは通信しない
+		expect(http.requests).toEqual([]);
+		expect(root.querySelector(".footer-version a")).toBeNull();
+		const check = (): HTMLButtonElement => query<HTMLButtonElement>(root, ".footer-version button");
+		expect(check().textContent).toBe(translate("update.check"));
+
+		check().click();
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(query(root, ".footer-version").textContent).toContain(translate("update.upToDate"));
+
+		latest = "1.3.0";
+		check().click();
+		await Promise.resolve();
+		await Promise.resolve();
+		const link = query<HTMLAnchorElement>(root, ".footer-version a");
+		expect(link.textContent).toBe(`${translate("update.install")} v1.3.0`);
+		expect(link.href).toBe("https://updates.example/tool.user.js");
+		expect(link.target).toBe("_blank");
+	});
+
 	test("画面を作った後にページの言語が決まっても、開いた時点の言語で表示する", async () => {
 		// document-start の時点ではページの言語を読めず、ブラウザの言語になる
 		let locale: "ja" | "en" = "en";
@@ -117,7 +159,7 @@ describe("設定画面", () => {
 			settings,
 			runtime,
 			translate: createTranslator(() => locale),
-			version: "1.2.3",
+			updates: createFakeUpdates(),
 		});
 		locale = "ja";
 		panel.open();

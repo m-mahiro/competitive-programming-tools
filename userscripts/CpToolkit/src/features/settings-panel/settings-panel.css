@@ -96,7 +96,14 @@
 }
 
 .footer-version {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 	margin-left: auto;
 	color: var(--cp-text-muted);
 	font-size: 12px;
+}
+
+.footer-version a {
+	font-weight: bold;
 }

@@ -82,14 +82,15 @@ CP Toolkit の機能の出典をまとめます。各機能は元のスクリプ
 
 ### 実行環境
 
-| 機能             | 区分 | スクリプト                                                                | 作者       | ライセンス |
-|------------------|------|---------------------------------------------------------------------------|------------|------------|
-| Easy Test+       | 派生 | [AtCoder Easy Test v2](https://greasyfork.org/scripts/433152)             | magurofly  | MIT        |
-| Java の提出補助  | 移植 | Java Code Submitter                                                       | nsubaru    | MIT        |
-|                  | 参照 | [AtCoder_submit_keyboard_shortcut](https://greasyfork.org/scripts/378760) | Osmium1008 | MIT        |
-|                  | 参照 | [Atcoder Submission Shortcut](https://greasyfork.org/scripts/509606)      | Rac75116   | MIT        |
-| Local Runner     | 独自 |                                                                           |            |            |
-| paiza の言語選択 | 移植 | Paiza Language Selector                                                   | nsubaru    | MIT        |
+| 機能             | 区分 | スクリプト                                                                                      | 作者       | ライセンス |
+|------------------|------|-------------------------------------------------------------------------------------------------|------------|------------|
+| Easy Test+       | 派生 | [AtCoder Easy Test v2](https://greasyfork.org/scripts/433152)                                   | magurofly  | MIT        |
+| Java の提出補助  | 移植 | Java Code Submitter                                                                             | nsubaru    | MIT        |
+|                  | 参照 | [AtCoder_submit_keyboard_shortcut](https://greasyfork.org/scripts/378760)                       | Osmium1008 | MIT        |
+|                  | 参照 | [Atcoder Submission Shortcut](https://greasyfork.org/scripts/509606)                            | Rac75116   | MIT        |
+| Local Runner     | 独自 |                                                                                                 |            |            |
+| paiza の言語選択 | 移植 | Paiza Language Selector                                                                         | nsubaru    | MIT        |
+| 更新の確認       | 参照 | [AtCoder Easy Test v2](https://greasyfork.org/scripts/433152)(1日に1回の確認と、更新へのリンク) | magurofly  | MIT        |
 
 Paiza Language Selector に類似する公開スクリプトは見つかりませんでした。
 

@@ -12,6 +12,11 @@ settings.importFailed: The settings file could not be read.
 settings.reset: Reset to defaults
 settings.resetConfirm: All settings will be reset to their defaults. Continue?
 
+update.check: Check for updates
+update.install: Update to
+update.upToDate: Up to date
+update.notice: A new version is available. Click the link above to open the update page.
+
 status.disabled: "Off"
 status.outOfScope: Not on this page
 status.pending: Waiting

@@ -307,7 +307,9 @@ async function loadDataMeta(name: string): Promise<ScriptMeta> {
 	}
 	const runnersPath = join(scriptDir, name, "data", "runners.yaml");
 	const runners = Bun.YAML.parse(await readFile(runnersPath, "utf8")) as {connect?: string[]};
-	return {match: unique(match), connect: runners.connect ?? []};
+	const updatePath = join(scriptDir, name, "data", "update.yaml");
+	const update = Bun.YAML.parse(await readFile(updatePath, "utf8")) as {connect?: string[]};
+	return {match: unique(match), connect: unique([...(runners.connect ?? []), ...(update.connect ?? [])])};
 }
 
 /** 配布物に含める第三者の表記。1ファイルで配布するので、ライセンスの全文も含める。 */

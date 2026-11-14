@@ -2,18 +2,20 @@ import type {MessageKey, Translate} from "@catalog/messages";
 import type {Feature} from "@application/feature/definition";
 import type {FeatureRuntime} from "@application/feature/runtime";
 import type {SettingsService} from "@application/settings/settings-service";
+import type {UpdateChecker} from "@application/update/update-checker";
 import {createModal, type Modal} from "@ui/dialog/modal";
 import formCss from "@ui/form/form.css" with {type: "text"};
 import {h} from "@ui/element";
 import {createFeatureRow, type FeatureRow} from "./feature-row";
 import panelCss from "./settings-panel.css" with {type: "text"};
+import {createVersionStatus} from "./version-status";
 
 export type SettingsPanelDependencies = {
 	readonly features: readonly Feature[];
 	readonly settings: SettingsService;
 	readonly runtime: FeatureRuntime;
 	readonly translate: Translate;
-	readonly version: string;
+	readonly updates: UpdateChecker;
 };
 
 export type SettingsPanel = {
@@ -41,7 +43,7 @@ export function createSettingsPanel(dependencies: SettingsPanelDependencies): Se
 }
 
 function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel {
-	const {features, settings, runtime, translate, version} = dependencies;
+	const {features, settings, runtime, translate, updates} = dependencies;
 	const notice = h(
 		"div",
 		{className: "notice", hidden: true},
@@ -103,7 +105,7 @@ function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel
 				render();
 			}),
 			fileInput,
-			h("span", {className: "footer-version", textContent: `v${version}`}),
+			createVersionStatus(updates, translate),
 		];
 	};
 

@@ -21,6 +21,8 @@ Open the settings from "Open settings" in the Tampermonkey menu, or from "CP Too
 
 The interface follows the language of the site and is available in Japanese and English.
 
+When a newer version exists, a notice appears once in the corner of the page, and an "Update to" link appears at the bottom right of the settings. Opening the link shows the update page of Tampermonkey. "Check for updates" in the settings checks right away.
+
 ## 3. Supported sites
 
 <table>
@@ -245,6 +247,7 @@ This script sends nothing to the author's servers. Besides the site you are view
 - **Your Local Runner** (`http://localhost:8080` by default): Your code is sent to your own PC to transform and run it
 - **PaizaIO and Wandbox**: Your code and input are sent only when you choose them as the Easy Test+ environment. The script never switches to them automatically
 - **jsDelivr**: KaTeX and Prettify for editorial math and code, Pyodide for running Python in the browser, and AtCoder Library for C++ on Wandbox are fetched only when needed
+- **Where this script was installed from** (GitHub or Greasy Fork): once a day, only the header of the script is fetched to see whether a newer version exists. Nothing is sent
 
 KaTeX, Prettify, Pyodide and AtCoder Library are loaded at pinned versions. "Add to calendar" only places a link; the contest details reach Google when you open it.
 

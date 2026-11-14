@@ -74,6 +74,9 @@ describe("配布物", () => {
 		}
 		expect(metadata).toMatch(/@connect\s+localhost/);
 		expect(metadata).toMatch(/@connect\s+wandbox\.org/);
+		// 更新の確認の配布元。ここに無いと、Tampermonkey が接続の許可を求める
+		expect(metadata).toMatch(/@connect\s+raw\.githubusercontent\.com/);
+		expect(metadata).toMatch(/@connect\s+update\.greasyfork\.org/);
 		expect(metadata).toMatch(/@run-at\s+document-start/);
 		expect(metadata).toMatch(/@noframes\n/);
 	});

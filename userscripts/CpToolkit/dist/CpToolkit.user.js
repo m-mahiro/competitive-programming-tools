@@ -2,7 +2,7 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        2.0.0
+// @version        2.1.0
 // @description    競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
 // @description:en A toolkit of competitive programming helpers that can be switched on and off individually.
 // @description:ja 競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
@@ -35,6 +35,8 @@
 // @connect        api.paiza.io
 // @connect        wandbox.org
 // @connect        cdn.jsdelivr.net
+// @connect        raw.githubusercontent.com
+// @connect        update.greasyfork.org
 // @run-at         document-start
 // @icon           https://atcoder.jp/favicon.ico
 // @noframes
@@ -966,1470 +968,139 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		}
 	}
 
-	// CpToolkit/src/adapters/console-logger.ts
-	class ConsoleLogger {
-		prefix;
+	// CpToolkit/src/domain/update/version.ts
+	function parseVersion(text) {
+		return /^\d+(\.\d+)*$/.test(text) ? text.split(".").map(Number) : null;
+	}
 
-		constructor(prefix) {
-			this.prefix = prefix;
+	function isNewerVersion(latest, current) {
+		const left = parseVersion(latest);
+		const right = parseVersion(current);
+		if (left === null || right === null) return false;
+		for (let index = 0; index < Math.max(left.length, right.length); index++) {
+			const difference = (left[index] ?? 0) - (right[index] ?? 0);
+			if (difference !== 0) return difference > 0;
+		}
+		return false;
+	}
+
+	function readMetadataValue(metadata, key) {
+		for (const line of metadata.split(`
+`)) {
+			const match = /^\s*\/\/\s*@(\S+)\s+(.*?)\s*$/.exec(line);
+			if (match && match[1] === key && match[2] !== "") return match[2];
+		}
+		return null;
+	}
+
+	function httpsHostOf(url) {
+		return /^https:\/\/([^/:?#@]+)(?=[/:?#]|$)/i.exec(url)?.[1]?.toLowerCase() ?? null;
+	}
+
+	// CpToolkit/src/domain/validation/guards.ts
+	var isBoolean = (value) => typeof value === "boolean";
+	var isString = (value) => typeof value === "string";
+	var isNumber = (value) => typeof value === "number";
+
+	function isPlainObject(value) {
+		return typeof value === "object" && value !== null && !Array.isArray(value);
+	}
+
+	function isArrayOf(isItem) {
+		return (value) => Array.isArray(value) && value.every(isItem);
+	}
+
+	function isRecordOf(isItem) {
+		return (value) => isPlainObject(value) && Object.values(value).every(isItem);
+	}
+
+	function isOptional(isItem) {
+		return (value) => value === undefined || isItem(value);
+	}
+
+	function isObjectOf(fields) {
+		const entries = Object.entries(fields);
+		return (value) => isPlainObject(value) && entries.every(([key, isField]) => isField(value[key]));
+	}
+
+	// CpToolkit/src/application/ports/key-value-store.ts
+	function readStored(store, key, isValid, fallback) {
+		const value = store.get(key);
+		return isValid(value) ? value : fallback;
+	}
+
+	// CpToolkit/src/application/update/update-checker.ts
+	var STATE_KEY = "update:state";
+	var HOUR_MS = 60 * 60 * 1000;
+	var REQUEST_TIMEOUT_MS = 1e4;
+	var HEADER_RANGE = "bytes=0-8191";
+	var isStored = isObjectOf({latest: isString, checkedAt: isNumber, notified: isString});
+	var EMPTY = {latest: "", checkedAt: 0, notified: ""};
+
+	class UpdateChecker {
+		dependencies;
+
+		constructor(dependencies) {
+			this.dependencies = dependencies;
 		}
 
-		error(message, cause) {
-			console.error(`[${this.prefix}] ${message}`, cause);
-		}
-	}
-
-	// CpToolkit/src/adapters/page/document-lifecycle.ts
-	function waitForEvent(target, eventName) {
-		return new Promise((resolve) => target.addEventListener(eventName, () => resolve(), {once: true}));
-	}
-
-	class DocumentLifecycle {
-		async reach(phase) {
-			if (phase === "ready" && document.readyState === "loading") {
-				await waitForEvent(document, "DOMContentLoaded");
-				await sleep(0);
-			}
-			if (phase === "load" && document.readyState !== "complete") {
-				await waitForEvent(window, "load");
-			}
-		}
-	}
-
-	// CpToolkit/src/adapters/page/local-storage-legacy-inbox.ts
-	var KEY_PREFIX = "cp-toolkit:legacy:";
-
-	class LocalStorageLegacyInbox {
-		take(scriptId) {
-			const key = KEY_PREFIX + scriptId;
-			const value = localStorage.getItem(key);
-			if (value === null) return;
-			localStorage.removeItem(key);
-			return safeJsonParse(value, undefined);
-		}
-	}
-
-	// CpToolkit/src/adapters/userscript/gm-key-value-store.ts
-	class GmKeyValueStore {
-		get(key) {
-			return GM_getValue(key);
-		}
-
-		set(key, value) {
-			GM_setValue(key, value);
-		}
-
-		subscribeRemote(key, listener) {
-			const id = GM_addValueChangeListener(key, (_name, _oldValue, newValue, remote) => {
-				if (remote) listener(newValue);
-			});
-			return () => GM_removeValueChangeListener(id);
-		}
-	}
-
-	// CpToolkit/src/adapters/userscript/gm-script-host.ts
-	class GmScriptHost {
-		name = GM_info.script.name;
-		version = GM_info.script.version;
-
-		registerCommand(label, action) {
-			GM_registerMenuCommand(label, action);
-		}
-	}
-
-	// CpToolkit/src/ui/element.ts
-	function h(tagName, props, ...children) {
-		const element = document.createElement(tagName);
-		Object.assign(element, props);
-		element.append(...children);
-		return element;
-	}
-
-	function injectStyle(css) {
-		const style = h("style", {textContent: css});
-		(document.head ?? document.documentElement).append(style);
-		return style;
-	}
-
-	// CpToolkit/src/ui/theme.css
-	var theme_default = `:host {
-	--cp-surface: #ffffff;
-	--cp-surface-muted: #f6f8fa;
-	--cp-text: #1f2328;
-	--cp-text-muted: #59636e;
-	--cp-border: #d0d7de;
-	--cp-accent: #0969da;
-	--cp-on-accent: #ffffff;
-	--cp-success: #1a7f37;
-	--cp-danger: #cf222e;
-	--cp-notice-surface: #fff8c5;
-	--cp-notice-text: #6c5400;
-	font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
-	color: var(--cp-text);
-}
-
-@media (prefers-color-scheme: dark) {
-	:host {
-		--cp-surface: #1c2128;
-		--cp-surface-muted: #262c36;
-		--cp-text: #e6edf3;
-		--cp-text-muted: #9198a1;
-		--cp-border: #3d444d;
-		--cp-accent: #4493f8;
-		--cp-on-accent: #0d1117;
-		--cp-success: #3fb950;
-		--cp-danger: #f85149;
-		--cp-notice-surface: #3a2f0b;
-		--cp-notice-text: #e3b341;
-	}
-}
-
-*, *::before, *::after {
-	box-sizing: border-box;
-}
-
-/* display を指定した要素でも hidden を優先する */
-[hidden] {
-	display: none !important;
-}
-
-button {
-	padding: 4px 12px;
-	border: 1px solid var(--cp-border);
-	border-radius: 6px;
-	background: var(--cp-surface-muted);
-	color: var(--cp-text);
-	font: inherit;
-	cursor: pointer;
-}
-
-button:hover {
-	border-color: var(--cp-text-muted);
-}
-
-:focus-visible {
-	outline: 2px solid var(--cp-accent);
-	outline-offset: 1px;
-}
-`;
-
-	// CpToolkit/src/ui/dialog/modal.css
-	var modal_default = `dialog {
-	width: min(640px, calc(100vw - 32px));
-	max-height: calc(100vh - 64px);
-	padding: 0;
-	border: 1px solid var(--cp-border);
-	border-radius: 12px;
-	background: var(--cp-surface);
-	color: var(--cp-text);
-	overflow: hidden;
-}
-
-dialog[open] {
-	display: flex;
-	flex-direction: column;
-}
-
-dialog::backdrop {
-	background: rgb(0 0 0 / 45%);
-}
-
-.modal-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 16px;
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--cp-border);
-}
-
-.modal-header h2 {
-	margin: 0;
-	font-size: 16px;
-	font-weight: 600;
-}
-
-.modal-body {
-	flex: 1;
-	min-height: 0;
-	padding: 16px;
-	overflow-y: auto;
-}
-
-.modal-footer {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px;
-	padding: 12px 16px;
-	border-top: 1px solid var(--cp-border);
-}
-`;
-
-	// CpToolkit/src/ui/dialog/modal.ts
-	function createModal({title, closeLabel, css}) {
-		const body = h("div", {className: "modal-body"});
-		const footer = h("footer", {className: "modal-footer"});
-		const closeButton = h("button", {type: "button", textContent: closeLabel});
-		const dialog = h(
-			"dialog",
-			{},
-			h("header", {className: "modal-header"}, h("h2", {textContent: title}), closeButton),
-			body,
-			footer,
-		);
-		closeButton.addEventListener("click", () => dialog.close());
-		dialog.addEventListener("click", (event) => {
-			if (event.target === dialog) dialog.close();
-		});
-		const host = h("div");
-		host.attachShadow({mode: "open"}).append(
-			h("style", {
-				textContent: `${theme_default}
-${modal_default}
-${css}`,
-			}),
-			dialog,
-		);
-		return {
-			body,
-			footer,
-			open() {
-				if (!host.isConnected) document.body.append(host);
-				if (!dialog.open) dialog.showModal();
-			},
-			close: () => dialog.close(),
-		};
-	}
-
-	// CpToolkit/src/ui/form/form.css
-	var form_default = `.switch {
-	position: relative;
-	display: inline-flex;
-	flex: none;
-	width: 36px;
-	height: 20px;
-}
-
-.switch input {
-	position: absolute;
-	inset: 0;
-	margin: 0;
-	opacity: 0;
-	cursor: pointer;
-}
-
-.switch span {
-	width: 100%;
-	border-radius: 10px;
-	background: var(--cp-border);
-	transition: background 120ms;
-}
-
-.switch span::after {
-	content: "";
-	position: absolute;
-	top: 2px;
-	left: 2px;
-	width: 16px;
-	height: 16px;
-	border-radius: 50%;
-	background: var(--cp-surface);
-	transition: transform 120ms;
-}
-
-.switch input:checked + span {
-	background: var(--cp-accent);
-}
-
-.switch input:checked + span::after {
-	transform: translateX(16px);
-}
-
-.switch input:focus-visible + span {
-	outline: 2px solid var(--cp-accent);
-	outline-offset: 2px;
-}
-
-.field {
-	display: grid;
-	gap: 4px;
-}
-
-.field-label {
-	color: var(--cp-text-muted);
-	font-size: 13px;
-}
-
-.field input:not([type="checkbox"], [type="color"]),
-.field select {
-	width: 100%;
-	padding: 4px 8px;
-	border: 1px solid var(--cp-border);
-	border-radius: 6px;
-	background: var(--cp-surface);
-	color: var(--cp-text);
-	font: inherit;
-}
-
-.field input[aria-invalid="true"] {
-	border-color: var(--cp-danger);
-}
-
-.field-error {
-	color: var(--cp-danger);
-	font-size: 12px;
-}
-`;
-
-	// CpToolkit/src/domain/settings/option.ts
-	var SHORT_HEX_COLOR_PATTERN = /^#[0-9a-f]{3}$/;
-	var HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/;
-
-	function normalizeColor(value) {
-		if (typeof value !== "string") return;
-		const color = value.trim().toLowerCase();
-		if (HEX_COLOR_PATTERN.test(color)) return color;
-		if (!SHORT_HEX_COLOR_PATTERN.test(color)) return;
-		return `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`;
-	}
-
-	var option = {
-		boolean(defaultValue, label) {
+		status() {
+			const {host} = this.dependencies;
+			const {latest} = this.stored();
+			const newer = isNewerVersion(latest, host.version);
 			return {
-				kind: "boolean",
-				defaultValue,
-				label,
-				normalize: (value) => (typeof value === "boolean" ? value : undefined),
+				current: host.version,
+				latest: newer ? latest : null,
+				downloadUrl: newer ? host.downloadUrl : null,
+				supported: this.checkUrl() !== null,
 			};
-		},
-		text(defaultValue, label, {validate, invalidMessage} = {}) {
-			return {
-				kind: "text",
-				defaultValue,
-				label,
-				...(invalidMessage !== undefined && {invalidMessage}),
-				normalize(value) {
-					if (typeof value !== "string") return;
-					const text = value.trim();
-					return !validate || validate(text) ? text : undefined;
-				},
-			};
-		},
-		color(defaultValue, label) {
-			return {kind: "color", defaultValue, label, normalize: normalizeColor};
-		},
-		number(defaultValue, label, {min = -Infinity, max = Infinity} = {}) {
-			return {
-				kind: "number",
-				defaultValue,
-				label,
-				min,
-				max,
-				normalize: (value) => (typeof value === "number" && value >= min && value <= max ? value : undefined),
-			};
-		},
-		select(defaultValue, label, choices) {
-			return {
-				kind: "select",
-				defaultValue,
-				label,
-				choices,
-				normalize: (value) => choices.find((choice) => choice.value === value)?.value,
-			};
-		},
-	};
-
-	function normalizeOptions(schema, stored) {
-		const source = parseStoredObject(stored);
-		const entries = Object.entries(schema).map(([key, definition]) => {
-			return [key, definition.normalize(source[key]) ?? definition.defaultValue];
-		});
-		return Object.fromEntries(entries);
-	}
-
-	// CpToolkit/src/ui/form/controls.ts
-	function createSwitch(accessibleName, onChange) {
-		const input = h("input", {type: "checkbox", ariaLabel: accessibleName});
-		input.setAttribute("role", "switch");
-		input.addEventListener("change", () => onChange(input.checked));
-		return {
-			element: h("label", {className: "switch"}, input, h("span")),
-			setChecked(checked) {
-				input.checked = checked;
-			},
-		};
-	}
-
-	function createField(label, control, errorMessage) {
-		const error = h("span", {className: "field-error", textContent: errorMessage, hidden: true});
-		return {
-			element: h(
-				"label",
-				{className: "field"},
-				h("span", {
-					className: "field-label",
-					textContent: label,
-				}),
-				control,
-				error,
-			),
-			setInvalid(invalid) {
-				control.setAttribute("aria-invalid", String(invalid));
-				error.hidden = !invalid;
-			},
-		};
-	}
-
-	// CpToolkit/src/features/settings-panel/option-field.ts
-	function createControl(definition, value, translate, {validate, commit}) {
-		switch (definition.kind) {
-			case "boolean": {
-				const input = h("input", {type: "checkbox", checked: value === true});
-				input.addEventListener("change", () => commit(input.checked));
-				return input;
-			}
-			case "number": {
-				const input = h("input", {type: "number", value: String(value)});
-				if (definition.min !== undefined) input.min = String(definition.min);
-				if (definition.max !== undefined) input.max = String(definition.max);
-				input.addEventListener("input", () => validate(input.valueAsNumber));
-				input.addEventListener("change", () => commit(input.valueAsNumber));
-				return input;
-			}
-			case "select": {
-				const select = h(
-					"select",
-					{},
-					...definition.choices.map((choice) => {
-						return h("option", {value: choice.value, textContent: translate(choice.label)});
-					}),
-				);
-				select.value = String(value);
-				select.addEventListener("change", () => commit(select.value));
-				return select;
-			}
-			case "color":
-			case "text": {
-				const input = h("input", {type: definition.kind, value: String(value)});
-				input.addEventListener("input", () => validate(input.value));
-				input.addEventListener("change", () => commit(input.value));
-				return input;
-			}
 		}
-	}
 
-	function createOptionField({definition, value, translate, onChange}) {
-		const check = (rawValue) => {
-			const normalized = definition.normalize(rawValue);
-			field.setInvalid(normalized === undefined);
-			return normalized;
-		};
-		const control = createControl(definition, value, translate, {
-			validate: check,
-			commit(rawValue) {
-				const normalized = check(rawValue);
-				if (normalized !== undefined) onChange(normalized);
-			},
-		});
-		const invalidMessage = translate(definition.invalidMessage ?? "settings.invalidValue");
-		const field = createField(translate(definition.label), control, invalidMessage);
-		return field.element;
-	}
-
-	// CpToolkit/src/features/settings-panel/feature-row.ts
-	var STATUS_MESSAGES = {
-		disabled: "status.disabled",
-		outOfScope: "status.outOfScope",
-		pending: "status.pending",
-		running: "status.running",
-		reloadRequired: "status.reloadRequired",
-		failed: "status.failed",
-	};
-
-	function createOptionsSection({feature, settings, translate}) {
-		const definitions = Object.entries(feature.options);
-		if (definitions.length === 0) return null;
-		const values = normalizeOptions(feature.options, settings.storedOptions(feature.id));
-		const fields = definitions.map(([key, definition]) =>
-			createOptionField({
-				definition,
-				value: values[key],
-				translate,
-				onChange: (value) => settings.setOption(feature.id, key, value),
-			}),
-		);
-		return h(
-			"details",
-			{className: "feature-options"},
-			h("summary", {textContent: translate("settings.options")}),
-			h("div", {className: "feature-fields"}, ...fields),
-		);
-	}
-
-	function createFeatureRow(params) {
-		const {feature, settings, runtime, translate} = params;
-		const title = translate(feature.title);
-		const toggle = createSwitch(title, (enabled) => settings.setEnabled(feature.id, enabled));
-		const statusLabel = h("span", {className: "status"});
-		const summary = h(
-			"div",
-			{className: "feature-summary"},
-			h(
-				"div",
-				{className: "feature-text"},
-				h("div", {className: "feature-title", textContent: title}),
-				h("div", {
-					className: "feature-description",
-					textContent: translate(feature.description),
-				}),
-			),
-			statusLabel,
-			toggle.element,
-		);
-		const optionsSection = createOptionsSection(params);
-		const element = h("article", {className: "feature"}, summary);
-		if (optionsSection) element.append(optionsSection);
-		const status = () => runtime.statusOf(feature.id);
-		return {
-			element,
-			status,
-			refresh() {
-				const current = status();
-				statusLabel.textContent = translate(STATUS_MESSAGES[current.state]);
-				statusLabel.dataset.state = current.state;
-				statusLabel.title = current.state === "failed" ? current.message : "";
-				toggle.setChecked(settings.isEnabled(feature.id, feature.defaultEnabled));
-			},
-		};
-	}
-
-	// CpToolkit/src/features/settings-panel/settings-panel.css
-	var settings_panel_default = `.notice {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	margin-bottom: 16px;
-	padding: 8px 12px;
-	border-radius: 8px;
-	background: var(--cp-notice-surface);
-	color: var(--cp-notice-text);
-}
-
-.error {
-	margin: 0 0 16px;
-	color: var(--cp-danger);
-}
-
-.empty {
-	margin: 0;
-	color: var(--cp-text-muted);
-}
-
-.category + .category {
-	margin-top: 20px;
-}
-
-.category h3 {
-	margin: 0 0 8px;
-	color: var(--cp-text-muted);
-	font-size: 13px;
-	font-weight: 600;
-}
-
-.feature {
-	border: 1px solid var(--cp-border);
-	border-radius: 8px;
-}
-
-.feature + .feature {
-	margin-top: 8px;
-}
-
-.feature-summary {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 10px 12px;
-}
-
-.feature-text {
-	flex: 1;
-	min-width: 0;
-}
-
-.feature-title {
-	font-weight: 600;
-}
-
-.feature-description {
-	color: var(--cp-text-muted);
-	font-size: 13px;
-}
-
-.status {
-	flex: none;
-	color: var(--cp-text-muted);
-	font-size: 12px;
-}
-
-.status[data-state="running"] {
-	color: var(--cp-success);
-}
-
-.status[data-state="failed"] {
-	color: var(--cp-danger);
-}
-
-.status[data-state="reloadRequired"] {
-	color: var(--cp-notice-text);
-}
-
-.feature-options {
-	padding: 0 12px 10px;
-}
-
-.feature-options summary {
-	color: var(--cp-text-muted);
-	font-size: 13px;
-	cursor: pointer;
-}
-
-.feature-fields {
-	display: grid;
-	gap: 12px;
-	margin-top: 8px;
-}
-
-.footer-version {
-	margin-left: auto;
-	color: var(--cp-text-muted);
-	font-size: 12px;
-}
-`;
-
-	// CpToolkit/src/features/settings-panel/index.ts
-	function downloadText(fileName, text) {
-		const url = URL.createObjectURL(new Blob([text], {type: "application/json"}));
-		h("a", {href: url, download: fileName}).click();
-		URL.revokeObjectURL(url);
-	}
-
-	function createSettingsPanel(dependencies) {
-		let view = null;
-		return {
-			open() {
-				view ??= createPanelView(dependencies);
-				view.open();
-			},
-		};
-	}
-
-	function createPanelView(dependencies) {
-		const {features, settings, runtime, translate, version} = dependencies;
-		const notice = h(
-			"div",
-			{className: "notice", hidden: true},
-			h("span", {textContent: translate("settings.reloadNotice")}),
-			h("button", {type: "button", textContent: translate("settings.reload"), onclick: () => location.reload()}),
-		);
-		const importError = h("p", {className: "error", textContent: translate("settings.importFailed"), hidden: true});
-		const content = h("div");
-		let rows = [];
-		let modal = null;
-		const refresh = () => {
-			for (const row of rows) row.refresh();
-			notice.hidden = !rows.some((row) => row.status().state === "reloadRequired");
-		};
-		const render = () => {
-			rows = [];
-			const sections = [...Map.groupBy(features, ({category}) => category)].map(([category, members]) => {
-				const memberRows = members.map((feature) => createFeatureRow({feature, settings, runtime, translate}));
-				rows.push(...memberRows);
-				return h(
-					"section",
-					{className: "category"},
-					h("h3", {textContent: translate(category)}),
-					...memberRows.map((row) => row.element),
-				);
-			});
-			content.replaceChildren(...sections);
-			if (features.length === 0) {
-				content.append(h("p", {className: "empty", textContent: translate("settings.empty")}));
+		async check(now, force = false) {
+			const url = this.checkUrl();
+			const stored = this.stored();
+			const due = now - stored.checkedAt >= this.dependencies.intervalHours * HOUR_MS;
+			if (url === null || (!force && !due)) return this.status();
+			this.save({...stored, checkedAt: now});
+			try {
+				const response = await this.dependencies.http.send({
+					url,
+					headers: {Range: HEADER_RANGE},
+					timeoutMs: REQUEST_TIMEOUT_MS,
+				});
+				const version =
+					response.status === 200 || response.status === 206
+						? readMetadataValue(response.text, "version")
+						: null;
+				if (version !== null) this.save({...this.stored(), latest: version});
+			} catch {
 			}
-			refresh();
-		};
-		const importFile = async (file) => {
-			const imported = settings.importJson(await file.text());
-			importError.hidden = imported;
-			if (imported) render();
-		};
-		const createFooter = () => {
-			const fileInput = h("input", {type: "file", accept: "application/json,.json", hidden: true});
-			fileInput.addEventListener("change", () => {
-				const file = fileInput.files?.[0];
-				fileInput.value = "";
-				if (file) importFile(file);
-			});
-			const button = (label, onclick) => {
-				return h("button", {type: "button", textContent: translate(label), onclick});
-			};
-			return [
-				button("settings.export", () => downloadText("cp-toolkit-settings.json", settings.exportJson())),
-				button("settings.import", () => fileInput.click()),
-				button("settings.reset", () => {
-					if (!window.confirm(translate("settings.resetConfirm"))) return;
-					settings.reset();
-					importError.hidden = true;
-					render();
-				}),
-				fileInput,
-				h("span", {className: "footer-version", textContent: `v${version}`}),
-			];
-		};
-		const createPanelModal = () => {
-			const created = createModal({
-				title: translate("settings.title"),
-				closeLabel: translate("settings.close"),
-				css: `${form_default}
-${settings_panel_default}`,
-			});
-			created.body.append(notice, importError, content);
-			created.footer.append(...createFooter());
-			settings.subscribe(refresh);
-			runtime.subscribe(refresh);
-			return created;
-		};
-		return {
-			open() {
-				modal ??= createPanelModal();
-				render();
-				modal.open();
-			},
-		};
-	}
+			return this.status();
+		}
 
-	// CpToolkit/src/features/settings-panel/navigation-entry.css
-	var navigation_entry_default = `/* サイトのメニューに紛れないよう、黒と白のどちらのヘッダーでも目立つ色にする。
-   ヘッダーの高さを変えないよう、文字の行の高さ(20px)に収める */
-.cp-settings-entry {
-	display: inline-block;
-	padding: 0 8px;
-	border-radius: 999px;
-	background: #0969da;
-	color: #fff !important;
-	font-size: 12px;
-	font-weight: 600;
-	line-height: 20px;
-	vertical-align: top;
-	white-space: nowrap;
-}
+		claimNotification() {
+			const {latest} = this.status();
+			const stored = this.stored();
+			if (latest === null || stored.notified === latest) return false;
+			this.save({...stored, notified: latest});
+			return true;
+		}
 
-.cp-settings-entry::before {
-	content: "\\2699\\FE0E";
-	margin-right: 4px;
-}
+		checkUrl() {
+			const {host, allowedHosts} = this.dependencies;
+			const url = host.updateUrl ?? host.downloadUrl;
+			if (url === null) return null;
+			const urlHost = httpsHostOf(url);
+			return urlHost !== null && allowedHosts.includes(urlHost) ? url : null;
+		}
 
-a:hover > .cp-settings-entry,
-a:focus > .cp-settings-entry {
-	background: #0550ae;
-}
+		stored() {
+			return readStored(this.dependencies.state, STATE_KEY, isStored, EMPTY);
+		}
 
-/* コンテストのページのヘッダーは、項目を足すと幅の狭い画面で2段になり、固定されたヘッダーが本文のメニューを隠す。
-   1段に保つため、足りない幅はコンテスト名を省略して詰める */
-@media (min-width: 768px) {
-	#navbar-collapse.collapse {
-		display: flex !important;
-	}
-
-	#navbar-collapse > .navbar-nav {
-		display: flex;
-		float: none;
-		flex-shrink: 0;
-	}
-
-	#navbar-collapse > .navbar-nav:not(.navbar-right) {
-		flex-shrink: 1;
-		min-width: 0;
-	}
-
-	#navbar-collapse > .navbar-nav > li {
-		float: none;
-		flex-shrink: 0;
-	}
-
-	#navbar-collapse > .navbar-nav > li > a {
-		white-space: nowrap;
-	}
-
-	#navbar-collapse > .navbar-nav > li:has(> .contest-title) {
-		flex-shrink: 1;
-		min-width: 0;
-	}
-
-	#navbar-collapse .contest-title {
-		max-width: 100%;
-	}
-
-	#navbar-collapse > .navbar-right {
-		margin-left: auto;
-	}
-}
-
-/* トップページなどのヘッダーは、幅 1023px 以下で文字と項目の幅が画面幅に比例し、タブレットほどの幅では大きくなりすぎる。
-   文字に上限を設け、項目の幅は中身に合わせて1行に収める */
-@media (min-width: 640px) and (max-width: 1023px) {
-	#header .header-sub_page li a {
-		width: auto;
-		padding-right: 10px;
-		padding-left: 10px;
-		font-size: min(3vw, 16px);
-		white-space: nowrap;
-	}
-}
-`;
-
-	// CpToolkit/src/features/settings-panel/navigation-entry.ts
-	function addNavigationEntry(listSelectors, label, onOpen) {
-		const list = listSelectors
-			.map((selector) => document.querySelector(selector))
-			.find((element) => element !== null);
-		if (!list) return;
-		injectStyle(navigation_entry_default);
-		const link = h("a", {href: "#"}, h("span", {className: "cp-settings-entry", textContent: label}));
-		link.addEventListener("click", (event) => {
-			event.preventDefault();
-			onOpen();
-		});
-		list.append(h("li", {}, link));
-	}
-
-	// CpToolkit/data/judges/aoj.yaml
-	var aoj_default = {
-		id: "aoj",
-		name: "AIZU ONLINE JUDGE",
-		matches: ["https://onlinejudge.u-aizu.ac.jp/*"],
-		routes: {
-			page: "^/",
-		},
-		navigationLists: [],
-		submission: {
-			editor: "ace",
-			editorElements: ["#editor", "#editor-div"],
-			shortcut: "Ctrl+Enter",
-			submitButtons: [".editorFooter .submitBtn", "#submit_button"],
-		},
-	};
-	// CpToolkit/data/judges/atcoder.yaml
-	var atcoder_default = {
-		id: "atcoder",
-		name: "AtCoder",
-		matches: ["https://atcoder.jp/*"],
-		routes: {
-			page: "^/[^?]",
-			home: "^/(\\?|$)",
-			contest: "^/contests/(?!archive)[^/?#]+",
-			tasks: "^/contests/[^/]+/tasks/?(\\?|$)",
-			task: "^/contests/[^/]+/tasks/[^/?#]+",
-			tasksPrint: "^/contests/[^/]+/tasks_print",
-			tessokuTasks: "^/contests/tessoku-book/tasks/?(\\?|$)",
-			submit: "^/contests/[^/]+/submit",
-			customTest: "^/contests/[^/]+/custom_test",
-			submissions: "^/contests/[^/]+/submissions(/me)?/?(\\?|$)",
-			submissionDetail: "^/contests/[^/]+/submissions/\\d+",
-			editorial: "^/contests/[^/]+/(tasks/[^/?#]+/)?editorial/?(\\?|$)",
-			virtual: "^/contests/[^/]+/virtual/?(\\?|$)",
-			user: "^/users/[^/?#]+/?(\\?(?!.*graph=(rank|dist)).*)?$",
-		},
-		navigationLists: ["#navbar-collapse .navbar-right", "#header .header-page"],
-		submission: {
-			editor: "ace",
-			editorElements: ["#editor"],
-			shortcut: "Ctrl+Shift+Enter",
-			submitButtons: ["#submit"],
-		},
-		samples: [
-			{
-				selector: "#task-statement p+pre.literal-block",
-				container: ".section",
-			},
-			{
-				selector: "#task-statement pre.source-code-for-copy",
-				container: ".part",
-			},
-			{
-				selector: "#task-statement .lang>*:nth-child(1) .div-btn-copy+pre",
-				container: ".part",
-			},
-			{
-				selector: "#task-statement .div-btn-copy+pre",
-				container: ".part",
-			},
-			{
-				selector: "#task-statement>.part pre.linenums",
-				container: ".part",
-			},
-			{
-				selector: "#task-statement>.part section>pre",
-				container: ".part",
-			},
-			{
-				selector: "#task-statement>.part:not(.io-style)>h3+section>pre",
-				container: ".part",
-			},
-			{
-				selector: "#task-statement pre",
-				container: ".part",
-			},
-			{
-				selector: "#task-statement .div-btn-copy+pre",
-				container: ".part",
-				insideIoStyle: true,
-			},
-		],
-	};
-	// CpToolkit/data/judges/codeforces.yaml
-	var codeforces_default = {
-		id: "codeforces",
-		name: "Codeforces",
-		matches: [
-			"https://codeforces.com/*",
-			"https://*.contest.codeforces.com/*",
-			"https://m1.codeforces.com/*",
-			"https://m2.codeforces.com/*",
-			"https://m3.codeforces.com/*",
-		],
-		routes: {
-			page: "^/",
-			problem:
-				"^/(contest/[^/]+/problem|gym/[^/]+/problem|problemset/problem|group/[^/]+/contest/[^/]+/problem)/",
-		},
-		navigationLists: [],
-		submission: {
-			editor: "ace",
-			editorElements: ["#editor"],
-			shortcut: "Ctrl+Shift+Enter",
-			submitButtons: [".submit-form .submit", ".submitForm .submit", 'input[type="submit"].submit'],
-		},
-	};
-	// CpToolkit/data/judges/library-checker.yaml
-	var library_checker_default = {
-		id: "libraryChecker",
-		name: "Library Checker",
-		matches: ["https://judge.yosupo.jp/problem/*"],
-		routes: {
-			page: "^/problem/",
-		},
-		navigationLists: [],
-		submission: {
-			editor: "monaco",
-			editorElements: [],
-			shortcut: "Ctrl+Shift+Alt+Enter",
-			submitButtons: [],
-			labeledSubmit: {
-				selector: 'form button[type="submit"], form input[type="submit"]',
-				labels: ["提出", "submit"],
-			},
-		},
-	};
-	// CpToolkit/data/judges/paiza.yaml
-	var paiza_default = {
-		id: "paiza",
-		name: "paiza",
-		matches: ["https://paiza.jp/*"],
-		routes: {
-			page: "^/",
-		},
-		navigationLists: [],
-		submission: {
-			editor: "ace",
-			editorElements: ["#editor-div", "#editor"],
-			shortcut: "Ctrl+Enter",
-			submitButtons: ["#handin", '[onclick*="hand_in_code"]'],
-			labeledSubmit: {
-				selector: 'a, button, input[type="button"], input[type="submit"]',
-				labels: ["コードを提出する", "提出する", "提出"],
-			},
-		},
-		languageSelect: {
-			selects: ["#language_id", 'select[name="language[id]"]'],
-			hiddenFields: ["programming_language_id", "submit_programming_language_id"],
-		},
-	};
-	// CpToolkit/data/judges/yukicoder.yaml
-	var yukicoder_default = {
-		id: "yukicoder",
-		name: "yukicoder",
-		matches: ["https://yukicoder.me/problems/*"],
-		routes: {
-			problem: "^/problems/",
-		},
-		navigationLists: [],
-	};
-
-	// CpToolkit/src/catalog/judges.ts
-	var judges = [
-		atcoder_default,
-		codeforces_default,
-		yukicoder_default,
-		aoj_default,
-		library_checker_default,
-		paiza_default,
-	];
-	var atcoderSampleSelectors = atcoder_default.samples;
-	var paizaLanguageSelect = paiza_default.languageSelect;
-
-	// CpToolkit/data/i18n/en.yaml
-	var en_default = {
-		"settings.open": "Open settings",
-		"settings.title": "CP Toolkit settings",
-		"settings.close": "Close",
-		"settings.empty": "No features are available.",
-		"settings.options": "Options",
-		"settings.invalidValue": "This value is not valid.",
-		"settings.reloadNotice": "Reload the page to apply your changes.",
-		"settings.reload": "Reload",
-		"settings.export": "Export settings",
-		"settings.import": "Import settings",
-		"settings.importFailed": "The settings file could not be read.",
-		"settings.reset": "Reset to defaults",
-		"settings.resetConfirm": "All settings will be reset to their defaults. Continue?",
-		"status.disabled": "Off",
-		"status.outOfScope": "Not on this page",
-		"status.pending": "Waiting",
-		"status.running": "Running",
-		"status.reloadRequired": "Reload to apply",
-		"status.failed": "Failed to start",
-		"category.layout": "Layout",
-		"category.statement": "Statement",
-		"category.submission": "Submissions",
-		"category.contest": "Contest",
-		"category.rating": "Results",
-		"category.execution": "Execution",
-		"wideLayout.title": "Wider page",
-		"wideLayout.description": "Widens the central column of the page to the specified width.",
-		"wideLayout.width": "Width (e.g. 75%, 1200px; empty for the original width; 75% recommended)",
-		"hoverMenu.title": "Open menus on hover",
-		"hoverMenu.description": "Opens menus when the pointer moves over them.",
-		"statementHighlight.title": "Statement highlighting",
-		"statementHighlight.description": "Highlights numbers, variables, and the time and memory limits.",
-		"statementHighlight.numberColor": "Number color",
-		"statementHighlight.variableColor": "Variable color",
-		"statementHighlight.timeColor": "Time limit color",
-		"statementHighlight.memoryColor": "Memory limit color",
-		"statementHighlight.alwaysEmphasizeLimits": "Also emphasize limits of 2 sec and 1024 MiB",
-		"statementCopy.title": "Copy statement",
-		"statementCopy.description": "Adds buttons that copy each section or the whole statement.",
-		"statementCopy.format": "Copy format",
-		"statementCopy.formatMarkdown": "Markdown",
-		"statementCopy.formatPlain": "Plain text",
-		"statementCopy.copy": "Copy",
-		"statementCopy.copyAll": "Copy All",
-		"statementCopy.copied": "Copied!",
-		"statementCopy.defaultTitle": "Task",
-		"efficientLayout.title": "Side-by-side samples",
-		"efficientLayout.description": "Places the input and output formats and samples side by side.",
-		"efficientLayout.widthMode": "How to size each sample pair",
-		"efficientLayout.widthModeAuto": "Auto (fit the content)",
-		"efficientLayout.widthModeFixed": "Fixed",
-		"efficientLayout.sampleWidth": "Fixed width (% of the screen; 20 to 30 recommended)",
-		"efficientLayout.maxSampleWidth": "Maximum width in auto mode (% of the screen)",
-		"efficientLayout.samples": "Samples",
-		"efficientLayout.ioFormat": "Input and output",
-		"submissionQuery.title": "Keep submission filters",
-		"submissionQuery.description": "Keeps search filters when switching between All and My submissions.",
-		"submissionShortcuts.title": "AC submission buttons",
-		"submissionShortcuts.description":
-			"Adds buttons that open the AC submissions for the task, sorted by time, code size, submission time or memory. Choose the buttons to show in the detailed settings. They are hidden during a contest.",
-		"submissionShortcuts.language": "Language (empty for all)",
-		"submissionShortcuts.label": "AC submissions",
-		"submissionShortcuts.time": "Time",
-		"submissionShortcuts.length": "Size",
-		"submissionShortcuts.created": "Submitted",
-		"submissionShortcuts.memory": "Memory",
-		"submissionShortcuts.byTime": "Show the button sorted by time",
-		"submissionShortcuts.byLength": "Show the button sorted by code size",
-		"submissionShortcuts.byCreated": "Show the button sorted by submission time",
-		"submissionShortcuts.byMemory": "Show the button sorted by memory",
-		"resultNotifier.title": "Submission notifications",
-		"resultNotifier.description":
-			"Shows the verdict right after judging finishes, on any page. Keep at least one AtCoder tab open.",
-		"resultNotifier.desktop": "Use desktop notifications while you are away from AtCoder",
-		"clarNotifier.title": "Clarification notifications",
-		"clarNotifier.description": "Notifies you when the organizers post an answer or a correction during a contest.",
-		"clarNotifier.desktop": "Use desktop notifications while you are away from AtCoder",
-		"clarNotifier.arrived": "{count} new clarification(s)",
-		"averageResult.title": "Test case averages",
-		"averageResult.description": "Shows average time and memory on the submission page.",
-		"averageResult.average": "Average",
-		"submissionTimer.title": "Delayed submission",
-		"submissionTimer.description": "Submits your code after the specified time.",
-		"submissionTimer.minutes": "Minutes until submission",
-		"submissionTimer.set": "Set",
-		"submissionTimer.cancel": "Cancel",
-		"submissionTimer.canceled": "The timer was canceled.",
-		"submissionTimer.scheduled": "Your code will be submitted around {time}.",
-		"languageButtons.title": "Language switch buttons",
-		"languageButtons.description":
-			"Saves your frequently used languages as a row of buttons, so you can switch to one in a single click. Pick the languages from the gear below the language selector.",
-		"languageButtons.configure": "Choose languages for the buttons",
-		"languageButtons.hint": "Buttons for the checked languages appear below the language selector.",
-		"sourceComments.title": "Header and footer",
-		"sourceComments.description":
-			"Adds a header to the top and a footer to the bottom of pasted code as comments, for example to attach reference URLs, and rewrites them when the language changes.",
-		"sourceComments.style": "Default comment style",
-		"sourceComments.styleLine": "Single-line comments",
-		"sourceComments.styleBlock": "Multi-line comment",
-		"sourceComments.panel": "Header and footer",
-		"sourceComments.header": "Header (top of the code)",
-		"sourceComments.footer": "Footer (bottom of the code)",
-		"sourceComments.placeholder": "e.g. reference URLs",
-		"sourceComments.taskOnly": "This task only",
-		"sourceComments.commentOut": "Comment out when inserting",
-		"sourceComments.multiline": "Use a multi-line comment",
-		"sourceComments.restoreHistory": "Restore from history",
-		"sourceComments.restorePreset": "Load a saved entry",
-		"sourceComments.savePreset": "Save with a name",
-		"sourceComments.removePreset": "Delete",
-		"sourceComments.presetName": "Name to save as",
-		"sourceComments.apply": "Apply to the code",
-		"sourceComments.variables": "{url} becomes the task URL, {task} the task ID and {contest} the contest ID.",
-		"sourceComments.notInserted": "Comments were not inserted",
-		"sourceComments.unsupported": "Nothing was inserted because the comment syntax of this language is unknown.",
-		"taskStatus.title": "Task status colors",
-		"taskStatus.description":
-			"Colors the task list and the dropdown by all your submissions, including those after the contest. A task with an AC or a score counts as accepted.",
-		"taskStatus.acceptedColor": "Color of accepted tasks",
-		"taskStatus.rejectedColor": "Color of tasks not accepted",
-		"taskDropdown.title": "Task dropdown",
-		"taskDropdown.description": "Opens tasks from the Tasks tab and opens several tasks at once.",
-		"taskDropdown.newTab": "Open in a new tab",
-		"taskDropdown.taskTable": "Task table",
-		"taskDropdown.openAtOnce": "Open multiple tasks",
-		"taskDropdown.loadFailed": "(Failed to load)",
-		"taskDropdown.all": "All",
-		"taskDropdown.range": "Range",
-		"taskDropdown.reverse": "Open in reverse order",
-		"taskDropdown.cancel": "Cancel",
-		"taskDropdown.tabCount": "{count} tabs will open. If pop-ups are blocked, please allow them.",
-		"taskDropdown.tabLimit": "Note: up to {count} tabs can be opened at once.",
-		"editorialList.title": "All editorials",
-		"editorialList.description": "Shows the editorials of every task on the editorial page.",
-		"variableHover.title": "Highlight hovered variables and numbers",
-		"variableHover.description":
-			"Hovering a variable or a number in the statement highlights every occurrence. Click to pin, Esc to clear.",
-		"variableHover.variables": "Highlight variables",
-		"variableHover.numbers": "Highlight numbers",
-		"latestContests.title": "Next contests",
-		"latestContests.description": "Adds a header menu with the upcoming contests listed on the home page.",
-		"latestContests.menu": "Next contests",
-		"latestContests.loading": "Loading...",
-		"latestContests.failed": "Could not load the list",
-		"contestCalendar.title": "Add to calendar",
-		"contestCalendar.description": "Adds a link to contest pages that registers the contest in Google Calendar.",
-		"contestCalendar.add": "Add to calendar",
-		"virtualTimer.title": "Virtual contest timer",
-		"virtualTimer.description":
-			"Shows the time until the start and the time left of a virtual participation in the corner clock. Open the virtual page once to record the start time.",
-		"virtualTimer.untilStart": "Starts in",
-		"virtualTimer.remaining": "Time left",
-		"topLinks.title": "Contest links on the top page",
-		"topLinks.description": "Replaces the top page list with links to past contests by type.",
-		"tessokuDifficulty.title": "Tessoku difficulty",
-		"tessokuDifficulty.description": "Shows the difficulty from the book on the Tessoku task list.",
-		"tessokuDifficulty.sortByDifficulty": "Sort by difficulty",
-		"tessokuDifficulty.sortById": "Sort by task number",
-		"ratingGraph.title": "Performance on the user page graph",
-		"ratingGraph.description":
-			"Overlays performance on the rating graph of user pages (profiles), including other users' pages.",
-		"ratingGraph.recentByDefault": "Show only recent results at first",
-		"ratingGraph.recentRange": "Recent range (e.g. 20 for the last 20 contests, 50% for the latest half)",
-		"ratingGraph.recentRangeInvalid": "Enter a whole number of 1 or more, or a percentage from 1% to 100%.",
-		"ratingGraph.togglePerformance": "Toggle performance",
-		"ratingGraph.showAll": "all",
-		"ratingGraph.showRecent": "recent",
-		"localRunner.title": "Local Runner",
-		"localRunner.description":
-			"Connects to the local server used to transform and run code. Local Runner needs a separate installation. A server of your own with the same API also works.",
-		"localRunner.url": "Server URL",
-		"javaSubmit.title": "Java submission helper",
-		"javaSubmit.description":
-			"Transforms pasted code for submission and adds submit shortcuts. Removing packages, renaming the class and disabling DEBUG work without Local Runner. Expanding lib.*, completing imports and adding the header need Local Runner.",
-		"javaSubmit.localRunnerRequired": "Expanding lib.* needs Local Runner",
-		"javaSubmit.localRunnerGuide":
-			"Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
-		"javaSubmit.libraryRequired": "Expanding lib.* needs the library to be set",
-		"javaSubmit.libraryGuide":
-			"The library folder is not set in Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
-		"javaSubmit.removePackage": "Remove package declarations when Local Runner is unavailable",
-		"javaSubmit.renameClass": "Rename the class to Main when Local Runner is unavailable",
-		"javaSubmit.fixDebug": "Set DEBUG to false when Local Runner is unavailable",
-		"javaSubmit.addHeader": "Add the submission header",
-		"javaSubmit.headerName": "Header name (empty for the default)",
-		"javaSubmit.foldOnPaste": "Fold classes and comments after pasting",
-		"easyTest.title": "Easy Test+",
-		"easyTest.description":
-			"Based on AtCoder Easy Test v2, with additional features. Runs samples from the task page and checks the results. With Local Runner, code runs on your PC and the code you are editing is compiled in advance. Enable only one of this and AtCoder Easy Test v2, because using both duplicates the buttons.",
-		"easyTest.precompile": "Precompile edited code with Local Runner",
-		"easyTest.keyboardShortcuts": "Use shortcuts (Ctrl+Enter, Alt+Enter, Alt+Esc)",
-		"easyTest.savedCodeLimit": "Number of saved solutions",
-		"easyTest.allowableError": "Allowed error",
-		"easyTest.run": "Run",
-		"easyTest.testAndSubmit": "Test & Submit",
-		"easyTest.cancelSubmit": "Cancel Submission",
-		"easyTest.testAll": "Test All Samples",
-		"easyTest.restore": "Restore Last Code",
-		"easyTest.environment": "Environment",
-		"easyTest.noEnvironment": "No environment available",
-		"easyTest.standardInput": "Standard input",
-		"easyTest.standardOutput": "Standard output",
-		"easyTest.standardError": "Standard error",
-		"easyTest.expectedOutput": "Expected output",
-		"easyTest.exitCode": "Exit code",
-		"easyTest.execTime": "Time",
-		"easyTest.memory": "Memory",
-		"easyTest.allocated": "allocated in total",
-		"easyTest.noSavedCode": "No saved code was found for this task.",
-		"easyTest.noSamples": "No samples were found. Nothing was tested or submitted.",
-		"easyTest.noSource": "The source code is empty, so nothing was run.",
-		"easyTest.internalError":
-			"The code could not be run because the environment failed. Choose another environment and try again.",
-		"easyTest.restoreConfirm": "Your current code will be replaced. Continue?",
-		"paizaLanguage.title": "paiza language selection",
-		"paizaLanguage.description":
-			"Selects the specified language on paiza submission pages. It does nothing until you set a language.",
-		"paizaLanguage.language": "Language (e.g. c++, java, python3)",
-	};
-
-	// CpToolkit/data/i18n/ja.yaml
-	var ja_default = {
-		"settings.open": "設定を開く",
-		"settings.title": "CP Toolkit の設定",
-		"settings.close": "閉じる",
-		"settings.empty": "設定できる機能はありません。",
-		"settings.options": "詳細設定",
-		"settings.invalidValue": "値の形式が正しくありません。",
-		"settings.reloadNotice": "変更を反映するには再読み込みしてください。",
-		"settings.reload": "再読み込み",
-		"settings.export": "設定を書き出す",
-		"settings.import": "設定を読み込む",
-		"settings.importFailed": "設定ファイルを読み込めませんでした。",
-		"settings.reset": "初期状態に戻す",
-		"settings.resetConfirm": "すべての設定を初期状態に戻します。よろしいですか?",
-		"status.disabled": "無効",
-		"status.outOfScope": "このページは対象外",
-		"status.pending": "待機中",
-		"status.running": "動作中",
-		"status.reloadRequired": "再読み込みで反映",
-		"status.failed": "起動に失敗",
-		"category.layout": "表示",
-		"category.statement": "問題文",
-		"category.submission": "提出",
-		"category.contest": "コンテスト",
-		"category.rating": "成績",
-		"category.execution": "実行環境",
-		"wideLayout.title": "ページ幅の拡張",
-		"wideLayout.description": "ページ中央の幅を、指定した幅に広げます。",
-		"wideLayout.width": "幅(例: 75%, 1200px。空欄なら元の幅。おすすめは 75%)",
-		"hoverMenu.title": "メニューのホバー表示",
-		"hoverMenu.description": "マウスを重ねるだけでメニューを開きます。",
-		"statementHighlight.title": "問題文の強調表示",
-		"statementHighlight.description": "問題文中の数字と変数、実行時間とメモリの制限を強調します。",
-		"statementHighlight.numberColor": "数字の色",
-		"statementHighlight.variableColor": "変数の色",
-		"statementHighlight.timeColor": "実行時間制限の色",
-		"statementHighlight.memoryColor": "メモリ制限の色",
-		"statementHighlight.alwaysEmphasizeLimits": "2 秒と 1024 MiB の制限も強調する",
-		"statementCopy.title": "問題文のコピー",
-		"statementCopy.description": "問題文の各項目と全体をコピーするボタンを追加します。",
-		"statementCopy.format": "コピーする形式",
-		"statementCopy.formatMarkdown": "Markdown",
-		"statementCopy.formatPlain": "プレーンテキスト",
-		"statementCopy.copy": "Copy",
-		"statementCopy.copyAll": "Copy All",
-		"statementCopy.copied": "Copied!",
-		"statementCopy.defaultTitle": "問題",
-		"efficientLayout.title": "サンプルの横並び",
-		"efficientLayout.description": "入出力の形式とサンプルを横に並べて表示します。",
-		"efficientLayout.widthMode": "サンプル1組の幅の決め方",
-		"efficientLayout.widthModeAuto": "自動(中身の長さに合わせる)",
-		"efficientLayout.widthModeFixed": "固定",
-		"efficientLayout.sampleWidth": "固定のときの幅(画面幅に対する %。おすすめは 20〜30)",
-		"efficientLayout.maxSampleWidth": "自動のときの上限(画面幅に対する %)",
-		"efficientLayout.samples": "入出力例",
-		"efficientLayout.ioFormat": "入出力形式",
-		"submissionQuery.title": "提出一覧の検索条件の保持",
-		"submissionQuery.description": "提出一覧の「すべての提出」と「自分の提出」を切り替えても、検索条件を保ちます。",
-		"submissionShortcuts.title": "AC 提出へのボタン",
-		"submissionShortcuts.description":
-			"問題ページに、この問題の AC 提出を実行時間、コード長、提出時間、メモリの順で開くボタンを追加します。出すボタンは詳細設定で選べます。コンテスト中は表示しません。",
-		"submissionShortcuts.language": "言語(空欄ならすべて)",
-		"submissionShortcuts.label": "AC提出",
-		"submissionShortcuts.time": "実行時間",
-		"submissionShortcuts.length": "コード長",
-		"submissionShortcuts.created": "提出時間",
-		"submissionShortcuts.memory": "メモリ",
-		"submissionShortcuts.byTime": "実行時間順のボタンを出す",
-		"submissionShortcuts.byLength": "コード長順のボタンを出す",
-		"submissionShortcuts.byCreated": "提出時間順のボタンを出す",
-		"submissionShortcuts.byMemory": "メモリ順のボタンを出す",
-		"resultNotifier.title": "提出結果の通知",
-		"resultNotifier.description":
-			"判定が終わると、どのページにいても結果をすぐに通知します。AtCoder のタブを1つは開いたままにしてください。",
-		"resultNotifier.desktop": "AtCoder を操作していないときはデスクトップ通知も出す",
-		"clarNotifier.title": "Clar の通知",
-		"clarNotifier.description": "コンテスト中に運営からの回答や訂正(Clar)が届くと通知します。",
-		"clarNotifier.desktop": "AtCoder を操作していないときはデスクトップ通知も出す",
-		"clarNotifier.arrived": "新しい Clar が {count} 件あります",
-		"averageResult.title": "テストケースの平均",
-		"averageResult.description": "提出の詳細に、実行時間とメモリの平均を表示します。",
-		"averageResult.average": "平均",
-		"submissionTimer.title": "提出の予約",
-		"submissionTimer.description": "指定した時間が経ったらコードを提出します。",
-		"submissionTimer.minutes": "何分後に提出するか",
-		"submissionTimer.set": "セットする",
-		"submissionTimer.cancel": "取り消す",
-		"submissionTimer.canceled": "タイマーを取り消しました。",
-		"submissionTimer.scheduled": "{time} ごろに提出します。",
-		"languageButtons.title": "言語の切り替えボタン",
-		"languageButtons.description":
-			"よく使う言語をボタンとして並べて保存しておき、1回の操作で切り替えられるようにします。並べる言語は選択欄の下の歯車から選びます。",
-		"languageButtons.configure": "ボタンにする言語を選ぶ",
-		"languageButtons.hint": "チェックした言語のボタンを選択欄の下に表示します。",
-		"sourceComments.title": "ヘッダーとフッター",
-		"sourceComments.description":
-			"貼り付けたコードの先頭にヘッダー、末尾にフッターをコメントとして追記します。参照元の URL の添付などに使えます。言語を変えるとコメントの書き方も切り替えます。",
-		"sourceComments.style": "既定のコメントの形式",
-		"sourceComments.styleLine": "単一行コメントを並べる",
-		"sourceComments.styleBlock": "複数行コメント",
-		"sourceComments.panel": "ヘッダーとフッター",
-		"sourceComments.header": "ヘッダー(コードの先頭)",
-		"sourceComments.footer": "フッター(コードの末尾)",
-		"sourceComments.placeholder": "参照元の URL など",
-		"sourceComments.taskOnly": "この問題のみ",
-		"sourceComments.commentOut": "挿入時にコメントアウトする",
-		"sourceComments.multiline": "複数行コメントにする",
-		"sourceComments.restoreHistory": "履歴から復元",
-		"sourceComments.restorePreset": "保存した名前から呼び出す",
-		"sourceComments.savePreset": "名前を付けて保存",
-		"sourceComments.removePreset": "削除",
-		"sourceComments.presetName": "保存する名前",
-		"sourceComments.apply": "コードへ反映",
-		"sourceComments.variables":
-			"{url} は問題の URL、{task} は問題の ID、{contest} はコンテストの ID に置き換えます。",
-		"sourceComments.notInserted": "コメントを挿入していません",
-		"sourceComments.unsupported": "この言語はコメントの書き方が分からないので、挿入していません。",
-		"taskStatus.title": "問題の正誤の色分け",
-		"taskStatus.description":
-			"問題一覧とドロップダウンを、コンテスト後を含む自分の提出に合わせて色分けします。AC か得点があれば正解として扱います。",
-		"taskStatus.acceptedColor": "正解した問題の色",
-		"taskStatus.rejectedColor": "正解していない問題の色",
-		"taskDropdown.title": "問題のドロップダウン",
-		"taskDropdown.description": "「問題」タブから各問題へ移動でき、複数の問題をまとめて開けます。",
-		"taskDropdown.newTab": "新しいタブで開く",
-		"taskDropdown.taskTable": "問題一覧",
-		"taskDropdown.openAtOnce": "まとめて開く",
-		"taskDropdown.loadFailed": "(読み込み失敗)",
-		"taskDropdown.all": "すべて",
-		"taskDropdown.range": "範囲を指定",
-		"taskDropdown.reverse": "逆順で開く",
-		"taskDropdown.cancel": "キャンセル",
-		"taskDropdown.tabCount": "{count} 個のタブが開きます。ブロックされた場合はポップアップを許可してください。",
-		"taskDropdown.tabLimit": "※一度に開けるタブは {count} 個までです。",
-		"editorialList.title": "解説の一覧表示",
-		"editorialList.description": "解説ページで、すべての問題の解説をまとめて表示します。",
-		"variableHover.title": "ホバーした変数と数値の強調",
-		"variableHover.description":
-			"問題文の変数や数値に重ねると、同じ変数や数値をすべて強調します。クリックで固定し、Esc で解除します。",
-		"variableHover.variables": "変数を強調する",
-		"variableHover.numbers": "数値を強調する",
-		"latestContests.title": "次のコンテスト",
-		"latestContests.description": "ホームの「次のコンテスト」の一覧を、ヘッダーのメニューから開けるようにします。",
-		"latestContests.menu": "次のコンテスト",
-		"latestContests.loading": "読み込み中...",
-		"latestContests.failed": "取得できませんでした",
-		"contestCalendar.title": "カレンダーへの登録",
-		"contestCalendar.description": "コンテストのページに、Google カレンダーへ登録するリンクを追加します。",
-		"contestCalendar.add": "カレンダーに追加",
-		"virtualTimer.title": "バーチャル参加のタイマー",
-		"virtualTimer.description":
-			"バーチャル参加の開始までの時間と残り時間を、画面右下の時計に表示します。参加のページを開くと開始時刻を記憶します。",
-		"virtualTimer.untilStart": "開始まであと",
-		"virtualTimer.remaining": "残り時間",
-		"topLinks.title": "トップページのコンテスト一覧",
-		"topLinks.description": "トップページの一覧を、種類ごとの過去問へのリンクに置き換えます。",
-		"tessokuDifficulty.title": "鉄則本の難易度表示",
-		"tessokuDifficulty.description": "「競技プログラミングの鉄則」の問題一覧に、書籍の難易度を表示します。",
-		"tessokuDifficulty.sortByDifficulty": "難易度順で並べ替え",
-		"tessokuDifficulty.sortById": "問題番号順で並べ替え",
-		"ratingGraph.title": "ユーザーページのグラフへのパフォーマンス表示",
-		"ratingGraph.description":
-			"ユーザーページ(プロフィール)のレーティンググラフに、パフォーマンスを重ねて表示します。自分以外のユーザーのページでも表示します。",
-		"ratingGraph.recentByDefault": "最初は最近の結果だけを表示する",
-		"ratingGraph.recentRange": "最近の結果の範囲(例: 20 で直近20回、50% で直近の半分)",
-		"ratingGraph.recentRangeInvalid": "1 以上の整数か、1% から 100% の割合を入力してください。",
-		"ratingGraph.togglePerformance": "パフォーマンスの ON/OFF",
-		"ratingGraph.showAll": "all",
-		"ratingGraph.showRecent": "recent",
-		"localRunner.title": "Local Runner",
-		"localRunner.description":
-			"コードの変換と実行に使う、手元のサーバーへ接続します。別途、Local Runner の導入が必要です。同じ API を持つ自作のサーバーにも接続できます。",
-		"localRunner.url": "接続先の URL",
-		"javaSubmit.title": "Java の提出補助",
-		"javaSubmit.description":
-			"貼り付けたコードを提出用に変換し、ショートカットで提出できるようにします。パッケージ宣言の削除、クラス名の変更、DEBUG の無効化は Local Runner がなくても動きます。lib.* の展開、import の補完、ヘッダーの付与には Local Runner が必要です。",
-		"javaSubmit.localRunnerRequired": "lib.* の展開には Local Runner が必要です",
-		"javaSubmit.localRunnerGuide":
-			"Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。",
-		"javaSubmit.libraryRequired": "lib.* の展開にはライブラリの設定が必要です",
-		"javaSubmit.libraryGuide":
-			"Local Runner にライブラリのフォルダが設定されていないので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから設定方法を確認できます。",
-		"javaSubmit.removePackage": "Local Runner がないときにパッケージ宣言を削除する",
-		"javaSubmit.renameClass": "Local Runner がないときにクラス名を Main にする",
-		"javaSubmit.fixDebug": "Local Runner がないときに DEBUG を false にする",
-		"javaSubmit.addHeader": "提出用のヘッダーを付ける",
-		"javaSubmit.headerName": "ヘッダーの名前(空欄なら既定)",
-		"javaSubmit.foldOnPaste": "貼り付け後にクラスとコメントを折りたたむ",
-		"easyTest.title": "Easy Test+",
-		"easyTest.description":
-			"AtCoder Easy Test v2 をもとに、機能を加えたものです。問題ページからサンプルを実行して結果を確認します。Local Runner に接続すると手元の PC で実行でき、編集中のコードを事前にコンパイルします。AtCoder Easy Test v2 と同時に有効にするとボタンが重なるので、どちらか片方にしてください。",
-		"easyTest.precompile": "Local Runner で編集中のコードを事前にコンパイルする",
-		"easyTest.keyboardShortcuts": "ショートカットを使う(Ctrl+Enter、Alt+Enter、Alt+Esc)",
-		"easyTest.savedCodeLimit": "保存するコードの数",
-		"easyTest.allowableError": "許容誤差",
-		"easyTest.run": "Run",
-		"easyTest.testAndSubmit": "Test & Submit",
-		"easyTest.cancelSubmit": "提出を中止",
-		"easyTest.testAll": "Test All Samples",
-		"easyTest.restore": "Restore Last Code",
-		"easyTest.environment": "実行環境",
-		"easyTest.noEnvironment": "実行環境がありません",
-		"easyTest.standardInput": "標準入力",
-		"easyTest.standardOutput": "標準出力",
-		"easyTest.standardError": "標準エラー出力",
-		"easyTest.expectedOutput": "期待する出力",
-		"easyTest.exitCode": "終了コード",
-		"easyTest.execTime": "実行時間",
-		"easyTest.memory": "メモリ",
-		"easyTest.allocated": "累積の割り当て",
-		"easyTest.noSavedCode": "この問題の保存済みコードはありません。",
-		"easyTest.noSamples": "サンプルが見つかりませんでした。テストと提出は行っていません。",
-		"easyTest.noSource": "ソースコードが空なので、実行していません。",
-		"easyTest.internalError":
-			"実行環境でエラーが起きたので、コードを実行できませんでした。別の実行環境を選んでやり直してください。",
-		"easyTest.restoreConfirm": "現在のコードを置き換えます。よろしいですか?",
-		"paizaLanguage.title": "paiza の言語選択",
-		"paizaLanguage.description":
-			"paiza の提出ページで、指定した言語を自動で選びます。言語を設定するまでは動きません。",
-		"paizaLanguage.language": "言語(例: c++, java, python3)",
-	};
-
-	// CpToolkit/src/catalog/messages.ts
-	var MESSAGES = {ja: ja_default, en: en_default};
-
-	function createTranslator(getLocale) {
-		return (key) => MESSAGES[getLocale()][key];
+		save(value) {
+			this.dependencies.state.set(STATE_KEY, value);
+		}
 	}
 
 	// CpToolkit/data/contest-links.yaml
@@ -3246,9 +1917,15 @@ a:focus > .cp-settings-entry {
 			C20: 99,
 		},
 	};
+	// CpToolkit/data/update.yaml
+	var update_default = {
+		checkIntervalHours: 24,
+		connect: ["raw.githubusercontent.com", "update.greasyfork.org"],
+	};
 
 	// CpToolkit/src/catalog/tables.ts
 	var languageCatalog = languages_default;
+	var updateCatalog = update_default;
 	var runnerCatalog = runners_default;
 	var statementCatalog = statement_default;
 	var contestCatalog = contests_default;
@@ -3256,6 +1933,1658 @@ a:focus > .cp-settings-entry {
 	var contestLinks = contest_links_default.lists;
 	var tessokuDifficulties = tessoku_default.difficulties;
 	var libraries = libraries_default;
+
+	// CpToolkit/src/adapters/console-logger.ts
+	class ConsoleLogger {
+		prefix;
+
+		constructor(prefix) {
+			this.prefix = prefix;
+		}
+
+		error(message, cause) {
+			console.error(`[${this.prefix}] ${message}`, cause);
+		}
+	}
+
+	// CpToolkit/src/adapters/page/document-lifecycle.ts
+	function waitForEvent(target, eventName) {
+		return new Promise((resolve) => target.addEventListener(eventName, () => resolve(), {once: true}));
+	}
+
+	class DocumentLifecycle {
+		async reach(phase) {
+			if (phase === "ready" && document.readyState === "loading") {
+				await waitForEvent(document, "DOMContentLoaded");
+				await sleep(0);
+			}
+			if (phase === "load" && document.readyState !== "complete") {
+				await waitForEvent(window, "load");
+			}
+		}
+	}
+
+	// CpToolkit/src/adapters/page/local-storage-legacy-inbox.ts
+	var KEY_PREFIX = "cp-toolkit:legacy:";
+
+	class LocalStorageLegacyInbox {
+		take(scriptId) {
+			const key = KEY_PREFIX + scriptId;
+			const value = localStorage.getItem(key);
+			if (value === null) return;
+			localStorage.removeItem(key);
+			return safeJsonParse(value, undefined);
+		}
+	}
+
+	// CpToolkit/src/adapters/userscript/gm-key-value-store.ts
+	class GmKeyValueStore {
+		get(key) {
+			return GM_getValue(key);
+		}
+
+		set(key, value) {
+			GM_setValue(key, value);
+		}
+
+		subscribeRemote(key, listener) {
+			const id = GM_addValueChangeListener(key, (_name, _oldValue, newValue, remote) => {
+				if (remote) listener(newValue);
+			});
+			return () => GM_removeValueChangeListener(id);
+		}
+	}
+
+	// CpToolkit/src/adapters/userscript/gm-script-host.ts
+	function metadataUrl(direct, key) {
+		return direct || readMetadataValue(GM_info.scriptMetaStr ?? "", key);
+	}
+
+	class GmScriptHost {
+		name = GM_info.script.name;
+		version = GM_info.script.version;
+		updateUrl = metadataUrl(GM_info.script.updateURL, "updateURL");
+		downloadUrl = metadataUrl(GM_info.script.downloadURL, "downloadURL");
+
+		registerCommand(label, action) {
+			GM_registerMenuCommand(label, action);
+		}
+	}
+
+	// CpToolkit/src/adapters/userscript/gm-services.ts
+	class GmClipboard {
+		write(text) {
+			GM_setClipboard(text);
+		}
+	}
+
+	class GmNotifier {
+		notify({title, text, url}) {
+			GM_notification({
+				title,
+				text,
+				...(url !== undefined && {onclick: () => GM_openInTab(url, {active: true})}),
+			});
+		}
+	}
+
+	class GmHttpClient {
+		send({url, method = "GET", headers, body, timeoutMs}) {
+			return new Promise((resolve, reject) => {
+				GM_xmlhttpRequest({
+					url,
+					method,
+					anonymous: true,
+					...(headers && {headers: {...headers}}),
+					...(body !== undefined && {data: body}),
+					...(timeoutMs !== undefined && {timeout: timeoutMs}),
+					onload: ({status, responseText}) => resolve({status, text: responseText}),
+					onerror: () => reject(new Error(`Request failed: ${url}`)),
+					ontimeout: () => reject(new Error(`Request timed out: ${url}`)),
+				});
+			});
+		}
+	}
+
+	// CpToolkit/src/ui/element.ts
+	function h(tagName, props, ...children) {
+		const element = document.createElement(tagName);
+		Object.assign(element, props);
+		element.append(...children);
+		return element;
+	}
+
+	function injectStyle(css) {
+		const style = h("style", {textContent: css});
+		(document.head ?? document.documentElement).append(style);
+		return style;
+	}
+
+	// CpToolkit/src/ui/theme.css
+	var theme_default = `:host {
+	--cp-surface: #ffffff;
+	--cp-surface-muted: #f6f8fa;
+	--cp-text: #1f2328;
+	--cp-text-muted: #59636e;
+	--cp-border: #d0d7de;
+	--cp-accent: #0969da;
+	--cp-on-accent: #ffffff;
+	--cp-success: #1a7f37;
+	--cp-danger: #cf222e;
+	--cp-notice-surface: #fff8c5;
+	--cp-notice-text: #6c5400;
+	font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+	color: var(--cp-text);
+}
+
+@media (prefers-color-scheme: dark) {
+	:host {
+		--cp-surface: #1c2128;
+		--cp-surface-muted: #262c36;
+		--cp-text: #e6edf3;
+		--cp-text-muted: #9198a1;
+		--cp-border: #3d444d;
+		--cp-accent: #4493f8;
+		--cp-on-accent: #0d1117;
+		--cp-success: #3fb950;
+		--cp-danger: #f85149;
+		--cp-notice-surface: #3a2f0b;
+		--cp-notice-text: #e3b341;
+	}
+}
+
+*, *::before, *::after {
+	box-sizing: border-box;
+}
+
+/* display を指定した要素でも hidden を優先する */
+[hidden] {
+	display: none !important;
+}
+
+button {
+	padding: 4px 12px;
+	border: 1px solid var(--cp-border);
+	border-radius: 6px;
+	background: var(--cp-surface-muted);
+	color: var(--cp-text);
+	font: inherit;
+	cursor: pointer;
+}
+
+button:hover {
+	border-color: var(--cp-text-muted);
+}
+
+:focus-visible {
+	outline: 2px solid var(--cp-accent);
+	outline-offset: 1px;
+}
+`;
+
+	// CpToolkit/src/ui/dialog/modal.css
+	var modal_default = `dialog {
+	width: min(640px, calc(100vw - 32px));
+	max-height: calc(100vh - 64px);
+	padding: 0;
+	border: 1px solid var(--cp-border);
+	border-radius: 12px;
+	background: var(--cp-surface);
+	color: var(--cp-text);
+	overflow: hidden;
+}
+
+dialog[open] {
+	display: flex;
+	flex-direction: column;
+}
+
+dialog::backdrop {
+	background: rgb(0 0 0 / 45%);
+}
+
+.modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 12px 16px;
+	border-bottom: 1px solid var(--cp-border);
+}
+
+.modal-header h2 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+}
+
+.modal-body {
+	flex: 1;
+	min-height: 0;
+	padding: 16px;
+	overflow-y: auto;
+}
+
+.modal-footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 16px;
+	border-top: 1px solid var(--cp-border);
+}
+`;
+
+	// CpToolkit/src/ui/dialog/modal.ts
+	function createModal({title, closeLabel, css}) {
+		const body = h("div", {className: "modal-body"});
+		const footer = h("footer", {className: "modal-footer"});
+		const closeButton = h("button", {type: "button", textContent: closeLabel});
+		const dialog = h(
+			"dialog",
+			{},
+			h("header", {className: "modal-header"}, h("h2", {textContent: title}), closeButton),
+			body,
+			footer,
+		);
+		closeButton.addEventListener("click", () => dialog.close());
+		dialog.addEventListener("click", (event) => {
+			if (event.target === dialog) dialog.close();
+		});
+		const host = h("div");
+		host.attachShadow({mode: "open"}).append(
+			h("style", {
+				textContent: `${theme_default}
+${modal_default}
+${css}`,
+			}),
+			dialog,
+		);
+		return {
+			body,
+			footer,
+			open() {
+				if (!host.isConnected) document.body.append(host);
+				if (!dialog.open) dialog.showModal();
+			},
+			close: () => dialog.close(),
+		};
+	}
+
+	// CpToolkit/src/ui/form/form.css
+	var form_default = `.switch {
+	position: relative;
+	display: inline-flex;
+	flex: none;
+	width: 36px;
+	height: 20px;
+}
+
+.switch input {
+	position: absolute;
+	inset: 0;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.switch span {
+	width: 100%;
+	border-radius: 10px;
+	background: var(--cp-border);
+	transition: background 120ms;
+}
+
+.switch span::after {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: var(--cp-surface);
+	transition: transform 120ms;
+}
+
+.switch input:checked + span {
+	background: var(--cp-accent);
+}
+
+.switch input:checked + span::after {
+	transform: translateX(16px);
+}
+
+.switch input:focus-visible + span {
+	outline: 2px solid var(--cp-accent);
+	outline-offset: 2px;
+}
+
+.field {
+	display: grid;
+	gap: 4px;
+}
+
+.field-label {
+	color: var(--cp-text-muted);
+	font-size: 13px;
+}
+
+.field input:not([type="checkbox"], [type="color"]),
+.field select {
+	width: 100%;
+	padding: 4px 8px;
+	border: 1px solid var(--cp-border);
+	border-radius: 6px;
+	background: var(--cp-surface);
+	color: var(--cp-text);
+	font: inherit;
+}
+
+.field input[aria-invalid="true"] {
+	border-color: var(--cp-danger);
+}
+
+.field-error {
+	color: var(--cp-danger);
+	font-size: 12px;
+}
+`;
+
+	// CpToolkit/src/domain/settings/option.ts
+	var SHORT_HEX_COLOR_PATTERN = /^#[0-9a-f]{3}$/;
+	var HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/;
+
+	function normalizeColor(value) {
+		if (typeof value !== "string") return;
+		const color = value.trim().toLowerCase();
+		if (HEX_COLOR_PATTERN.test(color)) return color;
+		if (!SHORT_HEX_COLOR_PATTERN.test(color)) return;
+		return `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`;
+	}
+
+	var option = {
+		boolean(defaultValue, label) {
+			return {
+				kind: "boolean",
+				defaultValue,
+				label,
+				normalize: (value) => (typeof value === "boolean" ? value : undefined),
+			};
+		},
+		text(defaultValue, label, {validate, invalidMessage} = {}) {
+			return {
+				kind: "text",
+				defaultValue,
+				label,
+				...(invalidMessage !== undefined && {invalidMessage}),
+				normalize(value) {
+					if (typeof value !== "string") return;
+					const text = value.trim();
+					return !validate || validate(text) ? text : undefined;
+				},
+			};
+		},
+		color(defaultValue, label) {
+			return {kind: "color", defaultValue, label, normalize: normalizeColor};
+		},
+		number(defaultValue, label, {min = -Infinity, max = Infinity} = {}) {
+			return {
+				kind: "number",
+				defaultValue,
+				label,
+				min,
+				max,
+				normalize: (value) => (typeof value === "number" && value >= min && value <= max ? value : undefined),
+			};
+		},
+		select(defaultValue, label, choices) {
+			return {
+				kind: "select",
+				defaultValue,
+				label,
+				choices,
+				normalize: (value) => choices.find((choice) => choice.value === value)?.value,
+			};
+		},
+	};
+
+	function normalizeOptions(schema, stored) {
+		const source = parseStoredObject(stored);
+		const entries = Object.entries(schema).map(([key, definition]) => {
+			return [key, definition.normalize(source[key]) ?? definition.defaultValue];
+		});
+		return Object.fromEntries(entries);
+	}
+
+	// CpToolkit/src/ui/form/controls.ts
+	function createSwitch(accessibleName, onChange) {
+		const input = h("input", {type: "checkbox", ariaLabel: accessibleName});
+		input.setAttribute("role", "switch");
+		input.addEventListener("change", () => onChange(input.checked));
+		return {
+			element: h("label", {className: "switch"}, input, h("span")),
+			setChecked(checked) {
+				input.checked = checked;
+			},
+		};
+	}
+
+	function createField(label, control, errorMessage) {
+		const error = h("span", {className: "field-error", textContent: errorMessage, hidden: true});
+		return {
+			element: h(
+				"label",
+				{className: "field"},
+				h("span", {
+					className: "field-label",
+					textContent: label,
+				}),
+				control,
+				error,
+			),
+			setInvalid(invalid) {
+				control.setAttribute("aria-invalid", String(invalid));
+				error.hidden = !invalid;
+			},
+		};
+	}
+
+	// CpToolkit/src/features/settings-panel/option-field.ts
+	function createControl(definition, value, translate, {validate, commit}) {
+		switch (definition.kind) {
+			case "boolean": {
+				const input = h("input", {type: "checkbox", checked: value === true});
+				input.addEventListener("change", () => commit(input.checked));
+				return input;
+			}
+			case "number": {
+				const input = h("input", {type: "number", value: String(value)});
+				if (definition.min !== undefined) input.min = String(definition.min);
+				if (definition.max !== undefined) input.max = String(definition.max);
+				input.addEventListener("input", () => validate(input.valueAsNumber));
+				input.addEventListener("change", () => commit(input.valueAsNumber));
+				return input;
+			}
+			case "select": {
+				const select = h(
+					"select",
+					{},
+					...definition.choices.map((choice) => {
+						return h("option", {value: choice.value, textContent: translate(choice.label)});
+					}),
+				);
+				select.value = String(value);
+				select.addEventListener("change", () => commit(select.value));
+				return select;
+			}
+			case "color":
+			case "text": {
+				const input = h("input", {type: definition.kind, value: String(value)});
+				input.addEventListener("input", () => validate(input.value));
+				input.addEventListener("change", () => commit(input.value));
+				return input;
+			}
+		}
+	}
+
+	function createOptionField({definition, value, translate, onChange}) {
+		const check = (rawValue) => {
+			const normalized = definition.normalize(rawValue);
+			field.setInvalid(normalized === undefined);
+			return normalized;
+		};
+		const control = createControl(definition, value, translate, {
+			validate: check,
+			commit(rawValue) {
+				const normalized = check(rawValue);
+				if (normalized !== undefined) onChange(normalized);
+			},
+		});
+		const invalidMessage = translate(definition.invalidMessage ?? "settings.invalidValue");
+		const field = createField(translate(definition.label), control, invalidMessage);
+		return field.element;
+	}
+
+	// CpToolkit/src/features/settings-panel/feature-row.ts
+	var STATUS_MESSAGES = {
+		disabled: "status.disabled",
+		outOfScope: "status.outOfScope",
+		pending: "status.pending",
+		running: "status.running",
+		reloadRequired: "status.reloadRequired",
+		failed: "status.failed",
+	};
+
+	function createOptionsSection({feature, settings, translate}) {
+		const definitions = Object.entries(feature.options);
+		if (definitions.length === 0) return null;
+		const values = normalizeOptions(feature.options, settings.storedOptions(feature.id));
+		const fields = definitions.map(([key, definition]) =>
+			createOptionField({
+				definition,
+				value: values[key],
+				translate,
+				onChange: (value) => settings.setOption(feature.id, key, value),
+			}),
+		);
+		return h(
+			"details",
+			{className: "feature-options"},
+			h("summary", {textContent: translate("settings.options")}),
+			h("div", {className: "feature-fields"}, ...fields),
+		);
+	}
+
+	function createFeatureRow(params) {
+		const {feature, settings, runtime, translate} = params;
+		const title = translate(feature.title);
+		const toggle = createSwitch(title, (enabled) => settings.setEnabled(feature.id, enabled));
+		const statusLabel = h("span", {className: "status"});
+		const summary = h(
+			"div",
+			{className: "feature-summary"},
+			h(
+				"div",
+				{className: "feature-text"},
+				h("div", {className: "feature-title", textContent: title}),
+				h("div", {
+					className: "feature-description",
+					textContent: translate(feature.description),
+				}),
+			),
+			statusLabel,
+			toggle.element,
+		);
+		const optionsSection = createOptionsSection(params);
+		const element = h("article", {className: "feature"}, summary);
+		if (optionsSection) element.append(optionsSection);
+		const status = () => runtime.statusOf(feature.id);
+		return {
+			element,
+			status,
+			refresh() {
+				const current = status();
+				statusLabel.textContent = translate(STATUS_MESSAGES[current.state]);
+				statusLabel.dataset.state = current.state;
+				statusLabel.title = current.state === "failed" ? current.message : "";
+				toggle.setChecked(settings.isEnabled(feature.id, feature.defaultEnabled));
+			},
+		};
+	}
+
+	// CpToolkit/src/features/settings-panel/settings-panel.css
+	var settings_panel_default = `.notice {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 16px;
+	padding: 8px 12px;
+	border-radius: 8px;
+	background: var(--cp-notice-surface);
+	color: var(--cp-notice-text);
+}
+
+.error {
+	margin: 0 0 16px;
+	color: var(--cp-danger);
+}
+
+.empty {
+	margin: 0;
+	color: var(--cp-text-muted);
+}
+
+.category + .category {
+	margin-top: 20px;
+}
+
+.category h3 {
+	margin: 0 0 8px;
+	color: var(--cp-text-muted);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.feature {
+	border: 1px solid var(--cp-border);
+	border-radius: 8px;
+}
+
+.feature + .feature {
+	margin-top: 8px;
+}
+
+.feature-summary {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+}
+
+.feature-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.feature-title {
+	font-weight: 600;
+}
+
+.feature-description {
+	color: var(--cp-text-muted);
+	font-size: 13px;
+}
+
+.status {
+	flex: none;
+	color: var(--cp-text-muted);
+	font-size: 12px;
+}
+
+.status[data-state="running"] {
+	color: var(--cp-success);
+}
+
+.status[data-state="failed"] {
+	color: var(--cp-danger);
+}
+
+.status[data-state="reloadRequired"] {
+	color: var(--cp-notice-text);
+}
+
+.feature-options {
+	padding: 0 12px 10px;
+}
+
+.feature-options summary {
+	color: var(--cp-text-muted);
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.feature-fields {
+	display: grid;
+	gap: 12px;
+	margin-top: 8px;
+}
+
+.footer-version {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+	color: var(--cp-text-muted);
+	font-size: 12px;
+}
+
+.footer-version a {
+	font-weight: bold;
+}
+`;
+
+	// CpToolkit/src/features/settings-panel/version-status.ts
+	function createVersionStatus(updates, translate) {
+		const element = h("span", {className: "footer-version"});
+		const render = (status, checked) => {
+			const parts = [`v${status.current}`];
+			if (status.latest !== null && status.downloadUrl !== null) {
+				parts.push(
+					h("a", {
+						href: status.downloadUrl,
+						target: "_blank",
+						rel: "noopener",
+						textContent: `${translate("update.install")} v${status.latest}`,
+					}),
+				);
+			} else if (checked) {
+				parts.push(h("span", {textContent: translate("update.upToDate")}));
+			}
+			if (status.supported) {
+				const button = h("button", {type: "button", textContent: translate("update.check")});
+				button.addEventListener("click", () => {
+					button.disabled = true;
+					updates.check(Date.now(), true).then((latest) => render(latest, true));
+				});
+				parts.push(button);
+			}
+			element.replaceChildren(...parts);
+		};
+		render(updates.status(), false);
+		return element;
+	}
+
+	// CpToolkit/src/features/settings-panel/index.ts
+	function downloadText(fileName, text) {
+		const url = URL.createObjectURL(new Blob([text], {type: "application/json"}));
+		h("a", {href: url, download: fileName}).click();
+		URL.revokeObjectURL(url);
+	}
+
+	function createSettingsPanel(dependencies) {
+		let view = null;
+		return {
+			open() {
+				view ??= createPanelView(dependencies);
+				view.open();
+			},
+		};
+	}
+
+	function createPanelView(dependencies) {
+		const {features, settings, runtime, translate, updates} = dependencies;
+		const notice = h(
+			"div",
+			{className: "notice", hidden: true},
+			h("span", {textContent: translate("settings.reloadNotice")}),
+			h("button", {type: "button", textContent: translate("settings.reload"), onclick: () => location.reload()}),
+		);
+		const importError = h("p", {className: "error", textContent: translate("settings.importFailed"), hidden: true});
+		const content = h("div");
+		let rows = [];
+		let modal = null;
+		const refresh = () => {
+			for (const row of rows) row.refresh();
+			notice.hidden = !rows.some((row) => row.status().state === "reloadRequired");
+		};
+		const render = () => {
+			rows = [];
+			const sections = [...Map.groupBy(features, ({category}) => category)].map(([category, members]) => {
+				const memberRows = members.map((feature) => createFeatureRow({feature, settings, runtime, translate}));
+				rows.push(...memberRows);
+				return h(
+					"section",
+					{className: "category"},
+					h("h3", {textContent: translate(category)}),
+					...memberRows.map((row) => row.element),
+				);
+			});
+			content.replaceChildren(...sections);
+			if (features.length === 0) {
+				content.append(h("p", {className: "empty", textContent: translate("settings.empty")}));
+			}
+			refresh();
+		};
+		const importFile = async (file) => {
+			const imported = settings.importJson(await file.text());
+			importError.hidden = imported;
+			if (imported) render();
+		};
+		const createFooter = () => {
+			const fileInput = h("input", {type: "file", accept: "application/json,.json", hidden: true});
+			fileInput.addEventListener("change", () => {
+				const file = fileInput.files?.[0];
+				fileInput.value = "";
+				if (file) importFile(file);
+			});
+			const button = (label, onclick) => {
+				return h("button", {type: "button", textContent: translate(label), onclick});
+			};
+			return [
+				button("settings.export", () => downloadText("cp-toolkit-settings.json", settings.exportJson())),
+				button("settings.import", () => fileInput.click()),
+				button("settings.reset", () => {
+					if (!window.confirm(translate("settings.resetConfirm"))) return;
+					settings.reset();
+					importError.hidden = true;
+					render();
+				}),
+				fileInput,
+				createVersionStatus(updates, translate),
+			];
+		};
+		const createPanelModal = () => {
+			const created = createModal({
+				title: translate("settings.title"),
+				closeLabel: translate("settings.close"),
+				css: `${form_default}
+${settings_panel_default}`,
+			});
+			created.body.append(notice, importError, content);
+			created.footer.append(...createFooter());
+			settings.subscribe(refresh);
+			runtime.subscribe(refresh);
+			return created;
+		};
+		return {
+			open() {
+				modal ??= createPanelModal();
+				render();
+				modal.open();
+			},
+		};
+	}
+
+	// CpToolkit/src/features/settings-panel/navigation-entry.css
+	var navigation_entry_default = `/* サイトのメニューに紛れないよう、黒と白のどちらのヘッダーでも目立つ色にする。
+   ヘッダーの高さを変えないよう、文字の行の高さ(20px)に収める */
+.cp-settings-entry {
+	display: inline-block;
+	padding: 0 8px;
+	border-radius: 999px;
+	background: #0969da;
+	color: #fff !important;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 20px;
+	vertical-align: top;
+	white-space: nowrap;
+}
+
+.cp-settings-entry::before {
+	content: "\\2699\\FE0E";
+	margin-right: 4px;
+}
+
+a:hover > .cp-settings-entry,
+a:focus > .cp-settings-entry {
+	background: #0550ae;
+}
+
+/* コンテストのページのヘッダーは、項目を足すと幅の狭い画面で2段になり、固定されたヘッダーが本文のメニューを隠す。
+   1段に保つため、足りない幅はコンテスト名を省略して詰める */
+@media (min-width: 768px) {
+	#navbar-collapse.collapse {
+		display: flex !important;
+	}
+
+	#navbar-collapse > .navbar-nav {
+		display: flex;
+		float: none;
+		flex-shrink: 0;
+	}
+
+	#navbar-collapse > .navbar-nav:not(.navbar-right) {
+		flex-shrink: 1;
+		min-width: 0;
+	}
+
+	#navbar-collapse > .navbar-nav > li {
+		float: none;
+		flex-shrink: 0;
+	}
+
+	#navbar-collapse > .navbar-nav > li > a {
+		white-space: nowrap;
+	}
+
+	#navbar-collapse > .navbar-nav > li:has(> .contest-title) {
+		flex-shrink: 1;
+		min-width: 0;
+	}
+
+	#navbar-collapse .contest-title {
+		max-width: 100%;
+	}
+
+	#navbar-collapse > .navbar-right {
+		margin-left: auto;
+	}
+}
+
+/* トップページなどのヘッダーは、幅 1023px 以下で文字と項目の幅が画面幅に比例し、タブレットほどの幅では大きくなりすぎる。
+   文字に上限を設け、項目の幅は中身に合わせて1行に収める */
+@media (min-width: 640px) and (max-width: 1023px) {
+	#header .header-sub_page li a {
+		width: auto;
+		padding-right: 10px;
+		padding-left: 10px;
+		font-size: min(3vw, 16px);
+		white-space: nowrap;
+	}
+}
+`;
+
+	// CpToolkit/src/features/settings-panel/navigation-entry.ts
+	function addNavigationEntry(listSelectors, label, onOpen) {
+		const list = listSelectors
+			.map((selector) => document.querySelector(selector))
+			.find((element) => element !== null);
+		if (!list) return;
+		injectStyle(navigation_entry_default);
+		const link = h("a", {href: "#"}, h("span", {className: "cp-settings-entry", textContent: label}));
+		link.addEventListener("click", (event) => {
+			event.preventDefault();
+			onOpen();
+		});
+		list.append(h("li", {}, link));
+	}
+
+	// CpToolkit/src/ui/toast/toast.css
+	var toast_default = `.toasts {
+	position: fixed;
+	top: 120px;
+	left: 20px;
+	z-index: 2147483000;
+	display: grid;
+	gap: 8px;
+	width: min(360px, calc(100vw - 40px));
+}
+
+.toast {
+	padding: 8px 12px;
+	border: 1px solid var(--cp-border);
+	border-left-width: 4px;
+	border-radius: 8px;
+	background: var(--cp-surface);
+	box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+	color: var(--cp-text);
+	cursor: pointer;
+	animation: toast-in 150ms ease-out;
+}
+
+.toast[data-tone="success"] {
+	border-left-color: var(--cp-success);
+}
+
+.toast[data-tone="warning"] {
+	border-left-color: var(--cp-danger);
+}
+
+.toast-title {
+	font-weight: 600;
+}
+
+.toast-detail {
+	color: var(--cp-text-muted);
+	font-size: 13px;
+}
+
+.toast a {
+	color: var(--cp-accent);
+}
+
+@keyframes toast-in {
+	from {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
+}
+`;
+
+	// CpToolkit/src/ui/toast/toast.ts
+	var container = null;
+
+	function ensureContainer() {
+		if (container?.isConnected) return container;
+		const list = h("div", {className: "toasts"});
+		const host = h("div");
+		host.attachShadow({mode: "open"}).append(
+			h("style", {
+				textContent: `${theme_default}
+${toast_default}`,
+			}),
+			list,
+		);
+		document.body.append(host);
+		container = list;
+		return list;
+	}
+
+	function showToast({title, detail, tone, href, durationMs}) {
+		const heading = href ? h("a", {href, target: "_blank", rel: "noopener", textContent: title}) : title;
+		const toast = h(
+			"div",
+			{className: "toast"},
+			h("div", {className: "toast-title"}, heading),
+			h("div", {className: "toast-detail", textContent: detail}),
+		);
+		toast.dataset.tone = tone;
+		toast.addEventListener("click", () => toast.remove());
+		setTimeout(() => toast.remove(), durationMs);
+		ensureContainer().append(toast);
+	}
+
+	// CpToolkit/src/features/settings-panel/update-notice.ts
+	var NOTICE_DURATION_MS = 20000;
+
+	function notifyUpdate(scriptName, status, translate) {
+		if (status.latest === null || status.downloadUrl === null) return;
+		showToast({
+			title: `${scriptName} v${status.latest}`,
+			detail: translate("update.notice"),
+			tone: "success",
+			href: status.downloadUrl,
+			durationMs: NOTICE_DURATION_MS,
+		});
+	}
+
+	// CpToolkit/data/judges/aoj.yaml
+	var aoj_default = {
+		id: "aoj",
+		name: "AIZU ONLINE JUDGE",
+		matches: ["https://onlinejudge.u-aizu.ac.jp/*"],
+		routes: {
+			page: "^/",
+		},
+		navigationLists: [],
+		submission: {
+			editor: "ace",
+			editorElements: ["#editor", "#editor-div"],
+			shortcut: "Ctrl+Enter",
+			submitButtons: [".editorFooter .submitBtn", "#submit_button"],
+		},
+	};
+	// CpToolkit/data/judges/atcoder.yaml
+	var atcoder_default = {
+		id: "atcoder",
+		name: "AtCoder",
+		matches: ["https://atcoder.jp/*"],
+		routes: {
+			page: "^/[^?]",
+			home: "^/(\\?|$)",
+			contest: "^/contests/(?!archive)[^/?#]+",
+			tasks: "^/contests/[^/]+/tasks/?(\\?|$)",
+			task: "^/contests/[^/]+/tasks/[^/?#]+",
+			tasksPrint: "^/contests/[^/]+/tasks_print",
+			tessokuTasks: "^/contests/tessoku-book/tasks/?(\\?|$)",
+			submit: "^/contests/[^/]+/submit",
+			customTest: "^/contests/[^/]+/custom_test",
+			submissions: "^/contests/[^/]+/submissions(/me)?/?(\\?|$)",
+			submissionDetail: "^/contests/[^/]+/submissions/\\d+",
+			editorial: "^/contests/[^/]+/(tasks/[^/?#]+/)?editorial/?(\\?|$)",
+			virtual: "^/contests/[^/]+/virtual/?(\\?|$)",
+			user: "^/users/[^/?#]+/?(\\?(?!.*graph=(rank|dist)).*)?$",
+		},
+		navigationLists: ["#navbar-collapse .navbar-right", "#header .header-page"],
+		submission: {
+			editor: "ace",
+			editorElements: ["#editor"],
+			shortcut: "Ctrl+Shift+Enter",
+			submitButtons: ["#submit"],
+		},
+		samples: [
+			{
+				selector: "#task-statement p+pre.literal-block",
+				container: ".section",
+			},
+			{
+				selector: "#task-statement pre.source-code-for-copy",
+				container: ".part",
+			},
+			{
+				selector: "#task-statement .lang>*:nth-child(1) .div-btn-copy+pre",
+				container: ".part",
+			},
+			{
+				selector: "#task-statement .div-btn-copy+pre",
+				container: ".part",
+			},
+			{
+				selector: "#task-statement>.part pre.linenums",
+				container: ".part",
+			},
+			{
+				selector: "#task-statement>.part section>pre",
+				container: ".part",
+			},
+			{
+				selector: "#task-statement>.part:not(.io-style)>h3+section>pre",
+				container: ".part",
+			},
+			{
+				selector: "#task-statement pre",
+				container: ".part",
+			},
+			{
+				selector: "#task-statement .div-btn-copy+pre",
+				container: ".part",
+				insideIoStyle: true,
+			},
+		],
+	};
+	// CpToolkit/data/judges/codeforces.yaml
+	var codeforces_default = {
+		id: "codeforces",
+		name: "Codeforces",
+		matches: [
+			"https://codeforces.com/*",
+			"https://*.contest.codeforces.com/*",
+			"https://m1.codeforces.com/*",
+			"https://m2.codeforces.com/*",
+			"https://m3.codeforces.com/*",
+		],
+		routes: {
+			page: "^/",
+			problem:
+				"^/(contest/[^/]+/problem|gym/[^/]+/problem|problemset/problem|group/[^/]+/contest/[^/]+/problem)/",
+		},
+		navigationLists: [],
+		submission: {
+			editor: "ace",
+			editorElements: ["#editor"],
+			shortcut: "Ctrl+Shift+Enter",
+			submitButtons: [".submit-form .submit", ".submitForm .submit", 'input[type="submit"].submit'],
+		},
+	};
+	// CpToolkit/data/judges/library-checker.yaml
+	var library_checker_default = {
+		id: "libraryChecker",
+		name: "Library Checker",
+		matches: ["https://judge.yosupo.jp/problem/*"],
+		routes: {
+			page: "^/problem/",
+		},
+		navigationLists: [],
+		submission: {
+			editor: "monaco",
+			editorElements: [],
+			shortcut: "Ctrl+Shift+Alt+Enter",
+			submitButtons: [],
+			labeledSubmit: {
+				selector: 'form button[type="submit"], form input[type="submit"]',
+				labels: ["提出", "submit"],
+			},
+		},
+	};
+	// CpToolkit/data/judges/paiza.yaml
+	var paiza_default = {
+		id: "paiza",
+		name: "paiza",
+		matches: ["https://paiza.jp/*"],
+		routes: {
+			page: "^/",
+		},
+		navigationLists: [],
+		submission: {
+			editor: "ace",
+			editorElements: ["#editor-div", "#editor"],
+			shortcut: "Ctrl+Enter",
+			submitButtons: ["#handin", '[onclick*="hand_in_code"]'],
+			labeledSubmit: {
+				selector: 'a, button, input[type="button"], input[type="submit"]',
+				labels: ["コードを提出する", "提出する", "提出"],
+			},
+		},
+		languageSelect: {
+			selects: ["#language_id", 'select[name="language[id]"]'],
+			hiddenFields: ["programming_language_id", "submit_programming_language_id"],
+		},
+	};
+	// CpToolkit/data/judges/yukicoder.yaml
+	var yukicoder_default = {
+		id: "yukicoder",
+		name: "yukicoder",
+		matches: ["https://yukicoder.me/problems/*"],
+		routes: {
+			problem: "^/problems/",
+		},
+		navigationLists: [],
+	};
+
+	// CpToolkit/src/catalog/judges.ts
+	var judges = [
+		atcoder_default,
+		codeforces_default,
+		yukicoder_default,
+		aoj_default,
+		library_checker_default,
+		paiza_default,
+	];
+	var atcoderSampleSelectors = atcoder_default.samples;
+	var paizaLanguageSelect = paiza_default.languageSelect;
+
+	// CpToolkit/data/i18n/en.yaml
+	var en_default = {
+		"settings.open": "Open settings",
+		"settings.title": "CP Toolkit settings",
+		"settings.close": "Close",
+		"settings.empty": "No features are available.",
+		"settings.options": "Options",
+		"settings.invalidValue": "This value is not valid.",
+		"settings.reloadNotice": "Reload the page to apply your changes.",
+		"settings.reload": "Reload",
+		"settings.export": "Export settings",
+		"settings.import": "Import settings",
+		"settings.importFailed": "The settings file could not be read.",
+		"settings.reset": "Reset to defaults",
+		"settings.resetConfirm": "All settings will be reset to their defaults. Continue?",
+		"update.check": "Check for updates",
+		"update.install": "Update to",
+		"update.upToDate": "Up to date",
+		"update.notice": "A new version is available. Click the link above to open the update page.",
+		"status.disabled": "Off",
+		"status.outOfScope": "Not on this page",
+		"status.pending": "Waiting",
+		"status.running": "Running",
+		"status.reloadRequired": "Reload to apply",
+		"status.failed": "Failed to start",
+		"category.layout": "Layout",
+		"category.statement": "Statement",
+		"category.submission": "Submissions",
+		"category.contest": "Contest",
+		"category.rating": "Results",
+		"category.execution": "Execution",
+		"wideLayout.title": "Wider page",
+		"wideLayout.description": "Widens the central column of the page to the specified width.",
+		"wideLayout.width": "Width (e.g. 75%, 1200px; empty for the original width; 75% recommended)",
+		"hoverMenu.title": "Open menus on hover",
+		"hoverMenu.description": "Opens menus when the pointer moves over them.",
+		"statementHighlight.title": "Statement highlighting",
+		"statementHighlight.description": "Highlights numbers, variables, and the time and memory limits.",
+		"statementHighlight.numberColor": "Number color",
+		"statementHighlight.variableColor": "Variable color",
+		"statementHighlight.timeColor": "Time limit color",
+		"statementHighlight.memoryColor": "Memory limit color",
+		"statementHighlight.alwaysEmphasizeLimits": "Also emphasize limits of 2 sec and 1024 MiB",
+		"statementCopy.title": "Copy statement",
+		"statementCopy.description": "Adds buttons that copy each section or the whole statement.",
+		"statementCopy.format": "Copy format",
+		"statementCopy.formatMarkdown": "Markdown",
+		"statementCopy.formatPlain": "Plain text",
+		"statementCopy.copy": "Copy",
+		"statementCopy.copyAll": "Copy All",
+		"statementCopy.copied": "Copied!",
+		"statementCopy.defaultTitle": "Task",
+		"efficientLayout.title": "Side-by-side samples",
+		"efficientLayout.description": "Places the input and output formats and samples side by side.",
+		"efficientLayout.widthMode": "How to size each sample pair",
+		"efficientLayout.widthModeAuto": "Auto (fit the content)",
+		"efficientLayout.widthModeFixed": "Fixed",
+		"efficientLayout.sampleWidth": "Fixed width (% of the screen; 20 to 30 recommended)",
+		"efficientLayout.maxSampleWidth": "Maximum width in auto mode (% of the screen)",
+		"efficientLayout.samples": "Samples",
+		"efficientLayout.ioFormat": "Input and output",
+		"submissionQuery.title": "Keep submission filters",
+		"submissionQuery.description": "Keeps search filters when switching between All and My submissions.",
+		"submissionShortcuts.title": "AC submission buttons",
+		"submissionShortcuts.description":
+			"Adds buttons that open the AC submissions for the task, sorted by time, code size, submission time or memory. Choose the buttons to show in the detailed settings. They are hidden during a contest.",
+		"submissionShortcuts.language": "Language (empty for all)",
+		"submissionShortcuts.label": "AC submissions",
+		"submissionShortcuts.time": "Time",
+		"submissionShortcuts.length": "Size",
+		"submissionShortcuts.created": "Submitted",
+		"submissionShortcuts.memory": "Memory",
+		"submissionShortcuts.byTime": "Show the button sorted by time",
+		"submissionShortcuts.byLength": "Show the button sorted by code size",
+		"submissionShortcuts.byCreated": "Show the button sorted by submission time",
+		"submissionShortcuts.byMemory": "Show the button sorted by memory",
+		"resultNotifier.title": "Submission notifications",
+		"resultNotifier.description":
+			"Shows the verdict right after judging finishes, on any page. Keep at least one AtCoder tab open.",
+		"resultNotifier.desktop": "Use desktop notifications while you are away from AtCoder",
+		"clarNotifier.title": "Clarification notifications",
+		"clarNotifier.description": "Notifies you when the organizers post an answer or a correction during a contest.",
+		"clarNotifier.desktop": "Use desktop notifications while you are away from AtCoder",
+		"clarNotifier.arrived": "{count} new clarification(s)",
+		"averageResult.title": "Test case averages",
+		"averageResult.description": "Shows average time and memory on the submission page.",
+		"averageResult.average": "Average",
+		"submissionTimer.title": "Delayed submission",
+		"submissionTimer.description": "Submits your code after the specified time.",
+		"submissionTimer.minutes": "Minutes until submission",
+		"submissionTimer.set": "Set",
+		"submissionTimer.cancel": "Cancel",
+		"submissionTimer.canceled": "The timer was canceled.",
+		"submissionTimer.scheduled": "Your code will be submitted around {time}.",
+		"languageButtons.title": "Language switch buttons",
+		"languageButtons.description":
+			"Saves your frequently used languages as a row of buttons, so you can switch to one in a single click. Pick the languages from the gear below the language selector.",
+		"languageButtons.configure": "Choose languages for the buttons",
+		"languageButtons.hint": "Buttons for the checked languages appear below the language selector.",
+		"sourceComments.title": "Header and footer",
+		"sourceComments.description":
+			"Adds a header to the top and a footer to the bottom of pasted code as comments, for example to attach reference URLs, and rewrites them when the language changes.",
+		"sourceComments.style": "Default comment style",
+		"sourceComments.styleLine": "Single-line comments",
+		"sourceComments.styleBlock": "Multi-line comment",
+		"sourceComments.panel": "Header and footer",
+		"sourceComments.header": "Header (top of the code)",
+		"sourceComments.footer": "Footer (bottom of the code)",
+		"sourceComments.placeholder": "e.g. reference URLs",
+		"sourceComments.taskOnly": "This task only",
+		"sourceComments.commentOut": "Comment out when inserting",
+		"sourceComments.multiline": "Use a multi-line comment",
+		"sourceComments.restoreHistory": "Restore from history",
+		"sourceComments.restorePreset": "Load a saved entry",
+		"sourceComments.savePreset": "Save with a name",
+		"sourceComments.removePreset": "Delete",
+		"sourceComments.presetName": "Name to save as",
+		"sourceComments.apply": "Apply to the code",
+		"sourceComments.variables": "{url} becomes the task URL, {task} the task ID and {contest} the contest ID.",
+		"sourceComments.notInserted": "Comments were not inserted",
+		"sourceComments.unsupported": "Nothing was inserted because the comment syntax of this language is unknown.",
+		"taskStatus.title": "Task status colors",
+		"taskStatus.description":
+			"Colors the task list and the dropdown by all your submissions, including those after the contest. A task with an AC or a score counts as accepted.",
+		"taskStatus.acceptedColor": "Color of accepted tasks",
+		"taskStatus.rejectedColor": "Color of tasks not accepted",
+		"taskDropdown.title": "Task dropdown",
+		"taskDropdown.description": "Opens tasks from the Tasks tab and opens several tasks at once.",
+		"taskDropdown.newTab": "Open in a new tab",
+		"taskDropdown.taskTable": "Task table",
+		"taskDropdown.openAtOnce": "Open multiple tasks",
+		"taskDropdown.loadFailed": "(Failed to load)",
+		"taskDropdown.all": "All",
+		"taskDropdown.range": "Range",
+		"taskDropdown.reverse": "Open in reverse order",
+		"taskDropdown.cancel": "Cancel",
+		"taskDropdown.tabCount": "{count} tabs will open. If pop-ups are blocked, please allow them.",
+		"taskDropdown.tabLimit": "Note: up to {count} tabs can be opened at once.",
+		"editorialList.title": "All editorials",
+		"editorialList.description": "Shows the editorials of every task on the editorial page.",
+		"variableHover.title": "Highlight hovered variables and numbers",
+		"variableHover.description":
+			"Hovering a variable or a number in the statement highlights every occurrence. Click to pin, Esc to clear.",
+		"variableHover.variables": "Highlight variables",
+		"variableHover.numbers": "Highlight numbers",
+		"latestContests.title": "Next contests",
+		"latestContests.description": "Adds a header menu with the upcoming contests listed on the home page.",
+		"latestContests.menu": "Next contests",
+		"latestContests.loading": "Loading...",
+		"latestContests.failed": "Could not load the list",
+		"contestCalendar.title": "Add to calendar",
+		"contestCalendar.description": "Adds a link to contest pages that registers the contest in Google Calendar.",
+		"contestCalendar.add": "Add to calendar",
+		"virtualTimer.title": "Virtual contest timer",
+		"virtualTimer.description":
+			"Shows the time until the start and the time left of a virtual participation in the corner clock. Open the virtual page once to record the start time.",
+		"virtualTimer.untilStart": "Starts in",
+		"virtualTimer.remaining": "Time left",
+		"topLinks.title": "Contest links on the top page",
+		"topLinks.description": "Replaces the top page list with links to past contests by type.",
+		"tessokuDifficulty.title": "Tessoku difficulty",
+		"tessokuDifficulty.description": "Shows the difficulty from the book on the Tessoku task list.",
+		"tessokuDifficulty.sortByDifficulty": "Sort by difficulty",
+		"tessokuDifficulty.sortById": "Sort by task number",
+		"ratingGraph.title": "Performance on the user page graph",
+		"ratingGraph.description":
+			"Overlays performance on the rating graph of user pages (profiles), including other users' pages.",
+		"ratingGraph.recentByDefault": "Show only recent results at first",
+		"ratingGraph.recentRange": "Recent range (e.g. 20 for the last 20 contests, 50% for the latest half)",
+		"ratingGraph.recentRangeInvalid": "Enter a whole number of 1 or more, or a percentage from 1% to 100%.",
+		"ratingGraph.togglePerformance": "Toggle performance",
+		"ratingGraph.showAll": "all",
+		"ratingGraph.showRecent": "recent",
+		"localRunner.title": "Local Runner",
+		"localRunner.description":
+			"Connects to the local server used to transform and run code. Local Runner needs a separate installation. A server of your own with the same API also works.",
+		"localRunner.url": "Server URL",
+		"javaSubmit.title": "Java submission helper",
+		"javaSubmit.description":
+			"Transforms pasted code for submission and adds submit shortcuts. Removing packages, renaming the class and disabling DEBUG work without Local Runner. Expanding lib.*, completing imports and adding the header need Local Runner.",
+		"javaSubmit.localRunnerRequired": "Expanding lib.* needs Local Runner",
+		"javaSubmit.localRunnerGuide":
+			"Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
+		"javaSubmit.libraryRequired": "Expanding lib.* needs the library to be set",
+		"javaSubmit.libraryGuide":
+			"The library folder is not set in Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
+		"javaSubmit.removePackage": "Remove package declarations when Local Runner is unavailable",
+		"javaSubmit.renameClass": "Rename the class to Main when Local Runner is unavailable",
+		"javaSubmit.fixDebug": "Set DEBUG to false when Local Runner is unavailable",
+		"javaSubmit.addHeader": "Add the submission header",
+		"javaSubmit.headerName": "Header name (empty for the default)",
+		"javaSubmit.foldOnPaste": "Fold classes and comments after pasting",
+		"easyTest.title": "Easy Test+",
+		"easyTest.description":
+			"Based on AtCoder Easy Test v2, with additional features. Runs samples from the task page and checks the results. With Local Runner, code runs on your PC and the code you are editing is compiled in advance. Enable only one of this and AtCoder Easy Test v2, because using both duplicates the buttons.",
+		"easyTest.precompile": "Precompile edited code with Local Runner",
+		"easyTest.keyboardShortcuts": "Use shortcuts (Ctrl+Enter, Alt+Enter, Alt+Esc)",
+		"easyTest.savedCodeLimit": "Number of saved solutions",
+		"easyTest.allowableError": "Allowed error",
+		"easyTest.run": "Run",
+		"easyTest.testAndSubmit": "Test & Submit",
+		"easyTest.cancelSubmit": "Cancel Submission",
+		"easyTest.testAll": "Test All Samples",
+		"easyTest.restore": "Restore Last Code",
+		"easyTest.environment": "Environment",
+		"easyTest.noEnvironment": "No environment available",
+		"easyTest.standardInput": "Standard input",
+		"easyTest.standardOutput": "Standard output",
+		"easyTest.standardError": "Standard error",
+		"easyTest.expectedOutput": "Expected output",
+		"easyTest.exitCode": "Exit code",
+		"easyTest.execTime": "Time",
+		"easyTest.memory": "Memory",
+		"easyTest.allocated": "allocated in total",
+		"easyTest.noSavedCode": "No saved code was found for this task.",
+		"easyTest.noSamples": "No samples were found. Nothing was tested or submitted.",
+		"easyTest.noSource": "The source code is empty, so nothing was run.",
+		"easyTest.internalError":
+			"The code could not be run because the environment failed. Choose another environment and try again.",
+		"easyTest.restoreConfirm": "Your current code will be replaced. Continue?",
+		"paizaLanguage.title": "paiza language selection",
+		"paizaLanguage.description":
+			"Selects the specified language on paiza submission pages. It does nothing until you set a language.",
+		"paizaLanguage.language": "Language (e.g. c++, java, python3)",
+	};
+
+	// CpToolkit/data/i18n/ja.yaml
+	var ja_default = {
+		"settings.open": "設定を開く",
+		"settings.title": "CP Toolkit の設定",
+		"settings.close": "閉じる",
+		"settings.empty": "設定できる機能はありません。",
+		"settings.options": "詳細設定",
+		"settings.invalidValue": "値の形式が正しくありません。",
+		"settings.reloadNotice": "変更を反映するには再読み込みしてください。",
+		"settings.reload": "再読み込み",
+		"settings.export": "設定を書き出す",
+		"settings.import": "設定を読み込む",
+		"settings.importFailed": "設定ファイルを読み込めませんでした。",
+		"settings.reset": "初期状態に戻す",
+		"settings.resetConfirm": "すべての設定を初期状態に戻します。よろしいですか?",
+		"update.check": "更新を確認",
+		"update.install": "更新する",
+		"update.upToDate": "最新です",
+		"update.notice": "新しいバージョンがあります。上のリンクを押すと、更新の画面が開きます。",
+		"status.disabled": "無効",
+		"status.outOfScope": "このページは対象外",
+		"status.pending": "待機中",
+		"status.running": "動作中",
+		"status.reloadRequired": "再読み込みで反映",
+		"status.failed": "起動に失敗",
+		"category.layout": "表示",
+		"category.statement": "問題文",
+		"category.submission": "提出",
+		"category.contest": "コンテスト",
+		"category.rating": "成績",
+		"category.execution": "実行環境",
+		"wideLayout.title": "ページ幅の拡張",
+		"wideLayout.description": "ページ中央の幅を、指定した幅に広げます。",
+		"wideLayout.width": "幅(例: 75%, 1200px。空欄なら元の幅。おすすめは 75%)",
+		"hoverMenu.title": "メニューのホバー表示",
+		"hoverMenu.description": "マウスを重ねるだけでメニューを開きます。",
+		"statementHighlight.title": "問題文の強調表示",
+		"statementHighlight.description": "問題文中の数字と変数、実行時間とメモリの制限を強調します。",
+		"statementHighlight.numberColor": "数字の色",
+		"statementHighlight.variableColor": "変数の色",
+		"statementHighlight.timeColor": "実行時間制限の色",
+		"statementHighlight.memoryColor": "メモリ制限の色",
+		"statementHighlight.alwaysEmphasizeLimits": "2 秒と 1024 MiB の制限も強調する",
+		"statementCopy.title": "問題文のコピー",
+		"statementCopy.description": "問題文の各項目と全体をコピーするボタンを追加します。",
+		"statementCopy.format": "コピーする形式",
+		"statementCopy.formatMarkdown": "Markdown",
+		"statementCopy.formatPlain": "プレーンテキスト",
+		"statementCopy.copy": "Copy",
+		"statementCopy.copyAll": "Copy All",
+		"statementCopy.copied": "Copied!",
+		"statementCopy.defaultTitle": "問題",
+		"efficientLayout.title": "サンプルの横並び",
+		"efficientLayout.description": "入出力の形式とサンプルを横に並べて表示します。",
+		"efficientLayout.widthMode": "サンプル1組の幅の決め方",
+		"efficientLayout.widthModeAuto": "自動(中身の長さに合わせる)",
+		"efficientLayout.widthModeFixed": "固定",
+		"efficientLayout.sampleWidth": "固定のときの幅(画面幅に対する %。おすすめは 20〜30)",
+		"efficientLayout.maxSampleWidth": "自動のときの上限(画面幅に対する %)",
+		"efficientLayout.samples": "入出力例",
+		"efficientLayout.ioFormat": "入出力形式",
+		"submissionQuery.title": "提出一覧の検索条件の保持",
+		"submissionQuery.description": "提出一覧の「すべての提出」と「自分の提出」を切り替えても、検索条件を保ちます。",
+		"submissionShortcuts.title": "AC 提出へのボタン",
+		"submissionShortcuts.description":
+			"問題ページに、この問題の AC 提出を実行時間、コード長、提出時間、メモリの順で開くボタンを追加します。出すボタンは詳細設定で選べます。コンテスト中は表示しません。",
+		"submissionShortcuts.language": "言語(空欄ならすべて)",
+		"submissionShortcuts.label": "AC提出",
+		"submissionShortcuts.time": "実行時間",
+		"submissionShortcuts.length": "コード長",
+		"submissionShortcuts.created": "提出時間",
+		"submissionShortcuts.memory": "メモリ",
+		"submissionShortcuts.byTime": "実行時間順のボタンを出す",
+		"submissionShortcuts.byLength": "コード長順のボタンを出す",
+		"submissionShortcuts.byCreated": "提出時間順のボタンを出す",
+		"submissionShortcuts.byMemory": "メモリ順のボタンを出す",
+		"resultNotifier.title": "提出結果の通知",
+		"resultNotifier.description":
+			"判定が終わると、どのページにいても結果をすぐに通知します。AtCoder のタブを1つは開いたままにしてください。",
+		"resultNotifier.desktop": "AtCoder を操作していないときはデスクトップ通知も出す",
+		"clarNotifier.title": "Clar の通知",
+		"clarNotifier.description": "コンテスト中に運営からの回答や訂正(Clar)が届くと通知します。",
+		"clarNotifier.desktop": "AtCoder を操作していないときはデスクトップ通知も出す",
+		"clarNotifier.arrived": "新しい Clar が {count} 件あります",
+		"averageResult.title": "テストケースの平均",
+		"averageResult.description": "提出の詳細に、実行時間とメモリの平均を表示します。",
+		"averageResult.average": "平均",
+		"submissionTimer.title": "提出の予約",
+		"submissionTimer.description": "指定した時間が経ったらコードを提出します。",
+		"submissionTimer.minutes": "何分後に提出するか",
+		"submissionTimer.set": "セットする",
+		"submissionTimer.cancel": "取り消す",
+		"submissionTimer.canceled": "タイマーを取り消しました。",
+		"submissionTimer.scheduled": "{time} ごろに提出します。",
+		"languageButtons.title": "言語の切り替えボタン",
+		"languageButtons.description":
+			"よく使う言語をボタンとして並べて保存しておき、1回の操作で切り替えられるようにします。並べる言語は選択欄の下の歯車から選びます。",
+		"languageButtons.configure": "ボタンにする言語を選ぶ",
+		"languageButtons.hint": "チェックした言語のボタンを選択欄の下に表示します。",
+		"sourceComments.title": "ヘッダーとフッター",
+		"sourceComments.description":
+			"貼り付けたコードの先頭にヘッダー、末尾にフッターをコメントとして追記します。参照元の URL の添付などに使えます。言語を変えるとコメントの書き方も切り替えます。",
+		"sourceComments.style": "既定のコメントの形式",
+		"sourceComments.styleLine": "単一行コメントを並べる",
+		"sourceComments.styleBlock": "複数行コメント",
+		"sourceComments.panel": "ヘッダーとフッター",
+		"sourceComments.header": "ヘッダー(コードの先頭)",
+		"sourceComments.footer": "フッター(コードの末尾)",
+		"sourceComments.placeholder": "参照元の URL など",
+		"sourceComments.taskOnly": "この問題のみ",
+		"sourceComments.commentOut": "挿入時にコメントアウトする",
+		"sourceComments.multiline": "複数行コメントにする",
+		"sourceComments.restoreHistory": "履歴から復元",
+		"sourceComments.restorePreset": "保存した名前から呼び出す",
+		"sourceComments.savePreset": "名前を付けて保存",
+		"sourceComments.removePreset": "削除",
+		"sourceComments.presetName": "保存する名前",
+		"sourceComments.apply": "コードへ反映",
+		"sourceComments.variables":
+			"{url} は問題の URL、{task} は問題の ID、{contest} はコンテストの ID に置き換えます。",
+		"sourceComments.notInserted": "コメントを挿入していません",
+		"sourceComments.unsupported": "この言語はコメントの書き方が分からないので、挿入していません。",
+		"taskStatus.title": "問題の正誤の色分け",
+		"taskStatus.description":
+			"問題一覧とドロップダウンを、コンテスト後を含む自分の提出に合わせて色分けします。AC か得点があれば正解として扱います。",
+		"taskStatus.acceptedColor": "正解した問題の色",
+		"taskStatus.rejectedColor": "正解していない問題の色",
+		"taskDropdown.title": "問題のドロップダウン",
+		"taskDropdown.description": "「問題」タブから各問題へ移動でき、複数の問題をまとめて開けます。",
+		"taskDropdown.newTab": "新しいタブで開く",
+		"taskDropdown.taskTable": "問題一覧",
+		"taskDropdown.openAtOnce": "まとめて開く",
+		"taskDropdown.loadFailed": "(読み込み失敗)",
+		"taskDropdown.all": "すべて",
+		"taskDropdown.range": "範囲を指定",
+		"taskDropdown.reverse": "逆順で開く",
+		"taskDropdown.cancel": "キャンセル",
+		"taskDropdown.tabCount": "{count} 個のタブが開きます。ブロックされた場合はポップアップを許可してください。",
+		"taskDropdown.tabLimit": "※一度に開けるタブは {count} 個までです。",
+		"editorialList.title": "解説の一覧表示",
+		"editorialList.description": "解説ページで、すべての問題の解説をまとめて表示します。",
+		"variableHover.title": "ホバーした変数と数値の強調",
+		"variableHover.description":
+			"問題文の変数や数値に重ねると、同じ変数や数値をすべて強調します。クリックで固定し、Esc で解除します。",
+		"variableHover.variables": "変数を強調する",
+		"variableHover.numbers": "数値を強調する",
+		"latestContests.title": "次のコンテスト",
+		"latestContests.description": "ホームの「次のコンテスト」の一覧を、ヘッダーのメニューから開けるようにします。",
+		"latestContests.menu": "次のコンテスト",
+		"latestContests.loading": "読み込み中...",
+		"latestContests.failed": "取得できませんでした",
+		"contestCalendar.title": "カレンダーへの登録",
+		"contestCalendar.description": "コンテストのページに、Google カレンダーへ登録するリンクを追加します。",
+		"contestCalendar.add": "カレンダーに追加",
+		"virtualTimer.title": "バーチャル参加のタイマー",
+		"virtualTimer.description":
+			"バーチャル参加の開始までの時間と残り時間を、画面右下の時計に表示します。参加のページを開くと開始時刻を記憶します。",
+		"virtualTimer.untilStart": "開始まであと",
+		"virtualTimer.remaining": "残り時間",
+		"topLinks.title": "トップページのコンテスト一覧",
+		"topLinks.description": "トップページの一覧を、種類ごとの過去問へのリンクに置き換えます。",
+		"tessokuDifficulty.title": "鉄則本の難易度表示",
+		"tessokuDifficulty.description": "「競技プログラミングの鉄則」の問題一覧に、書籍の難易度を表示します。",
+		"tessokuDifficulty.sortByDifficulty": "難易度順で並べ替え",
+		"tessokuDifficulty.sortById": "問題番号順で並べ替え",
+		"ratingGraph.title": "ユーザーページのグラフへのパフォーマンス表示",
+		"ratingGraph.description":
+			"ユーザーページ(プロフィール)のレーティンググラフに、パフォーマンスを重ねて表示します。自分以外のユーザーのページでも表示します。",
+		"ratingGraph.recentByDefault": "最初は最近の結果だけを表示する",
+		"ratingGraph.recentRange": "最近の結果の範囲(例: 20 で直近20回、50% で直近の半分)",
+		"ratingGraph.recentRangeInvalid": "1 以上の整数か、1% から 100% の割合を入力してください。",
+		"ratingGraph.togglePerformance": "パフォーマンスの ON/OFF",
+		"ratingGraph.showAll": "all",
+		"ratingGraph.showRecent": "recent",
+		"localRunner.title": "Local Runner",
+		"localRunner.description":
+			"コードの変換と実行に使う、手元のサーバーへ接続します。別途、Local Runner の導入が必要です。同じ API を持つ自作のサーバーにも接続できます。",
+		"localRunner.url": "接続先の URL",
+		"javaSubmit.title": "Java の提出補助",
+		"javaSubmit.description":
+			"貼り付けたコードを提出用に変換し、ショートカットで提出できるようにします。パッケージ宣言の削除、クラス名の変更、DEBUG の無効化は Local Runner がなくても動きます。lib.* の展開、import の補完、ヘッダーの付与には Local Runner が必要です。",
+		"javaSubmit.localRunnerRequired": "lib.* の展開には Local Runner が必要です",
+		"javaSubmit.localRunnerGuide":
+			"Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。",
+		"javaSubmit.libraryRequired": "lib.* の展開にはライブラリの設定が必要です",
+		"javaSubmit.libraryGuide":
+			"Local Runner にライブラリのフォルダが設定されていないので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから設定方法を確認できます。",
+		"javaSubmit.removePackage": "Local Runner がないときにパッケージ宣言を削除する",
+		"javaSubmit.renameClass": "Local Runner がないときにクラス名を Main にする",
+		"javaSubmit.fixDebug": "Local Runner がないときに DEBUG を false にする",
+		"javaSubmit.addHeader": "提出用のヘッダーを付ける",
+		"javaSubmit.headerName": "ヘッダーの名前(空欄なら既定)",
+		"javaSubmit.foldOnPaste": "貼り付け後にクラスとコメントを折りたたむ",
+		"easyTest.title": "Easy Test+",
+		"easyTest.description":
+			"AtCoder Easy Test v2 をもとに、機能を加えたものです。問題ページからサンプルを実行して結果を確認します。Local Runner に接続すると手元の PC で実行でき、編集中のコードを事前にコンパイルします。AtCoder Easy Test v2 と同時に有効にするとボタンが重なるので、どちらか片方にしてください。",
+		"easyTest.precompile": "Local Runner で編集中のコードを事前にコンパイルする",
+		"easyTest.keyboardShortcuts": "ショートカットを使う(Ctrl+Enter、Alt+Enter、Alt+Esc)",
+		"easyTest.savedCodeLimit": "保存するコードの数",
+		"easyTest.allowableError": "許容誤差",
+		"easyTest.run": "Run",
+		"easyTest.testAndSubmit": "Test & Submit",
+		"easyTest.cancelSubmit": "提出を中止",
+		"easyTest.testAll": "Test All Samples",
+		"easyTest.restore": "Restore Last Code",
+		"easyTest.environment": "実行環境",
+		"easyTest.noEnvironment": "実行環境がありません",
+		"easyTest.standardInput": "標準入力",
+		"easyTest.standardOutput": "標準出力",
+		"easyTest.standardError": "標準エラー出力",
+		"easyTest.expectedOutput": "期待する出力",
+		"easyTest.exitCode": "終了コード",
+		"easyTest.execTime": "実行時間",
+		"easyTest.memory": "メモリ",
+		"easyTest.allocated": "累積の割り当て",
+		"easyTest.noSavedCode": "この問題の保存済みコードはありません。",
+		"easyTest.noSamples": "サンプルが見つかりませんでした。テストと提出は行っていません。",
+		"easyTest.noSource": "ソースコードが空なので、実行していません。",
+		"easyTest.internalError":
+			"実行環境でエラーが起きたので、コードを実行できませんでした。別の実行環境を選んでやり直してください。",
+		"easyTest.restoreConfirm": "現在のコードを置き換えます。よろしいですか?",
+		"paizaLanguage.title": "paiza の言語選択",
+		"paizaLanguage.description":
+			"paiza の提出ページで、指定した言語を自動で選びます。言語を設定するまでは動きません。",
+		"paizaLanguage.language": "言語(例: c++, java, python3)",
+	};
+
+	// CpToolkit/src/catalog/messages.ts
+	var MESSAGES = {ja: ja_default, en: en_default};
+
+	function createTranslator(getLocale) {
+		return (key) => MESSAGES[getLocale()][key];
+	}
 
 	// CpToolkit/src/application/execution/local-runner.ts
 	var TRANSFORM_TIMEOUT_MS = 30000;
@@ -5021,38 +5350,6 @@ ${body}
 		return source.replace(PUBLIC_TYPE_PATTERN, "$1");
 	}
 
-	// CpToolkit/src/domain/validation/guards.ts
-	var isBoolean = (value) => typeof value === "boolean";
-	var isString = (value) => typeof value === "string";
-	var isNumber = (value) => typeof value === "number";
-
-	function isPlainObject(value) {
-		return typeof value === "object" && value !== null && !Array.isArray(value);
-	}
-
-	function isArrayOf(isItem) {
-		return (value) => Array.isArray(value) && value.every(isItem);
-	}
-
-	function isRecordOf(isItem) {
-		return (value) => isPlainObject(value) && Object.values(value).every(isItem);
-	}
-
-	function isOptional(isItem) {
-		return (value) => value === undefined || isItem(value);
-	}
-
-	function isObjectOf(fields) {
-		const entries = Object.entries(fields);
-		return (value) => isPlainObject(value) && entries.every(([key, isField]) => isField(value[key]));
-	}
-
-	// CpToolkit/src/application/ports/key-value-store.ts
-	function readStored(store, key, isValid, fallback) {
-		const value = store.get(key);
-		return isValid(value) ? value : fallback;
-	}
-
 	// CpToolkit/src/adapters/runners/wandbox.ts
 	var isSwitches = (value) => Array.isArray(value);
 	var isCompilerCache = isObjectOf({
@@ -5067,7 +5364,7 @@ ${body}
 		fetchedAt: isNumber,
 	});
 	var CACHE_KEY = "easy-test:wandbox-compilers";
-	var HOUR_MS = 60 * 60 * 1000;
+	var HOUR_MS2 = 60 * 60 * 1000;
 	var ACL_INCLUDE_PATTERN = /^#\s*include\s*[<"]atcoder\/([^>"]+)[>"]/gm;
 
 	class WandboxRunner {
@@ -5157,7 +5454,7 @@ ${body}
 
 		async compilers() {
 			const cached = readStored(this.state, CACHE_KEY, isCompilerCache, null);
-			if (cached && Date.now() - cached.fetchedAt < runnerCatalog.wandbox.cacheHours * HOUR_MS)
+			if (cached && Date.now() - cached.fetchedAt < runnerCatalog.wandbox.cacheHours * HOUR_MS2)
 				return cached.compilers;
 			const response = await this.http.send({url: runnerCatalog.wandbox.listUrl});
 			const compilers = JSON.parse(response.text);
@@ -6401,41 +6698,6 @@ ${inner}
 		}
 	}
 
-	// CpToolkit/src/adapters/userscript/gm-services.ts
-	class GmClipboard {
-		write(text) {
-			GM_setClipboard(text);
-		}
-	}
-
-	class GmNotifier {
-		notify({title, text, url}) {
-			GM_notification({
-				title,
-				text,
-				...(url !== undefined && {onclick: () => GM_openInTab(url, {active: true})}),
-			});
-		}
-	}
-
-	class GmHttpClient {
-		send({url, method = "GET", headers, body, timeoutMs}) {
-			return new Promise((resolve, reject) => {
-				GM_xmlhttpRequest({
-					url,
-					method,
-					anonymous: true,
-					...(headers && {headers: {...headers}}),
-					...(body !== undefined && {data: body}),
-					...(timeoutMs !== undefined && {timeout: timeoutMs}),
-					onload: ({status, responseText}) => resolve({status, text: responseText}),
-					onerror: () => reject(new Error(`Request failed: ${url}`)),
-					ontimeout: () => reject(new Error(`Request timed out: ${url}`)),
-				});
-			});
-		}
-	}
-
 	// CpToolkit/src/application/feature/definition.ts
 	function defineFeature(definition) {
 		return {
@@ -6657,91 +6919,6 @@ ${inner}
 			if (count !== previous) this.state.set(SEEN_KEY, {...seen, [contestId]: count});
 			return Math.max(count - previous, 0);
 		}
-	}
-
-	// CpToolkit/src/ui/toast/toast.css
-	var toast_default = `.toasts {
-	position: fixed;
-	top: 120px;
-	left: 20px;
-	z-index: 2147483000;
-	display: grid;
-	gap: 8px;
-	width: min(360px, calc(100vw - 40px));
-}
-
-.toast {
-	padding: 8px 12px;
-	border: 1px solid var(--cp-border);
-	border-left-width: 4px;
-	border-radius: 8px;
-	background: var(--cp-surface);
-	box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
-	color: var(--cp-text);
-	cursor: pointer;
-	animation: toast-in 150ms ease-out;
-}
-
-.toast[data-tone="success"] {
-	border-left-color: var(--cp-success);
-}
-
-.toast[data-tone="warning"] {
-	border-left-color: var(--cp-danger);
-}
-
-.toast-title {
-	font-weight: 600;
-}
-
-.toast-detail {
-	color: var(--cp-text-muted);
-	font-size: 13px;
-}
-
-.toast a {
-	color: var(--cp-accent);
-}
-
-@keyframes toast-in {
-	from {
-		opacity: 0;
-		transform: translateY(-4px);
-	}
-}
-`;
-
-	// CpToolkit/src/ui/toast/toast.ts
-	var container = null;
-
-	function ensureContainer() {
-		if (container?.isConnected) return container;
-		const list = h("div", {className: "toasts"});
-		const host = h("div");
-		host.attachShadow({mode: "open"}).append(
-			h("style", {
-				textContent: `${theme_default}
-${toast_default}`,
-			}),
-			list,
-		);
-		document.body.append(host);
-		container = list;
-		return list;
-	}
-
-	function showToast({title, detail, tone, href, durationMs}) {
-		const heading = href ? h("a", {href, target: "_blank", rel: "noopener", textContent: title}) : title;
-		const toast = h(
-			"div",
-			{className: "toast"},
-			h("div", {className: "toast-title"}, heading),
-			h("div", {className: "toast-detail", textContent: detail}),
-		);
-		toast.dataset.tone = tone;
-		toast.addEventListener("click", () => toast.remove());
-		setTimeout(() => toast.remove(), durationMs);
-		ensureContainer().append(toast);
 	}
 
 	// CpToolkit/src/features/clar-notifier/index.ts
@@ -10983,7 +11160,15 @@ ${wide_layout_default}`);
 		const host = new GmScriptHost();
 		document.documentElement.dataset.cpToolkit = host.version;
 		const lifecycle = new DocumentLifecycle();
-		const settings = new SettingsService(new GmKeyValueStore());
+		const store = new GmKeyValueStore();
+		const settings = new SettingsService(store);
+		const updates = new UpdateChecker({
+			host,
+			http: new GmHttpClient(),
+			state: store,
+			allowedHosts: updateCatalog.connect,
+			intervalHours: updateCatalog.checkIntervalHours,
+		});
 		importLegacySettings(new LocalStorageLegacyInbox(), settings);
 		const page = matchPage(judges, location.href);
 		let panel = null;
@@ -10998,10 +11183,13 @@ ${wide_layout_default}`);
 		});
 		runtime.start();
 		const {translate} = services;
-		panel = createSettingsPanel({features, settings, runtime, translate, version: host.version});
+		panel = createSettingsPanel({features, settings, runtime, translate, updates});
 		lifecycle.reach("ready").then(() => {
 			host.registerCommand(translate("settings.open"), () => panel?.open());
 			if (page) addNavigationEntry(page.judge.navigationLists, host.name, () => panel?.open());
+			updates.check(Date.now()).then((status) => {
+				if (updates.claimNotification()) notifyUpdate(host.name, status, translate);
+			});
 		});
 	}
 

@@ -6,6 +6,7 @@ import ratingData from "@data/rating.yaml";
 import runnersData from "@data/runners.yaml";
 import statementData from "@data/statement.yaml";
 import tessokuData from "@data/tessoku.yaml";
+import updateData from "@data/update.yaml";
 import type {ContestCatalog} from "@domain/contest/category";
 import type {LanguageCatalog} from "@domain/execution/language";
 import type {RatingScale} from "@domain/rating/scale";
@@ -54,7 +55,14 @@ export type ContestLink = {
 	readonly href: string;
 };
 
+/** 更新の確認の間隔と、通信してよい配布元。 */
+export type UpdateCatalog = {
+	readonly checkIntervalHours: number;
+	readonly connect: readonly string[];
+};
+
 export const languageCatalog: LanguageCatalog = languagesData;
+export const updateCatalog: UpdateCatalog = updateData;
 export const runnerCatalog: RunnerCatalog = runnersData;
 export const statementCatalog: StatementCatalog = statementData;
 export const contestCatalog: ContestCatalog = contestsData;
