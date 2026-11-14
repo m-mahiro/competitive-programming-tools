@@ -1,4 +1,6 @@
 :host {
+	/* チェックボックスやスクロールバーなど、ブラウザが描く部品も明暗に合わせる */
+	color-scheme: light dark;
 	--cp-surface: #ffffff;
 	--cp-surface-muted: #f6f8fa;
 	--cp-text: #1f2328;

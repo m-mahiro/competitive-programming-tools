@@ -2062,6 +2062,8 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 
 	// CpToolkit/src/ui/theme.css
 	var theme_default = `:host {
+	/* チェックボックスやスクロールバーなど、ブラウザが描く部品も明暗に合わせる */
+	color-scheme: light dark;
 	--cp-surface: #ffffff;
 	--cp-surface-muted: #f6f8fa;
 	--cp-text: #1f2328;
@@ -2122,6 +2124,206 @@ button:hover {
 }
 `;
 
+	// CpToolkit/src/ui/toast/toast.css
+	var toast_default = `/* popover の既定の見た目(中央寄せ、枠、背景)を打ち消し、画面の左上に固定する */
+:host {
+	position: fixed;
+	inset: 120px auto auto 20px;
+	z-index: 2147483000;
+	width: min(360px, calc(100vw - 40px));
+	height: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	overflow: visible;
+}
+
+.toasts {
+	display: grid;
+	gap: 8px;
+}
+
+.toast {
+	position: relative;
+	padding: 8px 32px 8px 12px;
+	border: 1px solid var(--cp-border);
+	border-left-width: 4px;
+	border-radius: 8px;
+	background: var(--cp-surface);
+	box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+	color: var(--cp-text);
+	cursor: pointer;
+	animation: toast-in 150ms ease-out;
+}
+
+.toast[data-tone="success"] {
+	border-left-color: var(--cp-success);
+}
+
+.toast[data-tone="warning"] {
+	border-left-color: var(--cp-danger);
+}
+
+.toast-title {
+	font-weight: 600;
+}
+
+.toast-detail {
+	color: var(--cp-text-muted);
+	font-size: 13px;
+}
+
+.toast a {
+	color: var(--cp-accent);
+}
+
+.toast-close {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--cp-text-muted);
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.toast-close:hover,
+.toast-close:focus-visible {
+	background: var(--cp-surface-muted);
+	color: var(--cp-text);
+}
+
+@keyframes toast-in {
+	from {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.toast {
+		animation: none;
+	}
+}
+`;
+
+	// CpToolkit/src/ui/toast/toast.ts
+	var labels = {region: "Notifications", close: () => "Close"};
+	var host = null;
+	var container = null;
+	var blockers = new Set();
+	var waiting = [];
+
+	function configureToasts(next) {
+		labels = next;
+	}
+
+	function ensureContainer() {
+		if (container?.isConnected) return container;
+		const list = h("div", {className: "toasts"});
+		list.setAttribute("role", "region");
+		const element = h("div");
+		if (typeof element.showPopover === "function") element.setAttribute("popover", "manual");
+		element.attachShadow({mode: "open"}).append(
+			h("style", {
+				textContent: `${theme_default}
+${toast_default}`,
+			}),
+			list,
+		);
+		document.body.append(element);
+		host = element;
+		container = list;
+		return list;
+	}
+
+	function syncVisibility() {
+		if (!host || !container || !host.hasAttribute("popover")) return;
+		const open = host.matches(":popover-open");
+		const needed = container.childElementCount > 0;
+		if (needed && !open) host.showPopover();
+		if (!needed && open) host.hidePopover();
+	}
+
+	function present({title, detail, tone, href, durationMs}) {
+		const heading = href ? h("a", {href, target: "_blank", rel: "noopener", textContent: title}) : title;
+		const closeButton = h("button", {type: "button", className: "toast-close", textContent: "×"});
+		closeButton.setAttribute("aria-label", labels.close());
+		const toast = h(
+			"div",
+			{className: "toast"},
+			h("div", {className: "toast-title"}, heading),
+			h("div", {className: "toast-detail", textContent: detail}),
+			closeButton,
+		);
+		toast.dataset.tone = tone;
+		toast.setAttribute("role", tone === "warning" ? "alert" : "status");
+		let remainingMs = durationMs;
+		let startedAt = 0;
+		let timer;
+		let holds = 0;
+		const dismiss = () => {
+			clearTimeout(timer);
+			toast.remove();
+			syncVisibility();
+		};
+		const start = () => {
+			startedAt = Date.now();
+			timer = setTimeout(dismiss, remainingMs);
+		};
+		const hold = () => {
+			if (holds++ > 0) return;
+			clearTimeout(timer);
+			remainingMs = Math.max(0, remainingMs - (Date.now() - startedAt));
+		};
+		const release = () => {
+			if (holds > 0 && --holds === 0) start();
+		};
+		toast.addEventListener("pointerenter", hold);
+		toast.addEventListener("pointerleave", release);
+		toast.addEventListener("focusin", hold);
+		toast.addEventListener("focusout", release);
+		toast.addEventListener("click", dismiss);
+		const list = ensureContainer();
+		list.setAttribute("aria-label", labels.region);
+		list.append(toast);
+		syncVisibility();
+		start();
+	}
+
+	function isHeld() {
+		for (const isBlocking of blockers) {
+			if (isBlocking()) return true;
+			blockers.delete(isBlocking);
+		}
+		return false;
+	}
+
+	function flush() {
+		if (isHeld()) return;
+		for (const toast of waiting.splice(0)) present(toast);
+	}
+
+	function holdToastsWhile(isBlocking) {
+		blockers.add(isBlocking);
+		return () => {
+			blockers.delete(isBlocking);
+			flush();
+		};
+	}
+
+	function showToast(toast) {
+		waiting.push(toast);
+		flush();
+	}
+
 	// CpToolkit/src/ui/dialog/modal.css
 	var modal_default = `dialog {
 	width: min(640px, calc(100vw - 32px));
@@ -2139,8 +2341,15 @@ dialog[open] {
 	flex-direction: column;
 }
 
+/* ダイアログの端までスクロールしても、背景のページを動かさない */
+dialog:modal {
+	overscroll-behavior: contain;
+}
+
 dialog::backdrop {
 	background: rgb(0 0 0 / 45%);
+	overflow: hidden;
+	overscroll-behavior: contain;
 }
 
 .modal-header {
@@ -2176,6 +2385,8 @@ dialog::backdrop {
 `;
 
 	// CpToolkit/src/ui/dialog/modal.ts
+	var TITLE_ID = "modal-title";
+
 	function createModal({title, closeLabel, css}) {
 		const body = h("div", {className: "modal-body"});
 		const footer = h("footer", {className: "modal-footer"});
@@ -2183,13 +2394,28 @@ dialog::backdrop {
 		const dialog = h(
 			"dialog",
 			{},
-			h("header", {className: "modal-header"}, h("h2", {textContent: title}), closeButton),
+			h("header", {className: "modal-header"}, h("h2", {id: TITLE_ID, textContent: title}), closeButton),
 			body,
 			footer,
 		);
+		dialog.setAttribute("aria-labelledby", TITLE_ID);
 		closeButton.addEventListener("click", () => dialog.close());
-		dialog.addEventListener("click", (event) => {
-			if (event.target === dialog) dialog.close();
+		if ("closedBy" in HTMLDialogElement.prototype) {
+			dialog.setAttribute("closedby", "any");
+		} else {
+			let pressedOutside = false;
+			dialog.addEventListener("pointerdown", (event) => {
+				pressedOutside = event.target === dialog;
+			});
+			dialog.addEventListener("click", (event) => {
+				if (pressedOutside && event.target === dialog) dialog.close();
+				pressedOutside = false;
+			});
+		}
+		let resumeToasts = null;
+		dialog.addEventListener("close", () => {
+			resumeToasts?.();
+			resumeToasts = null;
 		});
 		const host = h("div");
 		host.attachShadow({mode: "open"}).append(
@@ -2205,7 +2431,9 @@ ${css}`,
 			footer,
 			open() {
 				if (!host.isConnected) document.body.append(host);
-				if (!dialog.open) dialog.showModal();
+				if (dialog.open) return;
+				resumeToasts = holdToastsWhile(() => dialog.open && dialog.isConnected);
+				dialog.showModal();
 			},
 			close: () => dialog.close(),
 		};
@@ -2850,91 +3078,6 @@ a:focus > .cp-settings-entry {
 			onOpen();
 		});
 		list.append(h("li", {}, link));
-	}
-
-	// CpToolkit/src/ui/toast/toast.css
-	var toast_default = `.toasts {
-	position: fixed;
-	top: 120px;
-	left: 20px;
-	z-index: 2147483000;
-	display: grid;
-	gap: 8px;
-	width: min(360px, calc(100vw - 40px));
-}
-
-.toast {
-	padding: 8px 12px;
-	border: 1px solid var(--cp-border);
-	border-left-width: 4px;
-	border-radius: 8px;
-	background: var(--cp-surface);
-	box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
-	color: var(--cp-text);
-	cursor: pointer;
-	animation: toast-in 150ms ease-out;
-}
-
-.toast[data-tone="success"] {
-	border-left-color: var(--cp-success);
-}
-
-.toast[data-tone="warning"] {
-	border-left-color: var(--cp-danger);
-}
-
-.toast-title {
-	font-weight: 600;
-}
-
-.toast-detail {
-	color: var(--cp-text-muted);
-	font-size: 13px;
-}
-
-.toast a {
-	color: var(--cp-accent);
-}
-
-@keyframes toast-in {
-	from {
-		opacity: 0;
-		transform: translateY(-4px);
-	}
-}
-`;
-
-	// CpToolkit/src/ui/toast/toast.ts
-	var container = null;
-
-	function ensureContainer() {
-		if (container?.isConnected) return container;
-		const list = h("div", {className: "toasts"});
-		const host = h("div");
-		host.attachShadow({mode: "open"}).append(
-			h("style", {
-				textContent: `${theme_default}
-${toast_default}`,
-			}),
-			list,
-		);
-		document.body.append(host);
-		container = list;
-		return list;
-	}
-
-	function showToast({title, detail, tone, href, durationMs}) {
-		const heading = href ? h("a", {href, target: "_blank", rel: "noopener", textContent: title}) : title;
-		const toast = h(
-			"div",
-			{className: "toast"},
-			h("div", {className: "toast-title"}, heading),
-			h("div", {className: "toast-detail", textContent: detail}),
-		);
-		toast.dataset.tone = tone;
-		toast.addEventListener("click", () => toast.remove());
-		setTimeout(() => toast.remove(), durationMs);
-		ensureContainer().append(toast);
 	}
 
 	// CpToolkit/src/features/settings-panel/update-notice.ts
@@ -11173,6 +11316,7 @@ ${wide_layout_default}`);
 		const page = matchPage(judges, location.href);
 		let panel = null;
 		const services = createServices(page, settings, () => panel?.open());
+		configureToasts({region: host.name, close: () => services.translate("settings.close")});
 		const runtime = new FeatureRuntime({
 			features,
 			page,

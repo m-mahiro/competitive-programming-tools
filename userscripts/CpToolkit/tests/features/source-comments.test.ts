@@ -370,6 +370,8 @@ describe("sourceComments", () => {
 		setText(0, "header");
 		await context.pasteCode("code\n");
 
+		// 設定のダイアログが開いている間は待たせ、閉じてから表示する
+		for (const element of document.body.children) element.shadowRoot?.querySelector("dialog")?.close();
 		const toasts = [...document.body.children].map((element) => element.shadowRoot?.textContent ?? "").join("");
 		expect(toasts).toContain("コメントを挿入していません");
 	});

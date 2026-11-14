@@ -1,6 +1,9 @@
 import {h} from "@ui/element";
 import themeCss from "@ui/theme.css" with {type: "text"};
+import {holdToastsWhile} from "@ui/toast/toast";
 import modalCss from "./modal.css" with {type: "text"};
+
+const TITLE_ID = "modal-title";
 
 export type ModalOptions = {
 	readonly title: string;
@@ -24,14 +27,32 @@ export function createModal({title, closeLabel, css}: ModalOptions): Modal {
 	const dialog = h(
 		"dialog",
 		{},
-		h("header", {className: "modal-header"}, h("h2", {textContent: title}), closeButton),
+		h("header", {className: "modal-header"}, h("h2", {id: TITLE_ID, textContent: title}), closeButton),
 		body,
 		footer,
 	);
+	dialog.setAttribute("aria-labelledby", TITLE_ID);
 	closeButton.addEventListener("click", () => dialog.close());
-	// 枠の外をクリックしたときの対象は dialog 自身になる
-	dialog.addEventListener("click", (event) => {
-		if (event.target === dialog) dialog.close();
+	if ("closedBy" in HTMLDialogElement.prototype) {
+		// 枠の外を押すと閉じる動きを、ブラウザに任せる
+		dialog.setAttribute("closedby", "any");
+	} else {
+		// 対応していないブラウザ向け。枠の外で押して、枠の外で離したときだけ閉じる。
+		// 中で文字を選び始めて外で離したときに、閉じないようにする。枠の外を押したときの対象は dialog 自身になる
+		let pressedOutside = false;
+		dialog.addEventListener("pointerdown", (event) => {
+			pressedOutside = event.target === dialog;
+		});
+		dialog.addEventListener("click", (event) => {
+			if (pressedOutside && event.target === dialog) dialog.close();
+			pressedOutside = false;
+		});
+	}
+	// 開いている間は、外側の通知を操作も読み上げもできないので、閉じてから表示させる
+	let resumeToasts: (() => void) | null = null;
+	dialog.addEventListener("close", () => {
+		resumeToasts?.();
+		resumeToasts = null;
 	});
 
 	const host = h("div");
@@ -42,7 +63,9 @@ export function createModal({title, closeLabel, css}: ModalOptions): Modal {
 		footer,
 		open() {
 			if (!host.isConnected) document.body.append(host);
-			if (!dialog.open) dialog.showModal();
+			if (dialog.open) return;
+			resumeToasts = holdToastsWhile(() => dialog.open && dialog.isConnected);
+			dialog.showModal();
 		},
 		close: () => dialog.close(),
 	};

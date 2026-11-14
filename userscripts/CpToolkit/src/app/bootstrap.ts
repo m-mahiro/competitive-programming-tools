@@ -13,6 +13,7 @@ import {GmHttpClient} from "@adapters/userscript/gm-services";
 import {createSettingsPanel, type SettingsPanel} from "@features/settings-panel/index";
 import {addNavigationEntry} from "@features/settings-panel/navigation-entry";
 import {notifyUpdate} from "@features/settings-panel/update-notice";
+import {configureToasts} from "@ui/toast/toast";
 import {createServices, judges} from "./container";
 import {features} from "./registry";
 
@@ -35,6 +36,7 @@ export function bootstrap(): void {
 	const page = matchPage(judges, location.href);
 	let panel: SettingsPanel | null = null;
 	const services = createServices(page, settings, () => panel?.open());
+	configureToasts({region: host.name, close: () => services.translate("settings.close")});
 
 	const runtime = new FeatureRuntime({
 		features,
