@@ -62,6 +62,12 @@ export type Settings = {
 		sampleCache: boolean;
 		resultWaitMs: number;
 	};
+	update: {
+		/** サーバーの起動時に、新しいバージョンがあるかを配布元へ確かめる。 */
+		check: boolean;
+		/** 配布元の GitHub のリポジトリ(`所有者/名前`)。 */
+		repository: string;
+	};
 };
 
 /** 利用者の設定ファイルの中身。書かれた項目だけを持つ。 */

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import type {RunnerStatusInfo} from "../../types";
 import {CLI_CONFIG, configuredLibrarySourceRoot, SETTINGS, SETTINGS_FILE} from "../../config";
 import {serverSettingsDigest} from "../../settings/settings";
+import {VERSION} from "../../version";
 import * as color from "../../utils/color";
 import {postToRunner} from "../runnerClient";
 import * as sampleCache from "../sampleCache";
@@ -53,6 +54,7 @@ export class StatusCommand implements Command {
 		if (!info) {
 			const label = isSupportCliColor ? `${color.ANSI.RED}stopped${color.ANSI.RESET}` : "stopped";
 			console.log(`Local Runner: ${label} (${CLI_CONFIG.defaultLocalRunnerUrl})`);
+			console.log(`  version:       ${VERSION}`);
 			console.log(`  settings:      ${SETTINGS_FILE}`);
 			console.log(`  java library:  ${configuredLibrarySourceRoot() ?? "not set (setlib <path>)"}`);
 			console.log(`  sample cache:  ${sampleCacheCount} task(s) (${sampleCache.getSampleCacheDir() || "-"})`);
@@ -65,6 +67,7 @@ export class StatusCommand implements Command {
 			? (isSupportCliColor ? `${color.ANSI.GREEN}running${color.ANSI.RESET}` : "running")
 			: (isSupportCliColor ? `${color.ANSI.YELLOW}stopped${color.ANSI.RESET}` : "stopped");
 		console.log(`Local Runner: ${label} (${CLI_CONFIG.defaultLocalRunnerUrl})`);
+		console.log(`  version:       ${info.version}`);
 		console.log(`  pid:           ${info.pid}`);
 		console.log(`  uptime:        ${formatUptime(info.uptimeMs)}`);
 		console.log(`  java:          ${info.javaVersion}`);
@@ -80,6 +83,10 @@ export class StatusCommand implements Command {
 		console.log(`  settings:      ${info.settingsFile}`);
 		if (info.settingsDigest !== serverSettingsDigest(SETTINGS)) {
 			const note = "The settings changed after the server started. Apply them with stop and serve.";
+			console.log(isSupportCliColor ? `  ${color.ANSI.YELLOW}${note}${color.ANSI.RESET}` : `  ${note}`);
+		}
+		if (info.latestVersion) {
+			const note = `Local Runner ${info.latestVersion} is available. Run update to install it.`;
 			console.log(isSupportCliColor ? `  ${color.ANSI.YELLOW}${note}${color.ANSI.RESET}` : `  ${note}`);
 		}
 		return 0;

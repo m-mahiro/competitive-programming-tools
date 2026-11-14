@@ -12,6 +12,8 @@ import {
 import type {CompileEntry, RunnerStatusInfo} from "../types";
 import * as config from "../config";
 import {legacyEnvironmentWarnings, serverSettingsDigest} from "../settings/settings";
+import {findNewerRelease} from "../update/update";
+import {VERSION} from "../version";
 import * as filesystem from "../utils/filesystem";
 import * as formatter from "../utils/formatter";
 import * as color from "../utils/color";
@@ -28,6 +30,8 @@ import {EMBEDDED_FILES, extractEmbeddedFile} from "./embedded";
 import {ALLOWED_ORIGIN_HOSTS, isAllowedOrigin} from "./origin";
 
 const serverStartedAt = Date.now();
+/** 起動時に配布元で見つけた、より新しいバージョン。無いか、確かめていなければ null。 */
+let latestVersion: string | null = null;
 // 覚えておくコンパイルの結果の数。言語ごとの実行環境が持つコンパイル結果の数と揃える。
 const PREPARE_CACHE_MAX = 10;
 // 事前コンパイルと、実行の前のコンパイルは、言語によらず同じ条件で行う。CLI の prepare と同じ条件にして結果を共有する。
@@ -416,6 +420,8 @@ const server = http.createServer(async (req, res) => {
 		} else if (request.mode === "status") {
 			response = {
 				status: "running",
+				version: VERSION,
+				latestVersion,
 				pid: process.pid,
 				uptimeMs: Date.now() - serverStartedAt,
 				javaVersion: compiler.JAVA_VERSION,
@@ -536,7 +542,23 @@ async function bootstrap() {
 		logging.logInfo(color.supportsRunnerColor() ? `${color.ANSI.GREEN}${message}${color.ANSI.RESET} ${color.ANSI.CYAN}${link}${color.ANSI.RESET}` : `${message} ${link}`);
 		logging.logInfo(`Allowed browser origins: ${[...ALLOWED_ORIGIN_HOSTS, ...EXTRA_ORIGINS].join(", ")}`);
 		logging.logInfo(`Runner label: ${compiler.RUNNER_LABEL}`);
+		if (config.SETTINGS.update.check) void checkForUpdate();
 	});
+}
+
+/**
+ * 配布元に新しいバージョンがあれば知らせる。起動を待たせないよう、準備が終わってから裏で確かめる。
+ * 通信できないときは、利用に支障が無いので何も表示しない。
+ */
+async function checkForUpdate() {
+	try {
+		const release = await findNewerRelease(config.SETTINGS.update.repository, VERSION);
+		if (release === null) return;
+		latestVersion = release.version;
+		logging.logInfo(`Local Runner ${release.version} is available (running: ${VERSION}). Run update to install it.`);
+	} catch {
+		// オフラインのときなど。次の起動でまた確かめる
+	}
 }
 
 function shutdown(signal: string) {

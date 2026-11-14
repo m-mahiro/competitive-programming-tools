@@ -378,6 +378,24 @@
 					"default": 300000
 				}
 			}
+		},
+		"update": {
+			"description": "バージョンの更新。",
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"check": {
+					"description": "サーバーの起動時に、新しいバージョンがあるかを配布元へ確かめる。あれば起動のログと status に表示する。false にすると、起動時に通信しない。",
+					"type": "boolean",
+					"default": true
+				},
+				"repository": {
+					"description": "配布元の GitHub のリポジトリ(所有者/名前)。update と起動時の確認が、ここの Release を見る。",
+					"type": "string",
+					"pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+					"default": "nsubaru11/competitive-programming-tools"
+				}
+			}
 		}
 	}
 }

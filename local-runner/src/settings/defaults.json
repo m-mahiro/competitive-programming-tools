@@ -256,5 +256,9 @@
 		"sessionFile": "~/.atcoder/session.txt",
 		"sampleCache": true,
 		"resultWaitMs": 300000
+	},
+	"update": {
+		"check": true,
+		"repository": "nsubaru11/competitive-programming-tools"
 	}
 }

@@ -54,6 +54,10 @@ export type SampleResult = {
 /** mode:"status" のレスポンス。サーバーの稼働状況を CLI の status コマンドへ返す。 */
 export type RunnerStatusInfo = {
 	status: "running";
+	/** サーバーのバージョン。 */
+	version: string;
+	/** 起動時に配布元で見つけた、より新しいバージョン。無いか、確かめていなければ null。 */
+	latestVersion: string | null;
 	pid: number;
 	uptimeMs: number;
 	javaVersion: string;

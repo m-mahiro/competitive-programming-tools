@@ -44,7 +44,20 @@ Linux では、`bin` の `.cmd` の代わりに `bin/local-runner` を実行し�
 
 ### 更新
 
-新しい版の zip を、同じ場所へ上書きで展開します。設定ファイル(`local-runner.settings.json`)は zip に含まれないので、そのまま残ります。サーバーが動いていれば `stop` で止めておくと、次のコマンドで新しい版が起動します。
+次のコマンドで、最新のバージョンへ入れ替えます。
+
+```bash
+update
+```
+
+- [Release](https://github.com/nsubaru11/competitive-programming-tools/releases) から配布物をダウンロードし、配布元が示す SHA-256 と照合してから入れ替えます。合わなければ、何も変えずに止まります
+- 設定ファイル(`local-runner.settings.json`)には触れません
+- サーバーが動いていれば止めます。次のコマンドで、新しいバージョンのサーバーが起動します
+- `update --check` は、新しいバージョンがあるかだけを表示します
+
+サーバーは起動のたびに、新しいバージョンがあるかを GitHub へ1回だけ問い合わせます。あれば、起動のログと `status` に表示します。送るのは問い合わせだけで、コードや設定は送りません。設定の `update.check` を `false` にすると、問い合わせません。
+
+手動で更新するときは、新しいバージョンの zip を同じ場所へ上書きで展開します。
 
 ## CP Toolkit とつなぐ
 
@@ -59,6 +72,7 @@ Linux では、`bin` の `.cmd` の代わりに `bin/local-runner` を実行し�
 - サーバーは `127.0.0.1` にだけ接続を許します。同じネットワークのほかの端末からは接続できません
 - ブラウザからの要求は、対応するジャッジサイトからのものだけを受け付けます。設定の `server.extraOrigins` に書いたオリジンは、追加で受け付けます
 - 同じ PC で動くプログラムからの要求は拒否できません
+- Local Runner 自身が外部と通信するのは、AtCoder(`test`、`submit`)と、更新の確認とダウンロードのための GitHub だけです。実行する解答が行う通信は制限しません
 - 実行するコードはサンドボックスに入らず、起動したユーザーの権限で動きます。内容を確認していないコードは実行しないでください
 - `REVEL_SESSION` は AtCoder のログイン情報です。他人に渡さないでください
 
@@ -82,6 +96,7 @@ Linux では、`bin` の `.cmd` の代わりに `bin/local-runner` を実行し�
 | `setheader <language\|name> <file>`                            | 言語の既定のヘッダーか、名前付きのヘッダーを設定する。引数なしで一覧を表示し、`--clear` で解除する |
 | `setsession`                                                   | `submit` に使う AtCoder のログイン情報を保存する                                                   |
 | `settings`                                                     | 全部の設定と今の値を表示する。既定値と違う項目には `*` が付く                                      |
+| `update`、`update --check`                                     | 最新のバージョンへ更新する。`--check` は、新しいバージョンがあるかだけを表示する                   |
 | `cacheclear -a`、`cacheclear -t <taskScreenName>`              | サンプルのキャッシュをすべて、または指定した問題の分だけ削除する                                   |
 
 `taskScreenName` は URL の `/tasks/` より後ろの部分です(例: `abc448_d`)。`sourceFile` の拡張子は省けます(`D` で `D.java` や `D.cpp` を探す)。

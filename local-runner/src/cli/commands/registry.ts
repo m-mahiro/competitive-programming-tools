@@ -13,6 +13,7 @@ import {SetLibCommand} from "./SetLibCommand";
 import {SetHeaderCommand} from "./SetHeaderCommand";
 import {SetSessionCommand} from "./SetSessionCommand";
 import {SettingsCommand} from "./SettingsCommand";
+import {UpdateCommand} from "./UpdateCommand";
 import {CrossCheck} from "./CrossCheck";
 import {DaemonCommand} from "./DaemonCommand";
 
@@ -35,6 +36,7 @@ const COMMAND_LIST: readonly Command[] = [
 	new SetHeaderCommand(),
 	new SetSessionCommand(),
 	new SettingsCommand(),
+	new UpdateCommand(),
 	new CacheClearCommand(),
 	new CrossCheck(),
 	new DaemonCommand(),

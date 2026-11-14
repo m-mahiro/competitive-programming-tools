@@ -15,6 +15,8 @@ local-runner/
 │   │                  # commandEngine.ts(コマンドで動かす言語)、processRunner.ts(プロセスの起動と計測)、
 │   │                  # headerUnit.ts(C++ の header unit)
 │   ├── settings/      # 設定ファイルの読み込みと検査、既定値(defaults.json)
+│   ├── update/        # 更新: Release の選択(release.ts)、zip の読み取り(zip.ts)、入れ替え(installer.ts)
+│   ├── version.ts     # バージョン(package.json から)
 │   ├── config.ts      # 設定から決めた値と定数
 │   ├── utils/         # ログ、色、整形、ファイル操作
 │   └── types/         # 型定義
@@ -152,6 +154,20 @@ bun run --cwd local-runner build
 
 サーバーは CLI に含まれ、使い方に載せない内部用の `daemon` コマンドで動きます。`bin/start-local-runner.sh` は `bin/local-runner` があればそれを、無ければ WSL の Bun で `src/daemon/main.ts` を動かします。Java のコンパイルは外部の `javac` を都度起動せず、常駐する Dispatcher の中の javac で行います。`Dispatcher.class` はソースが変わらなければキャッシュを再利用します。
 
+## 更新
+
+`update` は、設定の `update.repository` の Release から配布物を取得して入れ替えます(`src/update/`)。サーバーも起動のあとに同じ方法で最新のバージョンを確かめ、`status` の応答の `latestVersion` に入れます。
+
+- 同じリポジトリにほかの Release があるので、「最新の Release」ではなく、公開済みでタグが `local-runner-v` で始まるものから、バージョンの最も大きいものを選ぶ
+- 配布物は `local-runner-<バージョン>.zip` という名前で探し、GitHub の API が返す `digest`(SHA-256)と照合する。`digest` が無い配布物は入れない
+- zip の展開は自前で持つ(`zip.ts`)。`unzip`、`tar`、PowerShell の有無に左右されないようにするため。無圧縮と deflate だけを扱う
+- zip は最上位にフォルダを1つ持つ。その名前は見ず、中身を `local-runner` フォルダの親のフォルダへ入れる。導入先の外へ出るパスがあれば中止する
+- 全部を隣のフォルダへ取り出してから、1つずつ名前を変えて置き換える。失敗したら元に戻す。パッケージに無いファイル(設定ファイル)には触れない
+- Windows は実行中の実行ファイルを上書きも削除もできないので、`.old` へ名前を変えてから新しいものを置く。残った `.old` は、次の起動で消す(`cli/index.ts`)
+- `bin/update.cmd` は実行ファイルを直接呼ぶ1行だけにする。入れ替えのあと、`cmd` は同じ位置から新しいファイルを読み続けるので、行を足すと古い位置から実行される
+- リポジトリのソースから動いているとき(`local-runner/package.json` がある)は、入れ替えない。リポジトリのファイルを配布物で上書きしないため
+- テストは、通信の代役と、手で組み立てた zip(`testZip.ts`)で行う。本物の Release には触れない
+
 ## 配布
 
 Release の zip は、`scripts/package.ts` が作る配布用のフォルダをまとめたものです。WSL で `bun run --cwd local-runner package` を実行すると、`out/local-runner/competitive-programming-tools` にできます。起動プログラムを静的リンクするので Linux で実行し、`javac`、`jar`、`cc` が PATH に要ります。
@@ -175,6 +191,7 @@ Release の zip は、`scripts/package.ts` が作る配布用のフォルダを�
 - 文書に書いた「対応」「使える」が、何も追加で入れていない環境でそのとおりかを読み直す。追加の導入が要るものは、要ると書く
 - 作者の環境に固有の名前やパスが残っていないかを検索する(`lib.`、submodule として置いたときのフォルダ名、ユーザー名、リポジトリのパスなど)
 - エラーの案内に出てくるコマンドやパスが、配布物に実在するかを確かめる
+- `update --check` が、今のバージョンを最新と表示することを確かめる。公開したあとは、1つ前のバージョンの配布物から `update` で入れ替わることを確かめる
 
 ## 確認
 
