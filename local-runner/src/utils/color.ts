@@ -20,6 +20,12 @@ export function supportsRunnerColor() {
 	return !process.env.NO_COLOR;
 }
 
+/** 警告の文を、対応していれば黄色にする。 */
+export function colorizeWarning(text: string, mode: "cli" | "runner" = "runner") {
+	const supportsColor = mode === "runner" ? supportsRunnerColor() : supportsCliColor();
+	return supportsColor ? `${ANSI.YELLOW}${text}${ANSI.RESET}` : text;
+}
+
 export function colorizeStatus(status: string, mode: "cli" | "runner" = "cli") {
 	const supportsColor = mode === "runner" ? supportsRunnerColor() : supportsCliColor();
 	if (!supportsColor) return status;

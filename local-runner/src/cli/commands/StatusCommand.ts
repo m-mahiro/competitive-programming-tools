@@ -74,7 +74,9 @@ export class StatusCommand implements Command {
 		console.log(`  label:         ${info.runnerLabel}`);
 		console.log(`  dispatcher:    ${dispatcher}`);
 		console.log(`  languages:     ${info.languages.join(", ")}`);
-		if (info.skippedLanguages.length > 0) console.log(`  not available: ${info.skippedLanguages.join(", ")}`);
+		for (const skipped of info.skippedLanguages) {
+			console.log(`  not available: ${isSupportCliColor ? color.colorizeWarning(skipped, "cli") : skipped}`);
+		}
 		console.log(`  java library:  ${info.librarySource ?? "not loaded (setlib <path>)"}`);
 		console.log(`  compile cache: ${info.compileCacheSize}/${info.compileCacheMax} entries`);
 		console.log(`  base dir:      ${info.baseDir}`);

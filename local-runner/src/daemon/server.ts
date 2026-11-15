@@ -469,8 +469,8 @@ async function prepareLanguages(): Promise<void> {
 	runnerLanguages = resolved.languages;
 	skippedLanguages = resolved.skipped;
 	logging.logInfo(`Languages: ${runnerLanguages.map(({name}) => name).join(", ")}`);
-	if (skippedLanguages.length > 0) {
-		logging.logInfo(`Languages not available: ${describeSkippedLanguages().join(", ")}`);
+	for (const {name, reason} of skippedLanguages) {
+		logging.logWarn(color.colorizeWarning(`Language "${name}" is not available: ${reason}.`));
 	}
 	const commandLanguages = runnerLanguages.flatMap(({command}) => (command === null ? [] : [command]));
 	if (commandLanguages.length === 0) return;
