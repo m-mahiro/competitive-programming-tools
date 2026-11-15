@@ -2,7 +2,7 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        2.1.0
+// @version        2.1.1
 // @description    競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
 // @description:en A toolkit of competitive programming helpers that can be switched on and off individually.
 // @description:ja 競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
@@ -7183,6 +7183,130 @@ ${inner}
 		},
 	});
 
+	// CpToolkit/src/application/execution/runner-selection.ts
+	var RUNNER_SELECTION_KEY = "easy-test:runner-selection";
+
+	class RunnerSelection {
+		language;
+		runners;
+		state;
+		current = [];
+		languageId;
+		refreshing = Promise.resolve();
+
+		constructor(language, runners, state) {
+			this.language = language;
+			this.runners = runners;
+			this.state = state;
+		}
+
+		get candidates() {
+			return this.current;
+		}
+
+		local() {
+			return this.current.find(({kind}) => kind === "local");
+		}
+
+		settled() {
+			return this.refreshing;
+		}
+
+		refresh(view) {
+			this.refreshing = this.refreshing.then(() => this.load(view));
+			return this.refreshing;
+		}
+
+		remember(runnerId) {
+			const language = this.language();
+			if (!language) return;
+			this.state.set(RUNNER_SELECTION_KEY, {...this.selections(), [language.id]: runnerId});
+		}
+
+		selections() {
+			return readStored(this.state, RUNNER_SELECTION_KEY, isRecordOf(isString), {});
+		}
+
+		async load(view) {
+			const language = this.language();
+			const candidates = language ? await this.runners.candidates(language) : [];
+			const previous = view.selected();
+			this.current = candidates;
+			const isCandidate = (id) => candidates.some((candidate) => candidate.id === id);
+			const local = candidates.find(({kind}) => kind === "local")?.id;
+			const saved = language ? this.selections()[language.id] : undefined;
+			const kept = language?.id === this.languageId && isCandidate(previous) ? previous : undefined;
+			this.languageId = language?.id;
+			view.show(candidates, local ?? kept ?? (isCandidate(saved) ? saved : candidates[0]?.id));
+		}
+	}
+
+	// CpToolkit/src/application/execution/test-session.ts
+	class TestSession {
+		runners;
+		selection;
+		listener;
+		pendingSubmit = null;
+		count = 0;
+		active = 0;
+
+		constructor(runners, selection, listener) {
+			this.runners = runners;
+			this.selection = selection;
+			this.listener = listener;
+		}
+
+		get busy() {
+			return this.active > 0;
+		}
+
+		get submitPending() {
+			return this.pendingSubmit !== null;
+		}
+
+		nextNumber() {
+			return ++this.count;
+		}
+
+		start(testCase, code, runnerId, allowableError, extra) {
+			this.active++;
+			this.listener.onBusyChange();
+			const options = {
+				trim: true,
+				split: true,
+				...(allowableError === undefined ? {} : {allowableError}),
+				...extra,
+			};
+			return this.runners.test(this.selection.candidates, runnerId, code, testCase, options).finally(() => {
+				if (--this.active === 0) this.listener.onBusyChange();
+			});
+		}
+
+		cancelSubmit() {
+			this.setPendingSubmit(null);
+		}
+
+		async testAndSubmit(runSamples, submit) {
+			if (this.pendingSubmit) return;
+			const pending = {};
+			const cancel = () => {
+				if (this.pendingSubmit === pending) this.setPendingSubmit(null);
+			};
+			this.setPendingSubmit(pending);
+			try {
+				const passed = await runSamples(cancel);
+				if (passed && this.pendingSubmit === pending) submit();
+			} finally {
+				cancel();
+			}
+		}
+
+		setPendingSubmit(pending) {
+			this.pendingSubmit = pending;
+			this.listener.onSubmitChange();
+		}
+	}
+
 	// CpToolkit/src/ui/dock/dock.css
 	var dock_default = `.dock {
 	position: fixed;
@@ -8002,7 +8126,6 @@ summary {
 	}
 
 	// CpToolkit/src/features/easy-test/index.ts
-	var RUNNER_SELECTION_KEY = "easy-test:runner-selection";
 	var PRECOMPILE_DELAY_MS = 180;
 	var TEST_AND_SUBMIT_KEY = "Ctrl+Enter";
 	var TEST_ALL_KEY = "Alt+Enter";
@@ -8019,21 +8142,26 @@ summary {
 		savedCodes;
 		buttons = [];
 		resultList = h("div", {className: "row"});
+		selection;
+		session;
+		environmentView = {
+			selected: () => this.panel.environment.value,
+			show: (candidates, selected) => this.showEnvironment(candidates, selected),
+		};
 		submitButton;
-		pendingSubmit = null;
-		candidates = [];
-		languageId;
-		refreshing = Promise.resolve();
 		runnable = false;
-		runCount = 0;
-		running = 0;
 		site;
 		context;
 
 		constructor(site, context) {
 			this.site = site;
 			this.context = context;
-			const {options, state, translate, openSettings} = context;
+			const {options, state, translate, openSettings, runners} = context;
+			this.selection = new RunnerSelection(() => site.language(), runners, state);
+			this.session = new TestSession(runners, this.selection, {
+				onBusyChange: () => this.updateRunnable(),
+				onSubmitChange: () => this.showSubmitState(),
+			});
 			this.savedCodes = new SavedCodes(state, options.savedCodeLimit);
 			this.dock = createDock({
 				css: easy_test_default,
@@ -8049,7 +8177,9 @@ summary {
 
 		start() {
 			injectStyle(result_row_default);
-			this.panel.environment.addEventListener("change", () => this.rememberRunner());
+			this.panel.environment.addEventListener("change", () =>
+				this.selection.remember(this.panel.environment.value),
+			);
 			this.site.onLanguageChange(() => void this.refreshEnvironment());
 			this.refreshEnvironment();
 			this.placeButtons();
@@ -8081,9 +8211,9 @@ summary {
 			const {translate} = this.context;
 			const {testButtons, sideButtons, results} = this.site.mounts;
 			if (testButtons instanceof Element) {
-				const submitKey = () => (this.pendingSubmit ? null : TEST_AND_SUBMIT_KEY);
+				const submitKey = () => (this.session.submitPending ? null : TEST_AND_SUBMIT_KEY);
 				this.submitButton = this.createTestButton("easyTest.testAndSubmit", "btn-info", submitKey, () => {
-					if (this.pendingSubmit) this.setPendingSubmit(null);
+					if (this.session.submitPending) this.session.cancelSubmit();
 					else this.testAndSubmit();
 				});
 				testButtons.append(
@@ -8125,7 +8255,7 @@ summary {
 			let timer;
 			const prepare = () => {
 				const code = this.site.sourceCode();
-				const runner = this.candidates.find(({kind}) => kind === "local");
+				const runner = this.selection.local();
 				if (code)
 					runner?.prepare?.(code)?.catch(() => {
 						return;
@@ -8133,7 +8263,7 @@ summary {
 			};
 			const schedule = () => {
 				clearTimeout(timer);
-				timer = setTimeout(() => void this.refreshing.then(prepare), PRECOMPILE_DELAY_MS);
+				timer = setTimeout(() => void this.selection.settled().then(prepare), PRECOMPILE_DELAY_MS);
 			};
 			this.site.onSourceChange(schedule);
 			schedule();
@@ -8161,31 +8291,12 @@ summary {
 			);
 		}
 
-		selections() {
-			return readStored(this.context.state, RUNNER_SELECTION_KEY, isRecordOf(isString), {});
-		}
-
-		rememberRunner() {
-			const language = this.site.language();
-			if (!language) return;
-			this.context.state.set(RUNNER_SELECTION_KEY, {
-				...this.selections(),
-				[language.id]: this.panel.environment.value,
-			});
-		}
-
 		refreshEnvironment() {
-			this.refreshing = this.refreshing.then(() => this.loadEnvironment());
-			return this.refreshing;
+			return this.selection.refresh(this.environmentView);
 		}
 
-		async loadEnvironment() {
-			const {runners, translate} = this.context;
+		showEnvironment(candidates, selected) {
 			const {environment} = this.panel;
-			const language = this.site.language();
-			const candidates = language ? await runners.candidates(language) : [];
-			const previous = environment.value;
-			this.candidates = candidates;
 			const signature = candidates.map(
 				({id, label}) => `${id}
 ${label}`,
@@ -8202,16 +8313,14 @@ ${label}`,
 					),
 				);
 				if (candidates.length === 0)
-					environment.append(h("option", {textContent: translate("easyTest.noEnvironment")}));
+					environment.append(h("option", {textContent: this.context.translate("easyTest.noEnvironment")}));
 			}
-			const isCandidate = (id) => candidates.some((candidate) => candidate.id === id);
-			const local = candidates.find(({kind}) => kind === "local")?.id;
-			const saved = language ? this.selections()[language.id] : undefined;
-			const kept = language?.id === this.languageId && isCandidate(previous) ? previous : undefined;
-			this.languageId = language?.id;
-			const next = local ?? kept ?? (isCandidate(saved) ? saved : candidates[0]?.id);
-			if (next !== undefined) environment.value = next;
-			this.setRunnable(candidates.length > 0 && this.running === 0);
+			if (selected !== undefined) environment.value = selected;
+			this.updateRunnable();
+		}
+
+		updateRunnable() {
+			this.setRunnable(this.selection.candidates.length > 0 && !this.session.busy);
 		}
 
 		setRunnable(runnable) {
@@ -8221,45 +8330,35 @@ ${label}`,
 			this.showSubmitState();
 		}
 
-		setPendingSubmit(pending) {
-			this.pendingSubmit = pending;
-			this.showSubmitState();
-		}
-
 		showSubmitState() {
 			const button = this.submitButton;
 			if (!button) return;
-			const pending = this.pendingSubmit !== null;
+			const pending = this.session.submitPending;
 			button.textContent = this.context.translate(pending ? "easyTest.cancelSubmit" : "easyTest.testAndSubmit");
 			button.classList.toggle("btn-info", !pending);
 			button.classList.toggle("btn-warning", pending);
 			button.classList.toggle("disabled", !pending && !this.runnable);
 		}
 
-		runOptions(extra) {
-			const allowableError = this.panel.allowableError();
-			return {trim: true, split: true, ...(allowableError === undefined ? {} : {allowableError}), ...extra};
-		}
-
 		execute(testCase, options) {
-			const {runners, translate} = this.context;
 			const code = this.site.sourceCode();
 			if (code) this.savedCodes.save(this.site.taskUri(), code);
-			const view = createResultView(translate);
-			const tab = this.dock.addTab(`#${++this.runCount} ${testCase.title}`, view.element, {closable: true});
-			this.running++;
-			this.setRunnable(false);
-			const firstRunnerId = this.panel.environment.value;
-			const result = runners.test(this.candidates, firstRunnerId, code, testCase, this.runOptions(options));
-			result
-				.then((value) => {
-					view.show(value);
-					const tone = toneOf(value.status);
-					if (tone) tab.setTone(tone);
-				})
-				.finally(() => {
-					if (--this.running === 0) this.setRunnable(this.candidates.length > 0);
-				});
+			const view = createResultView(this.context.translate);
+			const tab = this.dock.addTab(`#${this.session.nextNumber()} ${testCase.title}`, view.element, {
+				closable: true,
+			});
+			const result = this.session.start(
+				testCase,
+				code,
+				this.panel.environment.value,
+				this.panel.allowableError(),
+				options,
+			);
+			result.then((value) => {
+				view.show(value);
+				const tone = toneOf(value.status);
+				if (tone) tab.setTone(tone);
+			});
 			return {result, tab};
 		}
 
@@ -8314,18 +8413,10 @@ ${label}`,
 		}
 
 		async testAndSubmit() {
-			if (this.pendingSubmit) return;
-			const pending = {};
-			const cancel = () => {
-				if (this.pendingSubmit === pending) this.setPendingSubmit(null);
-			};
-			this.setPendingSubmit(pending);
-			try {
-				const passed = await this.runSamples(cancel);
-				if (passed && this.pendingSubmit === pending) this.site.submit();
-			} finally {
-				cancel();
-			}
+			await this.session.testAndSubmit(
+				(cancel) => this.runSamples(cancel),
+				() => this.site.submit(),
+			);
 		}
 
 		restore() {

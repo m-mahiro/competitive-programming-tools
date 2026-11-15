@@ -1,11 +1,11 @@
 import type {MessageKey} from "@catalog/messages";
 import type {RunOptions, RunResult, TestCase} from "@domain/execution/result";
 import {option} from "@domain/settings/option";
-import {isRecordOf, isString} from "@domain/validation/guards";
 import type {CodeRunner} from "@application/execution/runner-catalog";
+import {type EnvironmentView, RunnerSelection} from "@application/execution/runner-selection";
+import {TestSession} from "@application/execution/test-session";
 import {defineFeature, type FeatureContext} from "@application/feature/definition";
 import type {JudgeSite, SampleCase} from "@application/ports/judge-site";
-import {readStored} from "@application/ports/key-value-store";
 import {createDock, type Dock, type DockTab} from "@ui/dock/dock";
 import {h, injectStyle} from "@ui/element";
 import {registerShortcut} from "@ui/shortcuts";
@@ -15,7 +15,6 @@ import resultRowCss from "./result-row.css" with {type: "text"};
 import {SavedCodes} from "./saved-code";
 import {createResultRow, createResultView, createTestPanel, type TestPanel, toneOf} from "./views";
 
-const RUNNER_SELECTION_KEY = "easy-test:runner-selection";
 const PRECOMPILE_DELAY_MS = 180;
 const TEST_AND_SUBMIT_KEY = "Ctrl+Enter";
 const TEST_ALL_KEY = "Alt+Enter";
@@ -36,22 +35,26 @@ class EasyTest {
 	private readonly savedCodes: SavedCodes;
 	private readonly buttons: HTMLElement[] = [];
 	private readonly resultList = h("div", {className: "row"});
+	private readonly selection: RunnerSelection;
+	private readonly session: TestSession;
+	private readonly environmentView: EnvironmentView = {
+		selected: () => this.panel.environment.value,
+		show: (candidates, selected) => this.showEnvironment(candidates, selected),
+	};
 	private submitButton: HTMLButtonElement | undefined;
-	/** テスト後に提出する予定。中止したら別の予定と区別できるよう、実行ごとに作る。 */
-	private pendingSubmit: object | null = null;
-	private candidates: readonly CodeRunner[] = [];
-	private languageId: string | undefined;
-	private refreshing: Promise<void> = Promise.resolve();
 	private runnable = false;
-	private runCount = 0;
-	private running = 0;
 	private readonly site: JudgeSite;
 	private readonly context: Context;
 
 	constructor(site: JudgeSite, context: Context) {
 		this.site = site;
 		this.context = context;
-		const {options, state, translate, openSettings} = context;
+		const {options, state, translate, openSettings, runners} = context;
+		this.selection = new RunnerSelection(() => site.language(), runners, state);
+		this.session = new TestSession(runners, this.selection, {
+			onBusyChange: () => this.updateRunnable(),
+			onSubmitChange: () => this.showSubmitState(),
+		});
 		this.savedCodes = new SavedCodes(state, options.savedCodeLimit);
 		this.dock = createDock({css, toggleLabel: "Easy Test+", closeLabel: translate("settings.close")});
 		this.panel = createTestPanel(translate, options.allowableError, {
@@ -63,7 +66,7 @@ class EasyTest {
 
 	start(): void {
 		injectStyle(resultRowCss);
-		this.panel.environment.addEventListener("change", () => this.rememberRunner());
+		this.panel.environment.addEventListener("change", () => this.selection.remember(this.panel.environment.value));
 		this.site.onLanguageChange(() => void this.refreshEnvironment());
 		void this.refreshEnvironment();
 		this.placeButtons();
@@ -97,9 +100,9 @@ class EasyTest {
 		const {testButtons, sideButtons, results} = this.site.mounts;
 		if (testButtons instanceof Element) {
 			// 中止のボタンの間は、ショートカットでは中止できない
-			const submitKey = (): string | null => this.pendingSubmit ? null : TEST_AND_SUBMIT_KEY;
+			const submitKey = (): string | null => this.session.submitPending ? null : TEST_AND_SUBMIT_KEY;
 			this.submitButton = this.createTestButton("easyTest.testAndSubmit", "btn-info", submitKey, () => {
-				if (this.pendingSubmit) this.setPendingSubmit(null);
+				if (this.session.submitPending) this.session.cancelSubmit();
 				else void this.testAndSubmit();
 			});
 			testButtons.append(
@@ -135,12 +138,12 @@ class EasyTest {
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		const prepare = (): void => {
 			const code = this.site.sourceCode();
-			const runner = this.candidates.find(({kind}) => kind === "local");
+			const runner = this.selection.local();
 			if (code) void runner?.prepare?.(code)?.catch(() => undefined);
 		};
 		const schedule = (): void => {
 			clearTimeout(timer);
-			timer = setTimeout(() => void this.refreshing.then(prepare), PRECOMPILE_DELAY_MS);
+			timer = setTimeout(() => void this.selection.settled().then(prepare), PRECOMPILE_DELAY_MS);
 		};
 		this.site.onSourceChange(schedule);
 		schedule();
@@ -156,33 +159,13 @@ class EasyTest {
 		registerShortcut("Alt+Escape", handled(() => this.dock.toggle()), {inTextFields: true});
 	}
 
-	private selections(): Readonly<Record<string, string>> {
-		return readStored(this.context.state, RUNNER_SELECTION_KEY, isRecordOf(isString), {});
-	}
-
-	private rememberRunner(): void {
-		const language = this.site.language();
-		if (!language) return;
-		this.context.state.set(RUNNER_SELECTION_KEY, {
-			...this.selections(),
-			[language.id]: this.panel.environment.value
-		});
-	}
-
-	/** 言語の切り替えと実行が重なっても、最新の状態になるよう順番に更新する。 */
 	private refreshEnvironment(): Promise<void> {
-		this.refreshing = this.refreshing.then(() => this.loadEnvironment());
-		return this.refreshing;
+		return this.selection.refresh(this.environmentView);
 	}
 
-	/** サイトで選んだ言語に合わせて、実行環境の候補を更新する。 */
-	private async loadEnvironment(): Promise<void> {
-		const {runners, translate} = this.context;
+	/** 実行環境の候補を `<select>` に反映する。 */
+	private showEnvironment(candidates: readonly CodeRunner[], selected: string | undefined): void {
 		const {environment} = this.panel;
-		const language = this.site.language();
-		const candidates = language ? await runners.candidates(language) : [];
-		const previous = environment.value;
-		this.candidates = candidates;
 		const signature = candidates.map(({id, label}) => `${id}\n${label}`).join("\n");
 		if (environment.dataset.signature !== signature || candidates.length === 0) {
 			environment.dataset.signature = signature;
@@ -190,17 +173,14 @@ class EasyTest {
 				value: id,
 				textContent: label,
 			})));
-			if (candidates.length === 0) environment.append(h("option", {textContent: translate("easyTest.noEnvironment")}));
+			if (candidates.length === 0) environment.append(h("option", {textContent: this.context.translate("easyTest.noEnvironment")}));
 		}
-		const isCandidate = (id: string | undefined): boolean => candidates.some((candidate) => candidate.id === id);
-		const local = candidates.find(({kind}) => kind === "local")?.id;
-		const saved = language ? this.selections()[language.id] : undefined;
-		// 同じ系統の別の言語でも候補に残るので、前の選択を引き継ぐのは言語が同じときだけにする
-		const kept = language?.id === this.languageId && isCandidate(previous) ? previous : undefined;
-		this.languageId = language?.id;
-		const next = local ?? kept ?? (isCandidate(saved) ? saved : candidates[0]?.id);
-		if (next !== undefined) environment.value = next;
-		this.setRunnable(candidates.length > 0 && this.running === 0);
+		if (selected !== undefined) environment.value = selected;
+		this.updateRunnable();
+	}
+
+	private updateRunnable(): void {
+		this.setRunnable(this.selection.candidates.length > 0 && !this.session.busy);
 	}
 
 	private setRunnable(runnable: boolean): void {
@@ -210,44 +190,28 @@ class EasyTest {
 		this.showSubmitState();
 	}
 
-	private setPendingSubmit(pending: object | null): void {
-		this.pendingSubmit = pending;
-		this.showSubmitState();
-	}
-
 	/** 提出の予定がある間は、Test & Submit のボタンを中止のボタンにする。 */
 	private showSubmitState(): void {
 		const button = this.submitButton;
 		if (!button) return;
-		const pending = this.pendingSubmit !== null;
+		const pending = this.session.submitPending;
 		button.textContent = this.context.translate(pending ? "easyTest.cancelSubmit" : "easyTest.testAndSubmit");
 		button.classList.toggle("btn-info", !pending);
 		button.classList.toggle("btn-warning", pending);
 		button.classList.toggle("disabled", !pending && !this.runnable);
 	}
 
-	private runOptions(extra: RunOptions): RunOptions {
-		const allowableError = this.panel.allowableError();
-		return {trim: true, split: true, ...(allowableError === undefined ? {} : {allowableError}), ...extra};
-	}
-
 	private execute(testCase: TestCase, options: RunOptions): Execution {
-		const {runners, translate} = this.context;
 		const code = this.site.sourceCode();
 		if (code) this.savedCodes.save(this.site.taskUri(), code);
 
-		const view = createResultView(translate);
-		const tab = this.dock.addTab(`#${++this.runCount} ${testCase.title}`, view.element, {closable: true});
-		this.running++;
-		this.setRunnable(false);
-		const firstRunnerId = this.panel.environment.value;
-		const result = runners.test(this.candidates, firstRunnerId, code, testCase, this.runOptions(options));
+		const view = createResultView(this.context.translate);
+		const tab = this.dock.addTab(`#${this.session.nextNumber()} ${testCase.title}`, view.element, {closable: true});
+		const result = this.session.start(testCase, code, this.panel.environment.value, this.panel.allowableError(), options);
 		void result.then((value) => {
 			view.show(value);
 			const tone = toneOf(value.status);
 			if (tone) tab.setTone(tone);
-		}).finally(() => {
-			if (--this.running === 0) this.setRunnable(this.candidates.length > 0);
 		});
 		return {result, tab};
 	}
@@ -305,20 +269,8 @@ class EasyTest {
 		await this.runSamples();
 	}
 
-	/** 提出の予定があれば何もしない。ショートカットの連打で二重に提出しないようにする。 */
 	private async testAndSubmit(): Promise<void> {
-		if (this.pendingSubmit) return;
-		const pending = {};
-		const cancel = (): void => {
-			if (this.pendingSubmit === pending) this.setPendingSubmit(null);
-		};
-		this.setPendingSubmit(pending);
-		try {
-			const passed = await this.runSamples(cancel);
-			if (passed && this.pendingSubmit === pending) this.site.submit();
-		} finally {
-			cancel();
-		}
+		await this.session.testAndSubmit((cancel) => this.runSamples(cancel), () => this.site.submit());
 	}
 
 	private restore(): void {
