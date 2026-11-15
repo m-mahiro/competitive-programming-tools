@@ -26,6 +26,23 @@
 
 [Release](https://github.com/nsubaru11/competitive-programming-tools/releases) から `local-runner-<版>.zip` を入手し、好きな場所に展開します。展開してできる `competitive-programming-tools` フォルダに、すべてが入っています。中身は、フォルダの中の `README.md` にあります。
 
+コマンドで最新のバージョンを入手するなら、次のようにします。
+
+Windows(PowerShell)
+
+```powershell
+$url = (Invoke-RestMethod https://api.github.com/repos/nsubaru11/competitive-programming-tools/releases).assets | Where-Object name -like 'local-runner-*.zip' | Select-Object -First 1 -ExpandProperty browser_download_url
+curl.exe -LO $url
+Expand-Archive .\local-runner-*.zip .
+```
+
+Linux、WSL
+
+```bash
+curl -s https://api.github.com/repos/nsubaru11/competitive-programming-tools/releases | grep -o 'https://[^"]*/local-runner-[0-9.]*\.zip' | head -1 | xargs curl -LO
+unzip local-runner-*.zip
+```
+
 これだけで、Java の解答の実行、判定、提出、提出用コードの作成が動きます。Java のライブラリを使うときは、[Java のライブラリを使う](#ライブラリを使う)を参照してください。ほかの言語は処理系の導入が要ります。[言語](#言語)を参照してください。
 
 Windows では、次のコマンドで `bin` を PATH に登録すると、どのフォルダからでも `test` や `submit` を実行できます。
@@ -36,10 +53,11 @@ Windows では、次のコマンドで `bin` を PATH に登録すると、ど�
 
 `competitive-programming-tools` フォルダで実行します。登録のあと、新しいターミナルを開くと使えます。
 
-Linux では、`bin` の `.cmd` の代わりに `bin/local-runner` を実行します。
+Linux では、`.cmd` の代わりに `local-runner <コマンド>` を実行します。`bin` を PATH に加えると、解答のあるフォルダから実行できます。
 
 ```bash
-/path/to/competitive-programming-tools/local-runner/bin/local-runner test abc448_d D.java
+export PATH="$PATH:/path/to/competitive-programming-tools/local-runner/bin"
+local-runner test abc448_d D.java
 ```
 
 ### 更新

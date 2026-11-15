@@ -36,7 +36,7 @@
 2. Windows では、このフォルダで `.\local-runner\bin\install-path.cmd` を実行し、`bin` を PATH に登録する。登録のあと、新しいターミナルを開く
 3. 解答のあるフォルダで `test abc448_d D.java` のように実行する。サーバーは自動で起動する
 
-Linux では、`.cmd` の代わりに `local-runner/bin/local-runner test abc448_d D.java` のように実行します。
+Linux では、`.cmd` の代わりに `local-runner test abc448_d D.java` のように実行します。`local-runner/bin` を PATH に加えておきます。
 
 ## 更新
 
