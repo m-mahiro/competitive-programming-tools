@@ -43,6 +43,12 @@ curl -s https://api.github.com/repos/nsubaru11/competitive-programming-tools/rel
 unzip local-runner-*.zip
 ```
 
+[GitHub CLI](https://cli.github.com/)(`gh`)を使うなら、どちらの環境でも次のコマンドで入手できます。展開は、上のコマンドと同じです。
+
+```bash
+gh release download --repo nsubaru11/competitive-programming-tools --pattern 'local-runner-*.zip'
+```
+
 これだけで、Java の解答の実行、判定、提出、提出用コードの作成が動きます。Java のライブラリを使うときは、[Java のライブラリを使う](#ライブラリを使う)を参照してください。ほかの言語は処理系の導入が要ります。[言語](#言語)を参照してください。
 
 Windows では、次のコマンドで `bin` を PATH に登録すると、どのフォルダからでも `test` や `submit` を実行できます。
