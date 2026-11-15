@@ -8,7 +8,7 @@ export class DaemonCommand implements Command {
 	async execute(args: string[]): Promise<number> {
 		if (args.length > 0) throw new CliUsageError("daemon takes no arguments.");
 		// サーバーの処理は読み込んだ時点で java を探すので、このコマンドのときだけ読み込む。
-		const {startServer} = await import("../../daemon/server");
+		const {startServer} = await import("../../daemon/lifecycle");
 		await startServer();
 		// サーバーは shutdown で終了する。ここで返すと、CLI がプロセスを終了してしまう。
 		return new Promise<number>(() => {});

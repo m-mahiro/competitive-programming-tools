@@ -1,7 +1,5 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import schema from "../../settings.schema.json";
 import defaults from "./defaults.json";
 import {isPlainObject, joinSettingName, type SchemaNode, validateAgainstSchema} from "./schema";
@@ -84,22 +82,6 @@ export function isHeaderName(name: string): boolean {
 	return /^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(name);
 }
 
-/**
- * 以前の形式(librarySourceRoot と headerFiles)の設定ファイルを、今の形式へ書き換える。
- * 元のファイルは .bak に残す。
- */
-function migrateLegacySettings(file: string, user: UserSettings): UserSettings {
-	if (!("librarySourceRoot" in user) && !("headerFiles" in user)) return user;
-	const {librarySourceRoot, headerFiles, ...migrated} = user;
-	if (typeof librarySourceRoot === "string") setSetting(migrated, ["languages", "java", "library"], librarySourceRoot);
-	if (isPlainObject(headerFiles)) {
-		for (const [name, headerFile] of Object.entries(headerFiles)) setSetting(migrated, ["headers", name], headerFile);
-	}
-	fs.copyFileSync(file, `${file}.bak`);
-	writeUserSettings(file, migrated);
-	return migrated;
-}
-
 /** 設定ファイルを読む。ファイルが無ければ空にし、JSON として読めないか項目が正しくなければ SettingsError にする。 */
 export function readUserSettings(file: string): UserSettings {
 	let text: string;
@@ -116,9 +98,8 @@ export function readUserSettings(file: string): UserSettings {
 		throw new SettingsError(`The settings file is not valid JSON: ${file}\n  ${(error as Error).message}`);
 	}
 	if (!isPlainObject(parsed)) throw new SettingsError(`The settings file must contain a JSON object: ${file}`);
-	const user = migrateLegacySettings(file, parsed);
-	assertValidSettings(user, file);
-	return user;
+	assertValidSettings(parsed, file);
+	return parsed;
 }
 
 /** 誤りが1つでもあれば、ファイルの場所と項目ごとの理由を並べた SettingsError にする。 */
@@ -234,115 +215,4 @@ export function describeSettings(settings: Settings): Array<{name: string; value
 export function serverSettingsDigest(settings: Settings): string {
 	const {server: {port, extraOrigins}, run, languages} = settings;
 	return crypto.createHash("md5").update(JSON.stringify({port, extraOrigins, run, languages})).digest("hex");
-}
-
-export type PathEnvironment = {
-	platform: NodeJS.Platform;
-	homeDir: string;
-};
-
-function currentEnvironment(): PathEnvironment {
-	return {platform: process.platform, homeDir: os.homedir()};
-}
-
-/** 命令の名前(java など)ではなく、場所を指しているか。 */
-export function isPathLike(value: string): boolean {
-	return value.startsWith("~") || /[\\/]/.test(value);
-}
-
-/**
- * 設定に書かれたパスを、読んでいる側の OS のパスにする。
- * - `~` は読んでいる側のホーム
- * - 相対パスは設定ファイルのあるフォルダから
- * - `C:/...` と `/mnt/c/...` は互いに読み替える
- */
-export function resolveSettingPath(value: string, settingsFile: string, environment = currentEnvironment()): string {
-	const {platform, homeDir} = environment;
-	const pathApi = platform === "win32" ? path.win32 : path.posix;
-	if (value === "~" || /^~[\\/]/.test(value)) return pathApi.join(homeDir, value.slice(1));
-	const drivePath = /^([A-Za-z]):[\\/](.*)$/.exec(value);
-	if (drivePath) {
-		const [, drive = "", rest = ""] = drivePath;
-		return platform === "win32" ? pathApi.normalize(value) : `/mnt/${drive.toLowerCase()}/${rest.replaceAll("\\", "/")}`;
-	}
-	if (platform === "win32" && value.startsWith("/")) {
-		const mounted = /^\/mnt\/([A-Za-z])\/(.*)$/.exec(value);
-		if (!mounted) throw new SettingsError(`This path exists only inside WSL and cannot be read from Windows: ${value}`);
-		const [, drive = "", rest = ""] = mounted;
-		return pathApi.normalize(`${drive.toUpperCase()}:/${rest}`);
-	}
-	if (pathApi.isAbsolute(value)) return value;
-	return pathApi.resolve(pathApi.dirname(settingsFile), value);
-}
-
-function isDirectory(target: string): boolean {
-	try {
-		return fs.statSync(target).isDirectory();
-	} catch {
-		return false;
-	}
-}
-
-/** 名前が `.` で始まるフォルダ(.git など)は、ライブラリの中身として扱わない。 */
-export function isLibrarySourceEntry(entry: fs.Dirent): boolean {
-	return entry.isDirectory() ? !entry.name.startsWith(".") : entry.name.endsWith(".java");
-}
-
-function containsJavaSource(dir: string): boolean {
-	let entries: fs.Dirent[];
-	try {
-		entries = fs.readdirSync(dir, {withFileTypes: true});
-	} catch {
-		return false;
-	}
-	const sources = entries.filter(isLibrarySourceEntry);
-	return sources.some((entry) => !entry.isDirectory())
-		|| sources.some((entry) => containsJavaSource(path.join(dir, entry.name)));
-}
-
-/** 設定されたライブラリのフォルダ。フォルダが無ければ null。 */
-export function findLibrarySource(root: string): string | null {
-	return isDirectory(root) ? root : null;
-}
-
-/**
- * setlib が受け取った場所を、ライブラリのフォルダとして確かめる。
- * フォルダの名前は問わず、指定されたフォルダをそのまま使う。.java が1つも無ければエラーにする。
- */
-export function resolveLibrarySource(input: string): string {
-	const root = path.resolve(input);
-	if (!isDirectory(root)) throw new Error(`The folder was not found: ${root}`);
-	if (!containsJavaSource(root)) throw new Error(`No .java files were found in: ${root}`);
-	return root;
-}
-
-/**
- * 以前のバージョンの文書に載せていた環境変数と、代わりに書く設定の項目。値が null のものは、代わりの項目が無い。
- * 文書に載せていなかった開発用の変数は、利用者が設定していることがないので案内しない。
- */
-const LEGACY_ENVIRONMENT: Readonly<Record<string, string | null>> = {
-	LOCAL_RUNNER_URL: "server.port",
-	LOCAL_RUNNER_PORT: "server.port",
-	LOCAL_RUNNER_BACKEND: "server.backend",
-	ATCODER_RUNNER_AUTOSTART: "server.autoStart",
-	LOCAL_RUNNER_START_TIMEOUT_MS: "server.startTimeoutMs",
-	LOCAL_RUNNER_ALLOWED_ORIGINS: "server.extraOrigins",
-	ATCODER_JAVA_VER: "languages.java.release",
-	ATCODER_LIB_SRC: "languages.java.library",
-	LOCAL_RUNNER_RUN_STACK_BYTES: "languages.java.stackMb",
-	ATCODER_SESSION_FILE: "atcoder.sessionFile",
-	ATCODER_SESSION: null,
-	ATCODER_COOKIE: null,
-	LOCAL_RUNNER_HOST: null,
-	LOCAL_RUNNER_BUN: null,
-	LOCAL_RUNNER_INPROCESS_COMPILE: null,
-};
-
-/** 設定されたままの古い環境変数について、移行先を案内する文を返す。値は秘密になりうるので表示しない。 */
-export function legacyEnvironmentWarnings(environment: NodeJS.ProcessEnv, settingsFile: string): string[] {
-	return Object.entries(LEGACY_ENVIRONMENT)
-		.filter(([name]) => environment[name] !== undefined && environment[name] !== "")
-		.map(([name, setting]) => setting === null
-			? `The environment variable ${name} is no longer read.`
-			: `The environment variable ${name} is no longer read. Write "${setting}" in ${settingsFile} instead.`);
 }

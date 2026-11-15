@@ -1,5 +1,7 @@
-import {configuredLibrarySourceRoot, updateUserSettings} from "../../config";
-import {deleteSetting, resolveLibrarySource, setSetting} from "../../settings/settings";
+import {updateUserSettings} from "../../config";
+import {resolveLibrarySource} from "../../javaLibrary/folder";
+import {configuredLibrarySourceRoot} from "../../javaLibrary/prepare";
+import {deleteSetting, setSetting} from "../../settings/settings";
 import type {Command} from "./Command";
 import {CliUsageError} from "./Command";
 

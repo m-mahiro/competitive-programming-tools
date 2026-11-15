@@ -2,18 +2,17 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
+import {migrateLegacySettingsFile} from "./migration/settingsFile";
 import {
-	findLibrarySource,
 	isHeaderName,
-	isLibrarySourceEntry,
 	loadSettings,
 	readUserSettings,
-	resolveSettingPath,
 	type Settings,
 	SettingsError,
 	type UserSettings,
 	writeUserSettings,
 } from "./settings/settings";
+import {resolveSettingPath} from "./settings/settingPath";
 
 const importMetaRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -42,9 +41,10 @@ export const PROJECT_ROOT = resolveProjectRoot();
 export const SETTINGS_FILE = process.env.LOCAL_RUNNER_SETTINGS_FILE || path.join(PROJECT_ROOT, "local-runner.settings.json");
 const SETTINGS_SCHEMA_FILE = path.join(PROJECT_ROOT, "local-runner", "settings.schema.json");
 
-/** 設定を読む。内容が正しくなければ、理由を表示して終了する。 */
+/** 設定を読む。内容が正しくなければ、理由を表示して終了する。以前の形式のファイルは、読む前に今の形式へ書き換える。 */
 function loadSettingsOrExit(): Settings {
 	try {
+		migrateLegacySettingsFile(SETTINGS_FILE);
 		return loadSettings(SETTINGS_FILE);
 	} catch (error) {
 		if (!(error instanceof SettingsError)) throw error;
@@ -72,30 +72,6 @@ export function updateUserSettings(mutate: (user: UserSettings) => void): void {
 
 // 提出先の Java バージョン。これより新しい JDK では javac の --release で揃える。
 export const TARGET_JAVA_VERSION = String(SETTINGS.languages.java.release);
-
-let preparedLibrarySourceRoot: string | null = null;
-let librarySource: string | null = null;
-
-/** 設定された Java のライブラリの場所。setlib の直後にも正しく表示できるよう、ファイルを読み直す。 */
-export function configuredLibrarySourceRoot(): string | null {
-	return loadSettings(SETTINGS_FILE).languages.java.library ?? null;
-}
-
-/** 設定されたライブラリのフォルダ。設定が無いか、フォルダが見つからなければ null。 */
-function findLibrarySourceRoot(): string | null {
-	const configured = SETTINGS.languages.java.library;
-	if (!configured) return null;
-	return findLibrarySource(resolveConfiguredPath(configured));
-}
-
-export function resolveLibrarySourceRoot(): string {
-	return preparedLibrarySourceRoot ?? prepareLibrarySourceRoot().prepared;
-}
-
-/** サーバーが読み込んだライブラリの場所。ライブラリなしで起動したら null。 */
-export function loadedLibrarySource(): string | null {
-	return librarySource;
-}
 
 /**
  * 設定の headers に書かれたヘッダーファイルを返す。設定が無ければ null。
@@ -168,34 +144,6 @@ export const RUNNER_CONFIG = {
 	// header unit は作るのに数秒かかるので、stop で消える baseDir ではなくホームに置く。
 	headerUnitCacheDir: path.join(os.homedir(), ".cache", "competitive-programming", "local-runner", "header-units"),
 };
-
-/** ライブラリの .java だけを、フォルダの構成を保って写す。 */
-function copyLibrarySources(source: string, target: string): void {
-	fs.mkdirSync(target, {recursive: true});
-	for (const entry of fs.readdirSync(source, {withFileTypes: true})) {
-		if (!isLibrarySourceEntry(entry)) continue;
-		const from = path.join(source, entry.name);
-		const to = path.join(target, entry.name);
-		if (entry.isDirectory()) copyLibrarySources(from, to);
-		else fs.copyFileSync(from, to);
-	}
-}
-
-/**
- * ライブラリを作業用のフォルダへ写し、変換にはその写しを使う。
- * コンパイルした結果を利用者のフォルダに作らないためで、Linux ではメモリ上に置いて速くする意味もある。
- * ライブラリが無くても空のフォルダを渡し、解答の変換と実行を同じ経路で行う。
- */
-export function prepareLibrarySourceRoot(): {source: string | null; prepared: string} {
-	const source = findLibrarySourceRoot();
-	librarySource = source;
-	const prepared = path.join(RUNNER_CONFIG.baseDir, "library-source");
-	fs.rmSync(prepared, {recursive: true, force: true});
-	fs.mkdirSync(prepared, {recursive: true});
-	if (source !== null) copyLibrarySources(source, prepared);
-	preparedLibrarySourceRoot = prepared;
-	return {source, prepared};
-}
 
 export const LOG_FILE_PATH = path.join(RUNNER_CONFIG.baseDir, "local-runner.log");
 export const DISPATCHER_CLASS_FILE = path.join(RUNNER_CONFIG.dispatcherBuildDir, "Dispatcher.class");

@@ -9,7 +9,7 @@ import {EMBEDDED_FILES, extractEmbeddedFile} from "./embedded";
 import * as formatter from "../utils/formatter";
 import * as logging from "../utils/logging";
 import * as filesystem from "../utils/filesystem";
-import {isPathLike} from "../settings/settings";
+import {isPathLike} from "../settings/settingPath";
 import * as dispatcher from "./dispatcher";
 import {runCommand} from "./processRunner";
 

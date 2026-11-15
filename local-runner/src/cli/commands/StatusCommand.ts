@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import type {RunnerStatusInfo} from "../../types";
-import {CLI_CONFIG, configuredLibrarySourceRoot, SETTINGS, SETTINGS_FILE} from "../../config";
+import {CLI_CONFIG, SETTINGS, SETTINGS_FILE} from "../../config";
+import {configuredLibrarySourceRoot} from "../../javaLibrary/prepare";
 import {serverSettingsDigest} from "../../settings/settings";
 import {VERSION} from "../../version";
 import * as color from "../../utils/color";

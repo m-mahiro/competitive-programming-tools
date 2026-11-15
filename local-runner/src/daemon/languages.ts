@@ -1,4 +1,5 @@
-import {type CommandLanguageSettings, commandLanguageSettings, isPathLike, type Settings} from "../settings/settings";
+import {type CommandLanguageSettings, commandLanguageSettings, type Settings} from "../settings/settings";
+import {isPathLike} from "../settings/settingPath";
 import type {CommandLanguage} from "./commandEngine";
 import {findOnPath, isExecutableFile} from "./processRunner";
 

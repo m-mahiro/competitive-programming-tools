@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import {checkForUpdate, latestVersion} from "./check";
 import {installPackage, type PackageFile, toPackageFiles} from "./installer";
 import {compareVersions, type FetchFunction, fetchLatestRelease, findPackageAsset, selectLatestRelease} from "./release";
 import {createTestZip} from "./testZip";
@@ -171,6 +172,22 @@ describe("fetchLatestRelease", () => {
 		expect((await findNewerRelease("someone/tools", "1.0.0", fetchImpl))?.version).toBe("1.1.0");
 		expect(await findNewerRelease("someone/tools", "1.1.0", fetchImpl)).toBeNull();
 		expect(await findNewerRelease("someone/tools", "2.0.0", fetchImpl)).toBeNull();
+	});
+});
+
+describe("checkForUpdate", () => {
+	const api = "https://api.github.com/repos/someone/tools/releases?per_page=100";
+
+	test("通信できなければ何も知らせず、新しい版があれば知らせて覚える", async () => {
+		const messages: string[] = [];
+		await checkForUpdate("someone/tools", "1.0.0", (message) => messages.push(message), fakeFetch({}).fetchImpl);
+		expect(messages).toEqual([]);
+		expect(latestVersion()).toBeNull();
+
+		const {fetchImpl} = fakeFetch({[api]: () => Response.json([release("local-runner-v1.1.0")])});
+		await checkForUpdate("someone/tools", "1.0.0", (message) => messages.push(message), fetchImpl);
+		expect(messages).toEqual(["Local Runner 1.1.0 is available (running: 1.0.0). Run update to install it."]);
+		expect(latestVersion()).toBe("1.1.0");
 	});
 });
 

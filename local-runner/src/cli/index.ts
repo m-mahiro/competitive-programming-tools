@@ -1,6 +1,5 @@
 import {pathToFileURL} from "node:url";
-import {SETTINGS_FILE} from "../config";
-import {legacyEnvironmentWarnings} from "../settings/settings";
+import {migrateFromEarlierVersions} from "../migration";
 import {removeStaleFile} from "../update/installer";
 import {CliUsageError} from "./commands/Command";
 import * as registry from "./commands/registry";
@@ -21,9 +20,9 @@ export async function main(rawArgs = process.argv.slice(2)): Promise<number> {
 	// update が入れ替えた実行ファイルの古いものは、動いている間は消せないので、次の起動で消す。
 	removeStaleFile(process.execPath);
 
-	// daemon はサーバーが記録に残すので、ここでは出さない。
+	// daemon はサーバーが行って記録に残すので、ここでは行わない。
 	if (command.name !== "daemon") {
-		for (const warning of legacyEnvironmentWarnings(process.env, SETTINGS_FILE)) console.error(`Warning: ${warning}`);
+		migrateFromEarlierVersions({warn: (message) => console.error(`Warning: ${message}`), info: (message) => console.error(message)});
 	}
 
 	try {

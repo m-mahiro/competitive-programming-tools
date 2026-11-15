@@ -9,13 +9,18 @@ local-runner/
 ├── package.json
 ├── src/
 │   ├── cli/           # test、submit、短縮表記、AtCoder との通信、サンプルの判定
-│   ├── daemon/        # main.ts(ソースから動かすときの入口)、server.ts(HTTP API)、dispatcher.ts(常駐 JVM との連携)、
+│   ├── daemon/        # main.ts(ソースから動かすときの入口)、lifecycle.ts(起動と終了)、server.ts(HTTP API)、
+│   │                  # execution.ts(言語ごとの経路の振り分け)、runResponse.ts(実行の応答の組み立て)、
+│   │                  # javaEngine.ts(Java の変換、コンパイル、実行)、dispatcher.ts(常駐 JVM との連携)、
 │   │                  # compiler.ts(javac のキャッシュ)、embedded.ts(実行ファイルに埋め込んだファイル)、
 │   │                  # languages.ts(使える言語)、preparationQueue.ts(コンパイルの順番待ち)、
 │   │                  # commandEngine.ts(コマンドで動かす言語)、processRunner.ts(プロセスの起動と計測)、
 │   │                  # headerUnit.ts(C++ の header unit)
-│   ├── settings/      # 設定ファイルの読み込みと検査、既定値(defaults.json)
-│   ├── update/        # 更新: Release の選択(release.ts)、zip の読み取り(zip.ts)、入れ替え(installer.ts)
+│   ├── settings/      # 設定ファイルの読み込みと検査(settings.ts)、パスの読み替え(settingPath.ts)、既定値(defaults.json)
+│   ├── javaLibrary/   # Java のライブラリのフォルダの検査(folder.ts)と、作業フォルダへの用意(prepare.ts)
+│   ├── migration/     # 以前のバージョンからの後始末: 古い環境変数、設定ファイルの形式、ファイル
+│   ├── update/        # 更新: Release の選択(release.ts)、zip の読み取り(zip.ts)、入れ替え(installer.ts)、
+│   │                  # 起動時の確認(check.ts)
 │   ├── version.ts     # バージョン(package.json から)
 │   ├── config.ts      # 設定から決めた値と定数
 │   ├── utils/         # ログ、色、整形、ファイル操作
@@ -37,7 +42,7 @@ local-runner/
 
 ライブラリの場所は推測せず、設定の `languages.java.library` から読みます。`setlib` はこの項目を書き込みます。フォルダの名前や階層は決めておらず、指定されたフォルダの `.java` をすべて索引に入れます。型の名前はファイルの名前から、パッケージは各ファイルの `package` 宣言から決めます。import がライブラリを指すかどうかは、名前の書き出しではなく、この索引にあるかどうかで判定します。
 
-場所が設定されていないか見つからないときは、空のフォルダを渡して起動します。解答の変換は同じ経路を通り、ライブラリの import はコンパイルエラーになります。このとき `server.ts` は、JDK 以外の import があれば診断の先頭に設定の案内を足し、応答の `libraryMissing` を立てます。CP Toolkit はこの値で案内を切り替えます。
+場所が設定されていないか見つからないときは、空のフォルダを渡して起動します。解答の変換は同じ経路を通り、ライブラリの import はコンパイルエラーになります。このとき `daemon/javaEngine.ts` は、JDK 以外の import があれば診断の先頭に設定の案内を足し、応答の `libraryMissing` を立てます。CP Toolkit はこの値で案内を切り替えます。
 
 作者のライブラリの名前(`lib` や `lib.io`)を、Local Runner のコードに書きません。必要な違いは、設定の `languages.java.libraryLast` のように、設定で受け取ります。
 
@@ -47,10 +52,12 @@ local-runner/
 
 使える言語は、起動時に設定の `languages` から決めます(`daemon/languages.ts`)。要求の `compilerName` が言語の名前で、省略されていれば Java として扱います。
 
-| 言語     | 経路                                                                               |
-|----------|------------------------------------------------------------------------------------|
-| `java`   | 常駐 JVM(`dispatcher.ts`、`compiler.ts`)。変換、コンパイル、実行を JVM の中で行う  |
-| それ以外 | `commandEngine.ts`。設定のコマンドでコンパイルし、サンプルごとにプロセスを起動する |
+| 言語     | 経路                                                                                             |
+|----------|--------------------------------------------------------------------------------------------------|
+| `java`   | `javaEngine.ts`。常駐 JVM(`dispatcher.ts`、`compiler.ts`)の中で、変換、コンパイル、実行を行う |
+| それ以外 | `commandEngine.ts`。設定のコマンドでコンパイルし、サンプルごとにプロセスを起動する               |
+
+振り分けは `execution.ts` が行います。`server.ts` は要求を確かめて `mode` ごとに `execution.ts` を呼ぶだけで、言語ごとの処理を持ちません。
 
 `commandEngine.ts` は設定を直接読まず、言語の定義と上限を引数で受け取ります。テストは、PATH の `python3` と `cc` で言語を定義して動かします。
 
@@ -133,6 +140,12 @@ Easy Test+ は最後のエディタの変更から 180ms 後に `precompile` を
 - `headers` は要求のたびに読み直す。それ以外は、プロセスの起動時に一度だけ読む
 
 環境変数は設定に使いません。Local Runner の動作を変える変数は次の3つだけです。ほかに、処理系を探すときに `PATH` を、`~` を展開するときに `HOME` と `USERPROFILE` を読みます。以前の版の文書に載せていた変数(`ATCODER_SESSION` など)が残っていると、起動時に警告します。
+
+以前のバージョンからの後始末は `src/migration/` にまとめます。古い環境変数の警告(`environment.ts`)、以前の形式の設定ファイルの書き換え(`settingsFile.ts`)、以前のバージョンが作ったファイルの削除(`files.ts`)です。名前や置き場所を変えたときは、古いものをここに足し、本体には互換の分岐を残しません。
+
+- 警告と削除は `migration/index.ts` の `migrateFromEarlierVersions` が行う。CLI(`daemon` 以外)とサーバーの起動時に呼ぶ。旧ファイルは Windows と WSL の両方にあるため
+- 消すものが無ければ何も出さず、消したときだけ1行出す。消せなければ、次の起動でまた試す
+- 設定ファイルの書き換えは、設定を読む前に要るので、`config.ts` が設定を読む直前に呼ぶ
 
 | 変数                         | 用途                                                                                     |
 |------------------------------|------------------------------------------------------------------------------------------|

@@ -9,11 +9,8 @@ import {
 	DEFAULT_SETTINGS,
 	deleteSetting,
 	describeSettings,
-	legacyEnvironmentWarnings,
 	loadSettings,
 	readUserSettings,
-	resolveLibrarySource,
-	resolveSettingPath,
 	serverSettingsDigest,
 	setSetting,
 	SettingsError,
@@ -174,27 +171,6 @@ describe("extensions", () => {
 	});
 });
 
-describe("以前の形式の設定ファイル", () => {
-	test("今の形式へ書き換え、元のファイルを .bak に残す", () => {
-		const legacy = {librarySourceRoot: "C:\\library\\src", headerFiles: {java: "C:\\header\\java.txt"}};
-		writeRaw(legacy);
-		const settings = loadSettings(file);
-		expect(settings.languages.java.library).toBe("C:\\library\\src");
-		expect(settings.headers).toEqual({java: "C:\\header\\java.txt"});
-		expect(JSON.parse(fs.readFileSync(`${file}.bak`, "utf8"))).toEqual(legacy);
-		expect(JSON.parse(fs.readFileSync(file, "utf8"))).toEqual({
-			languages: {java: {library: "C:\\library\\src"}},
-			headers: {java: "C:\\header\\java.txt"},
-		});
-	});
-
-	test("今の形式のファイルは書き換えない", () => {
-		writeRaw({server: {port: 9000}});
-		loadSettings(file);
-		expect(fs.existsSync(`${file}.bak`)).toBe(false);
-	});
-});
-
 describe("設定ファイルの書き換え", () => {
 	test("入れ子の項目を書き、読み戻す", () => {
 		const user = readUserSettings(file);
@@ -244,71 +220,5 @@ describe("serverSettingsDigest", () => {
 		expect(serverSettingsDigest(loadSettings(file))).toBe(base);
 		writeRaw({run: {timeoutMs: 5000}});
 		expect(serverSettingsDigest(loadSettings(file))).not.toBe(base);
-	});
-});
-
-describe("resolveSettingPath", () => {
-	const linux = {platform: "linux", homeDir: "/home/me"} as const;
-	const windows = {platform: "win32", homeDir: "C:\\Users\\me"} as const;
-
-	test("~ は読んでいる側のホームにする", () => {
-		expect(resolveSettingPath("~/.atcoder/session.txt", "/mnt/c/tools/s.json", linux)).toBe("/home/me/.atcoder/session.txt");
-		expect(resolveSettingPath("~/.atcoder/session.txt", "C:\\tools\\s.json", windows)).toBe("C:\\Users\\me\\.atcoder\\session.txt");
-	});
-
-	test("相対パスは設定ファイルのあるフォルダから解決する", () => {
-		expect(resolveSettingPath("../library/java/src", "/mnt/c/repo/tools/s.json", linux)).toBe("/mnt/c/repo/library/java/src");
-		expect(resolveSettingPath("../library/java/src", "C:\\repo\\tools\\s.json", windows)).toBe("C:\\repo\\library\\java\\src");
-	});
-
-	test("WSL では Windows のパスを /mnt の形にする", () => {
-		expect(resolveSettingPath("C:\\Users\\me\\library\\src", "/mnt/c/tools/s.json", linux)).toBe("/mnt/c/Users/me/library/src");
-		expect(resolveSettingPath("D:/library/src", "/mnt/c/tools/s.json", linux)).toBe("/mnt/d/library/src");
-	});
-
-	test("Windows では /mnt のパスをドライブのパスにする", () => {
-		expect(resolveSettingPath("/mnt/c/Users/me/library/src", "C:\\tools\\s.json", windows)).toBe("C:\\Users\\me\\library\\src");
-	});
-
-	test("WSL だけにあるパスを Windows から読むとエラーにする", () => {
-		expect(() => resolveSettingPath("/home/me/session.txt", "C:\\tools\\s.json", windows)).toThrow(SettingsError);
-	});
-
-	test("読んでいる側の絶対パスは変えない", () => {
-		expect(resolveSettingPath("/home/me/library/src", "/mnt/c/tools/s.json", linux)).toBe("/home/me/library/src");
-		expect(resolveSettingPath("C:\\library\\src", "C:\\tools\\s.json", windows)).toBe("C:\\library\\src");
-	});
-});
-
-describe("resolveLibrarySource", () => {
-	test("フォルダの名前によらず、指定したフォルダをそのまま返す", () => {
-		const library = path.join(dir, "any-name");
-		fs.mkdirSync(path.join(library, "nested"), {recursive: true});
-		fs.writeFileSync(path.join(library, "nested", "Tool.java"), "package mylib; public final class Tool {}");
-		expect(resolveLibrarySource(library)).toBe(library);
-		expect(resolveLibrarySource(dir)).toBe(dir);
-	});
-
-	test("無いフォルダと、.java が無いフォルダはエラーにする", () => {
-		expect(() => resolveLibrarySource(path.join(dir, "missing"))).toThrow("The folder was not found");
-		fs.mkdirSync(path.join(dir, ".git"));
-		fs.writeFileSync(path.join(dir, ".git", "Hidden.java"), "");
-		fs.writeFileSync(path.join(dir, "notes.txt"), "");
-		expect(() => resolveLibrarySource(dir)).toThrow("No .java files were found");
-	});
-});
-
-describe("legacyEnvironmentWarnings", () => {
-	test("設定されている古い環境変数だけを、値を出さずに案内する", () => {
-		const warnings = legacyEnvironmentWarnings({
-			LOCAL_RUNNER_PORT: "9000",
-			ATCODER_SESSION: "secret-value",
-			LOCAL_RUNNER_BACKEND: "",
-			NO_COLOR: "1",
-		}, file);
-		expect(warnings).toEqual([
-			`The environment variable LOCAL_RUNNER_PORT is no longer read. Write "server.port" in ${file} instead.`,
-			"The environment variable ATCODER_SESSION is no longer read.",
-		]);
 	});
 });
