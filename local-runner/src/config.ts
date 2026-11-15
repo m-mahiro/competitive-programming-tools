@@ -131,8 +131,8 @@ const MEBIBYTE = 1024 * 1024;
 
 // コンパイル結果を置く場所。Linux ではメモリ上の /dev/shm を使い、NTFS をまたぐ負荷を避ける。
 const runnerBaseDir = process.platform === "linux"
-	? "/dev/shm/atcoder-local-runner"
-	: path.join(os.tmpdir(), "atcoder-local-runner");
+	? "/dev/shm/local-runner"
+	: path.join(os.tmpdir(), "local-runner");
 
 export function resolveDispatcherSourceFile() {
 	const sourceFile = path.join(PROJECT_ROOT, "local-runner", "java", "src", "Dispatcher.java");

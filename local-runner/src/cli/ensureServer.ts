@@ -28,7 +28,7 @@ function isBunRuntime(): boolean {
 /**
  * Local Runner サーバーを起動する。
  * Windows: 既定は WSL で起動し、設定の server.backend が native のときだけ Windows の JDK を使う。
- * WSL/Linux 内: setsid でバックグラウンド化し、ログは ~/.atcoder/runner-autostart.log へ。
+ * WSL/Linux 内: setsid でバックグラウンド化し、ログは ~/.cache/competitive-programming/local-runner/autostart.log へ。
  */
 function startServer(): void {
 	const binDir = path.join(PROJECT_ROOT, "local-runner", "bin");
@@ -61,11 +61,12 @@ function startServer(): void {
 	}
 
 	// CLI 自身が WSL/Linux 内の場合: setsid で背景化し、ログはファイルへ。
+	const logDir = "$HOME/.cache/competitive-programming/local-runner";
 	const inner =
-		`mkdir -p "$HOME/.atcoder" && ` +
-		`echo "=== autostart $(date) ===" >> "$HOME/.atcoder/runner-autostart.log" && ` +
+		`mkdir -p ${logDir} && ` +
+		`echo "=== autostart $(date) ===" >> ${logDir}/autostart.log && ` +
 		`cd ${shq(binDir)} && chmod +x ./start-local-runner.sh && ` +
-		`{ setsid nohup ./start-local-runner.sh < /dev/null >> "$HOME/.atcoder/runner-autostart.log" 2>&1 & }`;
+		`{ setsid nohup ./start-local-runner.sh < /dev/null >> ${logDir}/autostart.log 2>&1 & }`;
 	const child = spawn("bash", ["-lc", inner], {stdio: "ignore"});
 	child.unref();
 }
