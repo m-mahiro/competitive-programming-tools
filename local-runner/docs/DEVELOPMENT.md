@@ -36,6 +36,8 @@ local-runner/
 
 `@atcoder-tools/shared` の URL 生成、Local Runner の要求と応答の型、結果の表記(`toEasyTestStatus`)を使っています。CLI のサンプルの判定は行ごとの比較(`cli/sampleJudge.ts`)で、CP Toolkit の Easy Test+ の判定(`evaluateEasyTestOutput`)とは別です。
 
+CLI の AtCoder タスク ID の復元は `cli/taskScreenName.ts` が行い、旧コンテスト・共有問題・教材などの例外は `data/` の JSON に置きます。[AtCoder の URL 復元](./ATCODER_TASK_URLS.md)に照合範囲と更新手順をまとめています。
+
 ## 提出前の処理
 
 提出前の処理は TypeScript の正規表現ではなく、常駐 JVM の Java Compiler API(`JavacTask`、`Trees`、`SourcePositions`)で行います。型の解決、`Main` の対象、コンストラクタと自己参照、`DEBUG` のフィールド、package と import の範囲を javac の構文木とシンボルから決め、生成した単一のソースも再び解析します。
@@ -123,7 +125,7 @@ C コンパイラが無くて起動プログラムをビルドできないとき
 
 Easy Test+ は最後のエディタの変更から 180ms 後に `precompile` を送り、テストではサンプルごとにソースを `run` に渡します。サーバーは事前コンパイルの結果を使い、まだ終わっていなければ待ってから実行します。
 
-短縮表記では、コンテスト ID と問題 ID の接頭辞が異なる `jsc2025advance-final`、`jsc2026advance-final`、`tessoku-book` を、それぞれ `abc422`、`abc474`、`tessoku_book` に固定で対応させています。範囲のフォルダ(`451-500` など)はコンテスト名に使いません。
+フォルダとファイル名から問題を決める処理は `cli/localTask.ts`、ファイル名から問題記号を取り出す処理と対応表の参照は `cli/taskScreenName.ts` にあります。拡張子と最後の `_` 以降を除いたものを問題記号とします。ソースの選択は `cli/language.ts` の `resolveSourceFile` が、大文字と小文字を区別せず拡張子を補って行います。コンテスト名とタスク ID の違いは JSON の対応表で解決します。範囲フォルダ(`451-500` など)はコンテスト名に使いません。
 
 ## 設定
 

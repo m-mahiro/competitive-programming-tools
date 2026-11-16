@@ -67,33 +67,23 @@ function ambiguous(files: readonly string[]): Error {
 	return new Error(`More than one source file matches: ${names}. Give the file name with its extension, or use --lang=<name>.`);
 }
 
-/** 指定されたソースのパスを決める。拡張子が省かれていれば、設定の拡張子を順に試す。 */
+/** 指定されたソースのパスを決める。拡張子が省かれていれば、設定の拡張子を順に試す。大文字と小文字は区別しない。 */
 export function resolveSourceFile(settings: Settings, sourceArg: string, cwd: string, lang?: string): string {
 	const direct = path.resolve(cwd, sourceArg);
 	if (isFile(direct)) return direct;
-	const found = candidateExtensions(settings, lang).map((extension) => `${direct}${extension}`).filter(isFile);
-	if (found.length > 1) throw ambiguous(found);
-	if (found.length === 0) throw new Error(`Source file not found from current directory: ${sourceArg}`);
-	return found[0]!;
-}
-
-/** 短縮表記(d、ex、d1 など)のソースを、フォルダの中から大文字と小文字を区別せずに探す。 */
-export function findShortSource(settings: Settings, token: string, cwd: string, lang?: string): string {
-	const wanted = candidateExtensions(settings, lang).map((extension) => `${token}${extension}`.toLowerCase());
+	const dir = path.dirname(direct);
 	let names: string[] = [];
 	try {
-		names = fs.readdirSync(cwd);
+		names = fs.readdirSync(dir);
 	} catch {
 		// 読めないフォルダは、見つからない扱いにする
 	}
 	// 設定の拡張子の順に並べ、エラーの表示がフォルダの並びに左右されないようにする。
-	const found = wanted
-		.flatMap((wantedName) => names.filter((name) => name.toLowerCase() === wantedName))
-		.map((name) => path.join(cwd, name));
+	const found = candidateExtensions(settings, lang)
+		.map((extension) => `${path.basename(direct)}${extension}`.toLowerCase())
+		.flatMap((wanted) => names.filter((name) => name.toLowerCase() === wanted))
+		.map((name) => path.join(dir, name));
 	if (found.length > 1) throw ambiguous(found);
-	if (found.length === 0) {
-		const expected = candidateExtensions(settings, lang).map((extension) => `${token.toUpperCase()}${extension}`).join(", ");
-		throw new Error(`Source file not found in ${cwd}: ${expected}`);
-	}
+	if (found.length === 0) throw new Error(`Source file not found from current directory: ${sourceArg}`);
 	return found[0]!;
 }

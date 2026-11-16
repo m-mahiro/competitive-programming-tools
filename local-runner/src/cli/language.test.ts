@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {DEFAULT_SETTINGS, type Settings} from "../settings/settings";
-import {findLanguage, findShortSource, languageForFile, resolveSourceFile} from "./language";
+import {findLanguage, languageForFile, resolveSourceFile} from "./language";
 import {chooseSubmitLanguageIds, extractLanguageOptionsFromSubmitPage, findLanguageOptionByLabel} from "./parser";
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cli-language-"));
@@ -63,27 +63,20 @@ describe("resolveSourceFile", () => {
 		expect(resolveSourceFile(settings, "D", dir, "cpp")).toBe(path.join(dir, "D.cpp"));
 	});
 
-	test("見つからなければエラーにする", () => {
-		expect(() => resolveSourceFile(settings, "Z", dir)).toThrow("Source file not found from current directory: Z");
-	});
-});
-
-describe("findShortSource", () => {
-	test("大文字と小文字を区別せずに、設定の拡張子で探す", () => {
-		expect(findShortSource(settings, "a", dir)).toBe(path.join(dir, "A.java"));
-		expect(findShortSource(settings, "b", dir)).toBe(path.join(dir, "B.cpp"));
-		expect(findShortSource(settings, "e1", dir)).toBe(path.join(dir, "E1.py"));
+	test("大文字と小文字を区別せずに探す", () => {
+		expect(resolveSourceFile(settings, "a", dir)).toBe(path.join(dir, "A.java"));
+		expect(resolveSourceFile(settings, "e1", dir)).toBe(path.join(dir, "E1.py"));
+		expect(resolveSourceFile(settings, "./b", dir)).toBe(path.join(dir, "B.cpp"));
 	});
 
 	test("--lang は、同じ種類の言語の拡張子に絞る", () => {
-		expect(findShortSource(settings, "d", dir, "java")).toBe(path.join(dir, "D.java"));
-		expect(findShortSource(settings, "c", dir, "pypy")).toBe(path.join(dir, "C.py"));
-		expect(() => findShortSource(settings, "c", dir, "cpp")).toThrow("C.cpp");
+		expect(resolveSourceFile(settings, "d", dir, "java")).toBe(path.join(dir, "D.java"));
+		expect(resolveSourceFile(settings, "c", dir, "pypy")).toBe(path.join(dir, "C.py"));
+		expect(() => resolveSourceFile(settings, "c", dir, "cpp")).toThrow("Source file not found");
 	});
 
-	test("候補が複数あるときと、無いときはエラーにする", () => {
-		expect(() => findShortSource(settings, "d", dir)).toThrow("More than one source file matches: D.java, D.cpp.");
-		expect(() => findShortSource(settings, "z", dir)).toThrow("Z.java, Z.cpp, Z.c, Z.py");
+	test("見つからなければエラーにする", () => {
+		expect(() => resolveSourceFile(settings, "Z", dir)).toThrow("Source file not found from current directory: Z");
 	});
 });
 

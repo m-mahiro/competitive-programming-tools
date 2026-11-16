@@ -1,84 +1,15 @@
-import path from "node:path";
 import type {LocalRunnerHeaderOption} from "@atcoder-tools/shared";
-import {SETTINGS} from "../../config";
 import type {Task} from "../../types";
 import * as atcoder from "../atcoder";
-import {findShortSource, type SourceLanguage} from "../language";
+import type {SourceLanguage} from "../language";
 import * as parser from "../parser";
 import * as taskUtils from "../task";
+import {inferTask} from "../localTask";
 import * as sampleJudge from "../sampleJudge";
 import * as sampleCache from "../sampleCache";
 import {CliUsageError, type Command} from "./Command";
 import * as options from "./options";
 import * as source from "./source";
-
-// 短縮タスク指定（例: d, e, ex, d1）。AtCoder の問題記号は A〜H と Ex のみ。末尾の数字はファイル変種（D1.java、D1.cpp 等）。
-const SHORT_TASK_PATTERN = /^(ex|[a-z])\d*$/i;
-// 通常は問題IDの接頭辞にもなるコンテスト名（例: ABC463, typical90）。
-const CONVENTIONAL_CONTEST_DIR_PATTERN = /^[A-Za-z]+\d+$/;
-// AtCoder のコンテストURLに使えるフォルダ名。`src` の親に限って採用し、範囲フォルダ等は弾く。
-const CONTEST_SLUG_PATTERN = /^[A-Za-z0-9][A-Za-z0-9-]*$/;
-// コンテストIDと問題IDの接頭辞が異なる並行開催コンテスト。
-const TASK_PREFIX_BY_CONTEST_ID: Readonly<Record<string, string>> = {
-	"jsc2025advance-final": "abc422",
-	"jsc2026advance-final": "abc474",
-	"tessoku-book": "tessoku_book",
-};
-
-/** cwd から上方向に辿り、原則として `src` の親フォルダ名をコンテストIDとして返す。 */
-export function detectContestId(startDir: string): string {
-	let dir = path.resolve(startDir);
-	for (; ;) {
-		const name = path.basename(dir);
-		if (name.toLowerCase() === "src") {
-			const candidate = path.basename(path.dirname(dir));
-			if (CONTEST_SLUG_PATTERN.test(candidate)) return candidate.toLowerCase();
-		}
-		// 従来どおり、コンテスト直下で実行した場合も ABC463 等は認識する。
-		if (CONVENTIONAL_CONTEST_DIR_PATTERN.test(name)) return name.toLowerCase();
-		const parent = path.dirname(dir);
-		if (parent === dir) break;
-		dir = parent;
-	}
-	throw new Error(
-		`Could not find the contest name from the folders (no contest folder above src).\n` +
-		`  Use the full form: test <contestId>_<task> <sourceFile>`,
-	);
-}
-
-/** 別名コンテストでは、固定対応した問題IDの接頭辞を使う。 */
-export function resolveShortTask(contestId: string, taskLetter: string): Task {
-	const taskPrefix = TASK_PREFIX_BY_CONTEST_ID[contestId] ?? contestId;
-	return taskUtils.createTask(contestId, `${taskPrefix}_${taskLetter}`);
-}
-
-/** 短縮指定（d, ex, d1など）から、現在ディレクトリ内のソースを解決する。拡張子は設定の extensions から探す。 */
-export function resolveShortSourceArg(token: string, lang?: string): string {
-	if (!SHORT_TASK_PATTERN.test(token)) {
-		throw new Error(`Invalid short task: "${token}" (e.g. d, e, ex, d1).`);
-	}
-	return findShortSource(SETTINGS, token, process.cwd(), lang);
-}
-
-/**
- * 短縮タスク指定（例: "d", "ex", "d1"）を {taskScreenName, sourceFilePath} に展開する。
- * - コンテストID: 原則として cwd から上の階層にある src の親フォルダ名を小文字化。
- * - 問題ID: 通常はコンテストIDと記号を連結。並行開催コンテストは固定対応した接頭辞を使う。
- * - タスク記号: 末尾の数字を除いた英字部分（"d1" → "d"）。サンプル取得・提出はこの記号で行う。
- * - ソースファイル: 入力どおりのトークン（数字込み）で cwd 内を大小無視検索（"d" → D.java や D.cpp, "d1" → D1.java）。
- */
-export function expandShortTaskArg(token: string, lang?: string): {task: Task; sourceFilePath: string} {
-	if (!SHORT_TASK_PATTERN.test(token)) {
-		throw new Error(`Invalid short task: "${token}" (e.g. d, e, ex, d1). The full form takes two arguments.`);
-	}
-	const cwd = process.cwd();
-	const contestId = detectContestId(cwd);
-	const taskLetter = token.replace(/\d+$/, "").toLowerCase(); // 問題記号（末尾の数字は落とす）
-	return {
-		task: resolveShortTask(contestId, taskLetter),
-		sourceFilePath: findShortSource(SETTINGS, token, cwd, lang),
-	};
-}
 
 /**
  * サンプルケースと実行時間制限を取得する。キャッシュにあればそれを使い、無ければ問題ページを
@@ -193,8 +124,8 @@ export abstract class TaskCommand implements Command {
 		let task: Task | undefined;
 		let sourceFilePath: string | undefined;
 		if (positionals.length === 1) {
-			// 短縮表記: test d → フォルダからコンテストを推定し test abc463_d D.java 相当へ展開
-			({task, sourceFilePath} = expandShortTaskArg(positionals[0], lang));
+			sourceFilePath = positionals[0];
+			task = inferTask(sourceFilePath);
 		} else {
 			let taskScreenName: string | undefined;
 			[taskScreenName, sourceFilePath] = positionals;

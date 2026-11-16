@@ -105,14 +105,14 @@ update
 | コマンド                                                       | 説明                                                                                               |
 |----------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
 | `test <taskScreenName> <sourceFile>`                           | AtCoder のサンプルで実行し、AC か WA かを判定する                                                  |
-| `test <task>`                                                  | 短縮表記。フォルダからコンテストを推定する(例: `test d`)                                           |
+| `test <sourceFile>`                                            | フォルダとファイル名から問題を推定する(例: `test C_deque.java`)                                   |
 | `submit [-f] <taskScreenName> <sourceFile>`                    | サンプルがすべて AC なら提出する。`-f` で強制的に提出する                                          |
-| `submit [-f] <task>`                                           | 短縮表記(例: `submit d`)                                                                           |
+| `submit [-f] <sourceFile>`                                     | フォルダとファイル名から問題を推定する(例: `submit A_2.java`)                                     |
 | `localtest <sourceFile> [testDir]`                             | `.in` と `.out` を自動で探し、オフラインで実行して判定する                                         |
 | `run <sourceFile> [inputFile]`                                 | 1回だけ実行して出力を表示する。`inputFile` を省くと標準入力は空になる                              |
 | `crosscheck <actualSourceFile> <expectedSourceFile> [testDir]` | `.in` を入力に2つのコードを実行し、標準出力を比べる。`.out` は不要                                 |
 | `tomain <sourceFile> [outFile]`                                | 提出用のソースを `Main.java` など言語ごとの名前で書き出す。`-f` で上書きする                       |
-| `toclip <sourceFile>`、`toclip <task>`                         | 提出用のソースをクリップボードへコピーする(例: `toclip d`)                                         |
+| `toclip <sourceFile>`                                         | 提出用のソースをクリップボードへコピーする。拡張子は省略可能                                     |
 | `serve`                                                        | サーバーを起動し、準備が終わるまで待つ                                                             |
 | `stop`                                                         | サーバーを停止する                                                                                 |
 | `status`                                                       | サーバーの状態を表示する。稼働中なら終了コード 0、停止中なら 1                                     |
@@ -125,17 +125,21 @@ update
 
 `taskScreenName` は URL の `/tasks/` より後ろの部分です(例: `abc448_d`)。`sourceFile` の拡張子は省けます(`D` で `D.java` や `D.cpp` を探す)。
 
+完全指定では正式な `taskScreenName` とソースファイル名を渡します。たとえば典型90問の 001 は `test typical90_a Q001.java`、鉄則本の A01 は `test tessoku_book_a A01.java` です。コンテスト名とタスク ID が異なる場合は [JSON の対応表](./data/atcoder-task-exceptions.json)から URL を復元します。照合範囲と更新方法は [AtCoder の URL 復元](./docs/ATCODER_TASK_URLS.md)を参照してください。
+
 ライブラリを編集したら、`stop` のあと `serve` で読み込み直してください。
 
-### 短縮表記
+### ファイル名からの問題推定
 
-`test`、`submit`、`toclip` に引数を1つだけ渡すと短縮表記になります。`abc463/src/java` のフォルダで `test d` を実行すると、`test abc463_d D.java` と同じです。
+`test`・`submit` にソースファイルを1つ渡すと、フォルダからコンテスト、ファイル名から問題を推定します。`abc351/src/java` で `test C_deque.java` を実行すると、C 問題のサンプルで `C_deque.java` を実行します。
 
 - `src` の親のフォルダ名をコンテスト名として使う
-- 問題の記号は大文字と小文字を区別しない
-- 末尾の数字はファイルの違いとして扱う。`test d1` は `D1.java` を問題 `d` のサンプルでテストする
-- ソースは現在のフォルダから、[言語](#言語)の拡張子で探す(`D.java`、`D.cpp`、`D.py` など)。同じ名前のソースが複数あるときは、`--lang` で選ぶ
-- `toclip` はコンテスト名を使わないので、どのフォルダでも使える
+- 問題記号は、拡張子を除いたファイル名の最後の `_` 以降を除き、小文字にしたもの。`C_deque.java` → `c`、`A_2.java` → `a`、`A15_1.java` → `a15`
+- 旧コンテスト・ABC/ARC 同時開催回では、画面に表示される問題記号から実際のタスク ID を復元する。例: ABC001 で `test a` → `abc001_1`、ABC042 で `test c` → `arc058_a`、ARC058 で `test c` → `arc058_a`
+- ARC058〜103 の完全指定は正式なタスク ID として扱う。たとえば `test arc058_c E.java` は E 問題、ARC058 のフォルダで `test c` は C 問題を指す
+- 別実装は `D_1.java` のように `_` で区切る。`D1.java`・`d1` の問題記号は `d1` になる
+- 拡張子は省略できる。`test c_deque` では、現在のフォルダから大小を区別せずに `C_deque.java`・`C_deque.cpp` などを探す。候補が複数あれば拡張子か `--lang` で選ぶ
+- `toclip` も同じソース選択を使う。問題の推定は行わず、どのフォルダでも `toclip C_deque.java`・`toclip c_deque` の形で使える
 
 ### オプション
 

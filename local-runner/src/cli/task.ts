@@ -1,8 +1,9 @@
 import type {Task} from "../types";
 import * as shared from "@atcoder-tools/shared";
+import {parseLocalTaskScreenName} from "./taskScreenName";
 
 export function parseTask(taskScreenName: string): Task {
-	const task = shared.parseAtCoderTaskScreenName(taskScreenName);
+	const task = parseLocalTaskScreenName(taskScreenName);
 	if (!task) {
 		throw new Error(`Invalid taskScreenName: ${taskScreenName}`);
 	}
@@ -11,7 +12,7 @@ export function parseTask(taskScreenName: string): Task {
 
 /** コンテストIDと問題IDが異なる別名コンテスト向けに、両者を明示して Task を作る。 */
 export function createTask(contestId: string, taskScreenName: string): Task {
-	if (!/^[a-z0-9-]+$/.test(contestId) || !/^[a-z0-9_]+$/.test(taskScreenName)) {
+	if (!/^[A-Za-z0-9_-]+$/.test(contestId) || !/^[A-Za-z0-9_]+$/.test(taskScreenName)) {
 		throw new Error(`Invalid AtCoder task: contest=${contestId}, task=${taskScreenName}`);
 	}
 	const task = {contestId, taskId: taskScreenName};

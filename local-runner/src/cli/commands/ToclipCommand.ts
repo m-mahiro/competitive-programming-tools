@@ -2,7 +2,6 @@ import type {LocalRunnerHeaderOption} from "@atcoder-tools/shared";
 import {CliUsageError, type Command} from "./Command";
 import * as clipboard from "../clipboard";
 import * as options from "./options";
-import * as taskCommand from "./TaskCommand";
 import * as source from "./source";
 
 /** 提出用に変換したソースを、ファイルを介さずクリップボードへコピーする。 */
@@ -10,7 +9,6 @@ export class ToclipCommand implements Command {
 	readonly name = "toclip";
 	readonly usageLines = [
 		"  toclip [--lang=<name>] [--no-header|--header=<name>] <sourceFile>",
-		"  toclip [...options] <task>  (short form, e.g. toclip d -> D.java)",
 	];
 
 	async execute(args: readonly string[]): Promise<number> {
@@ -32,10 +30,7 @@ export class ToclipCommand implements Command {
 			positionals.push(arg);
 		}
 		if (positionals.length !== 1) throw new CliUsageError();
-		const sourceArg = /^(ex|[a-z])\d*$/i.test(positionals[0])
-			? taskCommand.resolveShortSourceArg(positionals[0], lang)
-			: positionals[0];
-		const {resolvedSourcePath, transformed} = await source.transformSource(sourceArg, {header, lang});
+		const {resolvedSourcePath, transformed} = await source.transformSource(positionals[0], {header, lang});
 		clipboard.copyToClipboard(transformed);
 		console.log(`Copied submission source to clipboard: ${resolvedSourcePath}`);
 		return 0;

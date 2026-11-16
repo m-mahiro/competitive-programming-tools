@@ -1,0 +1,4147 @@
+{
+	"metadata": {
+		"verifiedOn": "2026-11-16",
+		"sources": [
+			"https://kenkoooo.com/atcoder/resources/contest-problem.json",
+			"https://kenkoooo.com/atcoder/resources/problems.json"
+		],
+		"excludedContestPrefixes": [
+			"adt_"
+		],
+		"contestCount": 1676,
+		"taskCount": 10437
+	},
+	"contestNames": {
+		"apg4b": "APG4b",
+		"apg4bpython": "APG4bPython",
+		"chokudai_s001": "chokudai_S001",
+		"chokudai_s002": "chokudai_S002",
+		"codequeen2024-final-n9tn8qqd": "codequeen2024-final-N9tn8QqD",
+		"codequeen2025-final-public": "codequeen2025-final-Public",
+		"codequeen2026-final-public": "codequeen2026-final-Public",
+		"degwer2023": "DEGwer2023",
+		"jag2013spring": "JAG2013Spring",
+		"jag2014spring": "JAG2014Spring",
+		"keiopc2025": "KeioPC2025",
+		"monamiehb2021": "monamieHB2021",
+		"nyc2015": "NYC2015",
+		"recruit-programing-contest-practice": "Recruit-Programing-contest-practice",
+		"tenka1-2012-quala": "tenka1-2012-qualA",
+		"tenka1-2012-qualb": "tenka1-2012-qualB",
+		"tenka1-2012-qualc": "tenka1-2012-qualC"
+	},
+	"contests": {
+		"APG4b": {
+			"tasks": {
+				"ap1": "APG4b_ak",
+				"ap2": "APG4b_al",
+				"ap3": "APG4b_am",
+				"ap4": "APG4b_an",
+				"ex1": "APG4b_cv",
+				"ex10": "APG4b_cm",
+				"ex11": "APG4b_cl",
+				"ex12": "APG4b_ck",
+				"ex13": "APG4b_cj",
+				"ex14": "APG4b_ci",
+				"ex15": "APG4b_ch",
+				"ex16": "APG4b_cg",
+				"ex17": "APG4b_cf",
+				"ex18": "APG4b_ce",
+				"ex19": "APG4b_cd",
+				"ex2": "APG4b_cu",
+				"ex20": "APG4b_cc",
+				"ex21": "APG4b_cb",
+				"ex22": "APG4b_ca",
+				"ex23": "APG4b_bz",
+				"ex24": "APG4b_by",
+				"ex25": "APG4b_bx",
+				"ex26": "APG4b_bw",
+				"ex3": "APG4b_ct",
+				"ex4": "APG4b_cs",
+				"ex5": "APG4b_cr",
+				"ex6": "APG4b_cq",
+				"ex7": "APG4b_cp",
+				"ex8": "APG4b_co",
+				"ex9": "APG4b_cn"
+			}
+		},
+		"APG4bPython": {
+			"tasks": {
+				"ap1": "APG4bPython_ak",
+				"ap2": "APG4bPython_al",
+				"ex1": "APG4bPython_cv",
+				"ex10": "APG4bPython_cm",
+				"ex11": "APG4bPython_cl",
+				"ex12": "APG4bPython_ck",
+				"ex13": "APG4bPython_cj",
+				"ex2": "APG4bPython_cu",
+				"ex3": "APG4bPython_ct",
+				"ex4": "APG4bPython_cs",
+				"ex5": "APG4bPython_cr",
+				"ex6": "APG4bPython_cq",
+				"ex7": "APG4bPython_cp",
+				"ex8": "APG4bPython_co",
+				"ex9": "APG4bPython_cn"
+			}
+		},
+		"DEGwer2023": {
+			"taskPrefix": "1202Contest"
+		},
+		"JAG2013Spring": {
+			"taskPrefix": "icpc2013spring"
+		},
+		"JAG2014Spring": {
+			"taskPrefix": "icpc2014spring"
+		},
+		"NYC2015": {
+			"tasks": {
+				"a": "nyc2015_1",
+				"b": "nyc2015_2",
+				"c": "nyc2015_3",
+				"d": "nyc2015_4",
+				"e": "nyc2015_5",
+				"f": "nyc2015_6",
+				"g": "nyc2015_7",
+				"h": "nyc2015_8",
+				"i": "nyc2015_9",
+				"j": "nyc2015_10",
+				"k": "nyc2015_11",
+				"l": "nyc2015_12",
+				"m": "nyc2015_13"
+			}
+		},
+		"Recruit-Programing-contest-practice": {
+			"taskPrefix": "recruite_2013_pre"
+		},
+		"abc001": {
+			"tasks": {
+				"a": "abc001_1",
+				"b": "abc001_2",
+				"c": "abc001_3",
+				"d": "abc001_4"
+			}
+		},
+		"abc002": {
+			"tasks": {
+				"a": "abc002_1",
+				"b": "abc002_2",
+				"c": "abc002_3",
+				"d": "abc002_4"
+			}
+		},
+		"abc003": {
+			"tasks": {
+				"a": "abc003_1",
+				"b": "abc003_2",
+				"c": "abc003_3",
+				"d": "abc003_4"
+			}
+		},
+		"abc004": {
+			"tasks": {
+				"a": "abc004_1",
+				"b": "abc004_2",
+				"c": "abc004_3",
+				"d": "abc004_4"
+			}
+		},
+		"abc005": {
+			"tasks": {
+				"a": "abc005_1",
+				"b": "abc005_2",
+				"c": "abc005_3",
+				"d": "abc005_4"
+			}
+		},
+		"abc006": {
+			"tasks": {
+				"a": "abc006_1",
+				"b": "abc006_2",
+				"c": "abc006_3",
+				"d": "abc006_4"
+			}
+		},
+		"abc007": {
+			"tasks": {
+				"a": "abc007_1",
+				"b": "abc007_2",
+				"c": "abc007_3",
+				"d": "abc007_4"
+			}
+		},
+		"abc008": {
+			"tasks": {
+				"a": "abc008_1",
+				"b": "abc008_2",
+				"c": "abc008_3",
+				"d": "abc008_4"
+			}
+		},
+		"abc009": {
+			"tasks": {
+				"a": "abc009_1",
+				"b": "abc009_2",
+				"c": "abc009_3",
+				"d": "abc009_4"
+			}
+		},
+		"abc010": {
+			"tasks": {
+				"a": "abc010_1",
+				"b": "abc010_2",
+				"c": "abc010_3",
+				"d": "abc010_4"
+			}
+		},
+		"abc011": {
+			"tasks": {
+				"a": "abc011_1",
+				"b": "abc011_2",
+				"c": "abc011_3",
+				"d": "abc011_4"
+			}
+		},
+		"abc012": {
+			"tasks": {
+				"a": "abc012_1",
+				"b": "abc012_2",
+				"c": "abc012_3",
+				"d": "abc012_4"
+			}
+		},
+		"abc013": {
+			"tasks": {
+				"a": "abc013_1",
+				"b": "abc013_2",
+				"c": "abc013_3",
+				"d": "abc013_4"
+			}
+		},
+		"abc014": {
+			"tasks": {
+				"a": "abc014_1",
+				"b": "abc014_2",
+				"c": "abc014_3",
+				"d": "abc014_4"
+			}
+		},
+		"abc015": {
+			"tasks": {
+				"a": "abc015_1",
+				"b": "abc015_2",
+				"c": "abc015_3",
+				"d": "abc015_4"
+			}
+		},
+		"abc016": {
+			"tasks": {
+				"a": "abc016_1",
+				"b": "abc016_2",
+				"c": "abc016_3",
+				"d": "abc016_4"
+			}
+		},
+		"abc017": {
+			"tasks": {
+				"a": "abc017_1",
+				"b": "abc017_2",
+				"c": "abc017_3",
+				"d": "abc017_4"
+			}
+		},
+		"abc018": {
+			"tasks": {
+				"a": "abc018_1",
+				"b": "abc018_2",
+				"c": "abc018_3",
+				"d": "abc018_4"
+			}
+		},
+		"abc019": {
+			"tasks": {
+				"a": "abc019_1",
+				"b": "abc019_2",
+				"c": "abc019_3",
+				"d": "abc019_4"
+			}
+		},
+		"abc042": {
+			"tasks": {
+				"c": "arc058_a",
+				"d": "arc058_b"
+			}
+		},
+		"abc043": {
+			"tasks": {
+				"c": "arc059_a",
+				"d": "arc059_b"
+			}
+		},
+		"abc044": {
+			"tasks": {
+				"c": "arc060_a",
+				"d": "arc060_b"
+			}
+		},
+		"abc045": {
+			"tasks": {
+				"c": "arc061_a",
+				"d": "arc061_b"
+			}
+		},
+		"abc046": {
+			"tasks": {
+				"c": "arc062_a",
+				"d": "arc062_b"
+			}
+		},
+		"abc047": {
+			"tasks": {
+				"c": "arc063_a",
+				"d": "arc063_b"
+			}
+		},
+		"abc048": {
+			"tasks": {
+				"c": "arc064_a",
+				"d": "arc064_b"
+			}
+		},
+		"abc049": {
+			"tasks": {
+				"c": "arc065_a",
+				"d": "arc065_b"
+			}
+		},
+		"abc050": {
+			"tasks": {
+				"c": "arc066_a",
+				"d": "arc066_b"
+			}
+		},
+		"abc052": {
+			"tasks": {
+				"c": "arc067_a",
+				"d": "arc067_b"
+			}
+		},
+		"abc053": {
+			"tasks": {
+				"c": "arc068_a",
+				"d": "arc068_b"
+			}
+		},
+		"abc055": {
+			"tasks": {
+				"c": "arc069_a",
+				"d": "arc069_b"
+			}
+		},
+		"abc056": {
+			"tasks": {
+				"c": "arc070_a",
+				"d": "arc070_b"
+			}
+		},
+		"abc058": {
+			"tasks": {
+				"c": "arc071_a",
+				"d": "arc071_b"
+			}
+		},
+		"abc059": {
+			"tasks": {
+				"c": "arc072_a",
+				"d": "arc072_b"
+			}
+		},
+		"abc060": {
+			"tasks": {
+				"c": "arc073_a",
+				"d": "arc073_b"
+			}
+		},
+		"abc062": {
+			"tasks": {
+				"c": "arc074_a",
+				"d": "arc074_b"
+			}
+		},
+		"abc063": {
+			"tasks": {
+				"c": "arc075_a",
+				"d": "arc075_b"
+			}
+		},
+		"abc065": {
+			"tasks": {
+				"c": "arc076_a",
+				"d": "arc076_b"
+			}
+		},
+		"abc066": {
+			"tasks": {
+				"c": "arc077_a",
+				"d": "arc077_b"
+			}
+		},
+		"abc067": {
+			"tasks": {
+				"c": "arc078_a",
+				"d": "arc078_b"
+			}
+		},
+		"abc068": {
+			"tasks": {
+				"c": "arc079_a",
+				"d": "arc079_b"
+			}
+		},
+		"abc069": {
+			"tasks": {
+				"c": "arc080_a",
+				"d": "arc080_b"
+			}
+		},
+		"abc071": {
+			"tasks": {
+				"c": "arc081_a",
+				"d": "arc081_b"
+			}
+		},
+		"abc072": {
+			"tasks": {
+				"c": "arc082_a",
+				"d": "arc082_b"
+			}
+		},
+		"abc074": {
+			"tasks": {
+				"c": "arc083_a",
+				"d": "arc083_b"
+			}
+		},
+		"abc077": {
+			"tasks": {
+				"c": "arc084_a",
+				"d": "arc084_b"
+			}
+		},
+		"abc078": {
+			"tasks": {
+				"c": "arc085_a",
+				"d": "arc085_b"
+			}
+		},
+		"abc081": {
+			"tasks": {
+				"c": "arc086_a",
+				"d": "arc086_b"
+			}
+		},
+		"abc082": {
+			"tasks": {
+				"c": "arc087_a",
+				"d": "arc087_b"
+			}
+		},
+		"abc083": {
+			"tasks": {
+				"c": "arc088_a",
+				"d": "arc088_b"
+			}
+		},
+		"abc086": {
+			"tasks": {
+				"c": "arc089_a",
+				"d": "arc089_b"
+			}
+		},
+		"abc087": {
+			"tasks": {
+				"c": "arc090_a",
+				"d": "arc090_b"
+			}
+		},
+		"abc090": {
+			"tasks": {
+				"c": "arc091_a",
+				"d": "arc091_b"
+			}
+		},
+		"abc091": {
+			"tasks": {
+				"c": "arc092_a",
+				"d": "arc092_b"
+			}
+		},
+		"abc092": {
+			"tasks": {
+				"c": "arc093_a",
+				"d": "arc093_b"
+			}
+		},
+		"abc093": {
+			"tasks": {
+				"c": "arc094_a",
+				"d": "arc094_b"
+			}
+		},
+		"abc094": {
+			"tasks": {
+				"c": "arc095_a",
+				"d": "arc095_b"
+			}
+		},
+		"abc095": {
+			"tasks": {
+				"c": "arc096_a",
+				"d": "arc096_b"
+			}
+		},
+		"abc097": {
+			"tasks": {
+				"c": "arc097_a",
+				"d": "arc097_b"
+			}
+		},
+		"abc098": {
+			"tasks": {
+				"c": "arc098_a",
+				"d": "arc098_b"
+			}
+		},
+		"abc101": {
+			"tasks": {
+				"c": "arc099_a",
+				"d": "arc099_b"
+			}
+		},
+		"abc102": {
+			"tasks": {
+				"c": "arc100_a",
+				"d": "arc100_b"
+			}
+		},
+		"abc107": {
+			"tasks": {
+				"c": "arc101_a",
+				"d": "arc101_b"
+			}
+		},
+		"abc108": {
+			"tasks": {
+				"c": "arc102_a",
+				"d": "arc102_b"
+			}
+		},
+		"abc111": {
+			"tasks": {
+				"c": "arc103_a",
+				"d": "arc103_b"
+			}
+		},
+		"abc233": {
+			"tasks": {
+				"ex": "abc233_h"
+			}
+		},
+		"abc234": {
+			"tasks": {
+				"ex": "abc234_h"
+			}
+		},
+		"abc235": {
+			"tasks": {
+				"ex": "abc235_h"
+			}
+		},
+		"abc236": {
+			"tasks": {
+				"ex": "abc236_h"
+			}
+		},
+		"abc237": {
+			"tasks": {
+				"ex": "abc237_h"
+			}
+		},
+		"abc238": {
+			"tasks": {
+				"ex": "abc238_h"
+			}
+		},
+		"abc239": {
+			"tasks": {
+				"ex": "abc239_h"
+			}
+		},
+		"abc240": {
+			"tasks": {
+				"ex": "abc240_h"
+			}
+		},
+		"abc241": {
+			"tasks": {
+				"ex": "abc241_h"
+			}
+		},
+		"abc242": {
+			"tasks": {
+				"ex": "abc242_h"
+			}
+		},
+		"abc243": {
+			"tasks": {
+				"ex": "abc243_h"
+			}
+		},
+		"abc244": {
+			"tasks": {
+				"ex": "abc244_h"
+			}
+		},
+		"abc245": {
+			"tasks": {
+				"ex": "abc245_h"
+			}
+		},
+		"abc246": {
+			"tasks": {
+				"ex": "abc246_h"
+			}
+		},
+		"abc247": {
+			"tasks": {
+				"ex": "abc247_h"
+			}
+		},
+		"abc248": {
+			"tasks": {
+				"ex": "abc248_h"
+			}
+		},
+		"abc249": {
+			"tasks": {
+				"ex": "abc249_h"
+			}
+		},
+		"abc250": {
+			"tasks": {
+				"ex": "abc250_h"
+			}
+		},
+		"abc251": {
+			"tasks": {
+				"ex": "abc251_h"
+			}
+		},
+		"abc252": {
+			"tasks": {
+				"ex": "abc252_h"
+			}
+		},
+		"abc253": {
+			"tasks": {
+				"ex": "abc253_h"
+			}
+		},
+		"abc254": {
+			"tasks": {
+				"ex": "abc254_h"
+			}
+		},
+		"abc255": {
+			"tasks": {
+				"ex": "abc255_h"
+			}
+		},
+		"abc256": {
+			"tasks": {
+				"ex": "abc256_h"
+			}
+		},
+		"abc257": {
+			"tasks": {
+				"ex": "abc257_h"
+			}
+		},
+		"abc258": {
+			"tasks": {
+				"ex": "abc258_h"
+			}
+		},
+		"abc259": {
+			"tasks": {
+				"ex": "abc259_h"
+			}
+		},
+		"abc260": {
+			"tasks": {
+				"ex": "abc260_h"
+			}
+		},
+		"abc261": {
+			"tasks": {
+				"ex": "abc261_h"
+			}
+		},
+		"abc262": {
+			"tasks": {
+				"ex": "abc262_h"
+			}
+		},
+		"abc263": {
+			"tasks": {
+				"ex": "abc263_h"
+			}
+		},
+		"abc264": {
+			"tasks": {
+				"ex": "abc264_h"
+			}
+		},
+		"abc265": {
+			"tasks": {
+				"ex": "abc265_h"
+			}
+		},
+		"abc266": {
+			"tasks": {
+				"ex": "abc266_h"
+			}
+		},
+		"abc267": {
+			"tasks": {
+				"ex": "abc267_h"
+			}
+		},
+		"abc268": {
+			"tasks": {
+				"ex": "abc268_h"
+			}
+		},
+		"abc269": {
+			"tasks": {
+				"ex": "abc269_h"
+			}
+		},
+		"abc270": {
+			"tasks": {
+				"ex": "abc270_h"
+			}
+		},
+		"abc271": {
+			"tasks": {
+				"ex": "abc271_h"
+			}
+		},
+		"abc272": {
+			"tasks": {
+				"ex": "abc272_h"
+			}
+		},
+		"abc273": {
+			"tasks": {
+				"ex": "abc273_h"
+			}
+		},
+		"abc274": {
+			"tasks": {
+				"ex": "abc274_h"
+			}
+		},
+		"abc275": {
+			"tasks": {
+				"ex": "abc275_h"
+			}
+		},
+		"abc276": {
+			"tasks": {
+				"ex": "abc276_h"
+			}
+		},
+		"abc277": {
+			"tasks": {
+				"ex": "abc277_h"
+			}
+		},
+		"abc278": {
+			"tasks": {
+				"ex": "abc278_h"
+			}
+		},
+		"abc279": {
+			"tasks": {
+				"ex": "abc279_h"
+			}
+		},
+		"abc280": {
+			"tasks": {
+				"ex": "abc280_h"
+			}
+		},
+		"abc281": {
+			"tasks": {
+				"ex": "abc281_h"
+			}
+		},
+		"abc282": {
+			"tasks": {
+				"ex": "abc282_h"
+			}
+		},
+		"abc283": {
+			"tasks": {
+				"ex": "abc283_h"
+			}
+		},
+		"abc284": {
+			"tasks": {
+				"ex": "abc284_h"
+			}
+		},
+		"abc285": {
+			"tasks": {
+				"ex": "abc285_h"
+			}
+		},
+		"abc286": {
+			"tasks": {
+				"ex": "abc286_h"
+			}
+		},
+		"abc287": {
+			"tasks": {
+				"ex": "abc287_h"
+			}
+		},
+		"abc288": {
+			"tasks": {
+				"ex": "abc288_h"
+			}
+		},
+		"abc289": {
+			"tasks": {
+				"ex": "abc289_h"
+			}
+		},
+		"abc290": {
+			"tasks": {
+				"ex": "abc290_h"
+			}
+		},
+		"abc291": {
+			"tasks": {
+				"ex": "abc291_h"
+			}
+		},
+		"abc292": {
+			"tasks": {
+				"ex": "abc292_h"
+			}
+		},
+		"abc293": {
+			"tasks": {
+				"ex": "abc293_h"
+			}
+		},
+		"abc294": {
+			"tasks": {
+				"ex": "abc294_h"
+			}
+		},
+		"abc295": {
+			"tasks": {
+				"ex": "abc295_h"
+			}
+		},
+		"abc296": {
+			"tasks": {
+				"ex": "abc296_h"
+			}
+		},
+		"abc297": {
+			"tasks": {
+				"ex": "abc297_h"
+			}
+		},
+		"abc298": {
+			"tasks": {
+				"ex": "abc298_h"
+			}
+		},
+		"abc299": {
+			"tasks": {
+				"ex": "abc299_h"
+			}
+		},
+		"abc300": {
+			"tasks": {
+				"ex": "abc300_h"
+			}
+		},
+		"abc301": {
+			"tasks": {
+				"ex": "abc301_h"
+			}
+		},
+		"abc302": {
+			"tasks": {
+				"ex": "abc302_h"
+			}
+		},
+		"abc303": {
+			"tasks": {
+				"ex": "abc303_h"
+			}
+		},
+		"abc304": {
+			"tasks": {
+				"ex": "abc304_h"
+			}
+		},
+		"abc305": {
+			"tasks": {
+				"ex": "abc305_h"
+			}
+		},
+		"abc306": {
+			"tasks": {
+				"ex": "abc306_h"
+			}
+		},
+		"abc307": {
+			"tasks": {
+				"ex": "abc307_h"
+			}
+		},
+		"abc308": {
+			"tasks": {
+				"ex": "abc308_h"
+			}
+		},
+		"abc309": {
+			"tasks": {
+				"ex": "abc309_h"
+			}
+		},
+		"abc310": {
+			"tasks": {
+				"ex": "abc310_h"
+			}
+		},
+		"abc311": {
+			"tasks": {
+				"ex": "abc311_h"
+			}
+		},
+		"abc312": {
+			"tasks": {
+				"ex": "abc312_h"
+			}
+		},
+		"abc313": {
+			"tasks": {
+				"ex": "abc313_h"
+			}
+		},
+		"abc314": {
+			"tasks": {
+				"ex": "abc314_h"
+			}
+		},
+		"abc315": {
+			"tasks": {
+				"ex": "abc315_h"
+			}
+		},
+		"abc317": {
+			"tasks": {
+				"ex": "abc317_h"
+			}
+		},
+		"abc318": {
+			"tasks": {
+				"ex": "abc318_h"
+			}
+		},
+		"abs": {
+			"tasks": {
+				"abc049c": "arc065_a",
+				"abc081a": "abc081_a",
+				"abc081b": "abc081_b",
+				"abc083b": "abc083_b",
+				"abc085b": "abc085_b",
+				"abc085c": "abc085_c",
+				"abc086a": "abc086_a",
+				"abc086c": "arc089_a",
+				"abc087b": "abc087_b",
+				"abc088b": "abc088_b",
+				"practicea": "practice_1"
+			}
+		},
+		"ahc023": {
+			"taskPrefix": "asprocon10",
+			"tasks": {
+				"a-final": "asprocon10_b"
+			}
+		},
+		"ahc054": {
+			"tasks": {
+				"a-final": "ahc054_b"
+			}
+		},
+		"ajo2024-final": {
+			"taskPrefix": "ajo2024_final"
+		},
+		"ajo2025-final": {
+			"taskPrefix": "ajo2025_final"
+		},
+		"ajo2025-final-open": {
+			"taskPrefix": "ajo2025_final"
+		},
+		"arc001": {
+			"tasks": {
+				"a": "arc001_1",
+				"b": "arc001_2",
+				"c": "arc001_3",
+				"d": "arc001_4"
+			}
+		},
+		"arc002": {
+			"tasks": {
+				"a": "arc002_1",
+				"b": "arc002_2",
+				"c": "arc002_3",
+				"d": "arc002_4"
+			}
+		},
+		"arc003": {
+			"tasks": {
+				"a": "arc003_1",
+				"b": "arc003_2",
+				"c": "arc003_3",
+				"d": "arc003_4"
+			}
+		},
+		"arc004": {
+			"tasks": {
+				"a": "arc004_1",
+				"b": "arc004_2",
+				"c": "arc004_3",
+				"d": "arc004_4"
+			}
+		},
+		"arc005": {
+			"tasks": {
+				"a": "arc005_1",
+				"b": "arc005_2",
+				"c": "arc005_3",
+				"d": "arc005_4"
+			}
+		},
+		"arc006": {
+			"tasks": {
+				"a": "arc006_1",
+				"b": "arc006_2",
+				"c": "arc006_3",
+				"d": "arc006_4"
+			}
+		},
+		"arc007": {
+			"tasks": {
+				"a": "arc007_1",
+				"b": "arc007_2",
+				"c": "arc007_3",
+				"d": "arc007_4"
+			}
+		},
+		"arc008": {
+			"tasks": {
+				"a": "arc008_1",
+				"b": "arc008_2",
+				"c": "arc008_3",
+				"d": "arc008_4"
+			}
+		},
+		"arc009": {
+			"tasks": {
+				"a": "arc009_1",
+				"b": "arc009_2",
+				"c": "arc009_3",
+				"d": "arc009_4"
+			}
+		},
+		"arc010": {
+			"tasks": {
+				"a": "arc010_1",
+				"b": "arc010_2",
+				"c": "arc010_3",
+				"d": "arc010_4"
+			}
+		},
+		"arc011": {
+			"tasks": {
+				"a": "arc011_1",
+				"b": "arc011_2",
+				"c": "arc011_3",
+				"d": "arc011_4"
+			}
+		},
+		"arc012": {
+			"tasks": {
+				"a": "arc012_1",
+				"b": "arc012_2",
+				"c": "arc012_3",
+				"d": "arc012_4"
+			}
+		},
+		"arc013": {
+			"tasks": {
+				"a": "arc013_1",
+				"b": "arc013_2",
+				"c": "arc013_3",
+				"d": "arc013_4"
+			}
+		},
+		"arc014": {
+			"tasks": {
+				"a": "arc014_1",
+				"b": "arc014_2",
+				"c": "arc014_3",
+				"d": "arc014_4"
+			}
+		},
+		"arc015": {
+			"tasks": {
+				"a": "arc015_1",
+				"b": "arc015_2",
+				"c": "arc015_3",
+				"d": "arc015_4"
+			}
+		},
+		"arc016": {
+			"tasks": {
+				"a": "arc016_1",
+				"b": "arc016_2",
+				"c": "arc016_3",
+				"d": "arc016_4"
+			}
+		},
+		"arc017": {
+			"tasks": {
+				"a": "arc017_1",
+				"b": "arc017_2",
+				"c": "arc017_3",
+				"d": "arc017_4"
+			}
+		},
+		"arc018": {
+			"tasks": {
+				"a": "arc018_1",
+				"b": "arc018_2",
+				"c": "arc018_3",
+				"d": "arc018_4"
+			}
+		},
+		"arc019": {
+			"tasks": {
+				"a": "arc019_1",
+				"b": "arc019_2",
+				"c": "arc019_3",
+				"d": "arc019_4"
+			}
+		},
+		"arc020": {
+			"tasks": {
+				"a": "arc020_1",
+				"b": "arc020_2",
+				"c": "arc020_3",
+				"d": "arc020_4"
+			}
+		},
+		"arc021": {
+			"tasks": {
+				"a": "arc021_1",
+				"b": "arc021_2",
+				"c": "arc021_3",
+				"d": "arc021_4"
+			}
+		},
+		"arc022": {
+			"tasks": {
+				"a": "arc022_1",
+				"b": "arc022_2",
+				"c": "arc022_3",
+				"d": "arc022_4"
+			}
+		},
+		"arc023": {
+			"tasks": {
+				"a": "arc023_1",
+				"b": "arc023_2",
+				"c": "arc023_3",
+				"d": "arc023_4"
+			}
+		},
+		"arc024": {
+			"tasks": {
+				"a": "arc024_1",
+				"b": "arc024_2",
+				"c": "arc024_3",
+				"d": "arc024_4"
+			}
+		},
+		"arc025": {
+			"tasks": {
+				"a": "arc025_1",
+				"b": "arc025_2",
+				"c": "arc025_3",
+				"d": "arc025_4"
+			}
+		},
+		"arc026": {
+			"tasks": {
+				"a": "arc026_1",
+				"b": "arc026_2",
+				"c": "arc026_3",
+				"d": "arc026_4"
+			}
+		},
+		"arc027": {
+			"tasks": {
+				"a": "arc027_1",
+				"b": "arc027_2",
+				"c": "arc027_3",
+				"d": "arc027_4"
+			}
+		},
+		"arc028": {
+			"tasks": {
+				"a": "arc028_1",
+				"b": "arc028_2",
+				"c": "arc028_3",
+				"d": "arc028_4"
+			}
+		},
+		"arc029": {
+			"tasks": {
+				"a": "arc029_1",
+				"b": "arc029_2",
+				"c": "arc029_3",
+				"d": "arc029_4"
+			}
+		},
+		"arc030": {
+			"tasks": {
+				"a": "arc030_1",
+				"b": "arc030_2",
+				"c": "arc030_3",
+				"d": "arc030_4"
+			}
+		},
+		"arc031": {
+			"tasks": {
+				"a": "arc031_1",
+				"b": "arc031_2",
+				"c": "arc031_3",
+				"d": "arc031_4"
+			}
+		},
+		"arc032": {
+			"tasks": {
+				"a": "arc032_1",
+				"b": "arc032_2",
+				"c": "arc032_3",
+				"d": "arc032_4"
+			}
+		},
+		"arc033": {
+			"tasks": {
+				"a": "arc033_1",
+				"b": "arc033_2",
+				"c": "arc033_3",
+				"d": "arc033_4"
+			}
+		},
+		"arc034": {
+			"tasks": {
+				"a": "arc034_1",
+				"b": "arc034_2",
+				"c": "arc034_3",
+				"d": "arc034_4"
+			}
+		},
+		"arc058": {
+			"tasks": {
+				"c": "arc058_a",
+				"d": "arc058_b",
+				"e": "arc058_c",
+				"f": "arc058_d"
+			}
+		},
+		"arc059": {
+			"tasks": {
+				"c": "arc059_a",
+				"d": "arc059_b",
+				"e": "arc059_c",
+				"f": "arc059_d"
+			}
+		},
+		"arc060": {
+			"tasks": {
+				"c": "arc060_a",
+				"d": "arc060_b",
+				"e": "arc060_c",
+				"f": "arc060_d"
+			}
+		},
+		"arc061": {
+			"tasks": {
+				"c": "arc061_a",
+				"d": "arc061_b",
+				"e": "arc061_c",
+				"f": "arc061_d"
+			}
+		},
+		"arc062": {
+			"tasks": {
+				"c": "arc062_a",
+				"d": "arc062_b",
+				"e": "arc062_c",
+				"f": "arc062_d"
+			}
+		},
+		"arc063": {
+			"tasks": {
+				"c": "arc063_a",
+				"d": "arc063_b",
+				"e": "arc063_c",
+				"f": "arc063_d"
+			}
+		},
+		"arc064": {
+			"tasks": {
+				"c": "arc064_a",
+				"d": "arc064_b",
+				"e": "arc064_c",
+				"f": "arc064_d"
+			}
+		},
+		"arc065": {
+			"tasks": {
+				"c": "arc065_a",
+				"d": "arc065_b",
+				"e": "arc065_c",
+				"f": "arc065_d"
+			}
+		},
+		"arc066": {
+			"tasks": {
+				"c": "arc066_a",
+				"d": "arc066_b",
+				"e": "arc066_c",
+				"f": "arc066_d"
+			}
+		},
+		"arc067": {
+			"tasks": {
+				"c": "arc067_a",
+				"d": "arc067_b",
+				"e": "arc067_c",
+				"f": "arc067_d"
+			}
+		},
+		"arc068": {
+			"tasks": {
+				"c": "arc068_a",
+				"d": "arc068_b",
+				"e": "arc068_c",
+				"f": "arc068_d"
+			}
+		},
+		"arc069": {
+			"tasks": {
+				"c": "arc069_a",
+				"d": "arc069_b",
+				"e": "arc069_c",
+				"f": "arc069_d"
+			}
+		},
+		"arc070": {
+			"tasks": {
+				"c": "arc070_a",
+				"d": "arc070_b",
+				"e": "arc070_c",
+				"f": "arc070_d"
+			}
+		},
+		"arc071": {
+			"tasks": {
+				"c": "arc071_a",
+				"d": "arc071_b",
+				"e": "arc071_c",
+				"f": "arc071_d"
+			}
+		},
+		"arc072": {
+			"tasks": {
+				"c": "arc072_a",
+				"d": "arc072_b",
+				"e": "arc072_c",
+				"f": "arc072_d"
+			}
+		},
+		"arc073": {
+			"tasks": {
+				"c": "arc073_a",
+				"d": "arc073_b",
+				"e": "arc073_c",
+				"f": "arc073_d"
+			}
+		},
+		"arc074": {
+			"tasks": {
+				"c": "arc074_a",
+				"d": "arc074_b",
+				"e": "arc074_c",
+				"f": "arc074_d"
+			}
+		},
+		"arc075": {
+			"tasks": {
+				"c": "arc075_a",
+				"d": "arc075_b",
+				"e": "arc075_c",
+				"f": "arc075_d"
+			}
+		},
+		"arc076": {
+			"tasks": {
+				"c": "arc076_a",
+				"d": "arc076_b",
+				"e": "arc076_c",
+				"f": "arc076_d"
+			}
+		},
+		"arc077": {
+			"tasks": {
+				"c": "arc077_a",
+				"d": "arc077_b",
+				"e": "arc077_c",
+				"f": "arc077_d"
+			}
+		},
+		"arc078": {
+			"tasks": {
+				"c": "arc078_a",
+				"d": "arc078_b",
+				"e": "arc078_c",
+				"f": "arc078_d"
+			}
+		},
+		"arc079": {
+			"tasks": {
+				"c": "arc079_a",
+				"d": "arc079_b",
+				"e": "arc079_c",
+				"f": "arc079_d"
+			}
+		},
+		"arc080": {
+			"tasks": {
+				"c": "arc080_a",
+				"d": "arc080_b",
+				"e": "arc080_c",
+				"f": "arc080_d"
+			}
+		},
+		"arc081": {
+			"tasks": {
+				"c": "arc081_a",
+				"d": "arc081_b",
+				"e": "arc081_c",
+				"f": "arc081_d"
+			}
+		},
+		"arc082": {
+			"tasks": {
+				"c": "arc082_a",
+				"d": "arc082_b",
+				"e": "arc082_c",
+				"f": "arc082_d"
+			}
+		},
+		"arc083": {
+			"tasks": {
+				"c": "arc083_a",
+				"d": "arc083_b",
+				"e": "arc083_c",
+				"f": "arc083_d"
+			}
+		},
+		"arc084": {
+			"tasks": {
+				"c": "arc084_a",
+				"d": "arc084_b",
+				"e": "arc084_c",
+				"f": "arc084_d"
+			}
+		},
+		"arc085": {
+			"tasks": {
+				"c": "arc085_a",
+				"d": "arc085_b",
+				"e": "arc085_c",
+				"f": "arc085_d"
+			}
+		},
+		"arc086": {
+			"tasks": {
+				"c": "arc086_a",
+				"d": "arc086_b",
+				"e": "arc086_c",
+				"f": "arc086_d"
+			}
+		},
+		"arc087": {
+			"tasks": {
+				"c": "arc087_a",
+				"d": "arc087_b",
+				"e": "arc087_c",
+				"f": "arc087_d"
+			}
+		},
+		"arc088": {
+			"tasks": {
+				"c": "arc088_a",
+				"d": "arc088_b",
+				"e": "arc088_c",
+				"f": "arc088_d"
+			}
+		},
+		"arc089": {
+			"tasks": {
+				"c": "arc089_a",
+				"d": "arc089_b",
+				"e": "arc089_c",
+				"f": "arc089_d"
+			}
+		},
+		"arc090": {
+			"tasks": {
+				"c": "arc090_a",
+				"d": "arc090_b",
+				"e": "arc090_c",
+				"f": "arc090_d"
+			}
+		},
+		"arc091": {
+			"tasks": {
+				"c": "arc091_a",
+				"d": "arc091_b",
+				"e": "arc091_c",
+				"f": "arc091_d"
+			}
+		},
+		"arc092": {
+			"tasks": {
+				"c": "arc092_a",
+				"d": "arc092_b",
+				"e": "arc092_c",
+				"f": "arc092_d"
+			}
+		},
+		"arc093": {
+			"tasks": {
+				"c": "arc093_a",
+				"d": "arc093_b",
+				"e": "arc093_c",
+				"f": "arc093_d"
+			}
+		},
+		"arc094": {
+			"tasks": {
+				"c": "arc094_a",
+				"d": "arc094_b",
+				"e": "arc094_c",
+				"f": "arc094_d"
+			}
+		},
+		"arc095": {
+			"tasks": {
+				"c": "arc095_a",
+				"d": "arc095_b",
+				"e": "arc095_c",
+				"f": "arc095_d"
+			}
+		},
+		"arc096": {
+			"tasks": {
+				"c": "arc096_a",
+				"d": "arc096_b",
+				"e": "arc096_c",
+				"f": "arc096_d"
+			}
+		},
+		"arc097": {
+			"tasks": {
+				"c": "arc097_a",
+				"d": "arc097_b",
+				"e": "arc097_c",
+				"f": "arc097_d"
+			}
+		},
+		"arc098": {
+			"tasks": {
+				"c": "arc098_a",
+				"d": "arc098_b",
+				"e": "arc098_c",
+				"f": "arc098_d"
+			}
+		},
+		"arc099": {
+			"tasks": {
+				"c": "arc099_a",
+				"d": "arc099_b",
+				"e": "arc099_c",
+				"f": "arc099_d"
+			}
+		},
+		"arc100": {
+			"tasks": {
+				"c": "arc100_a",
+				"d": "arc100_b",
+				"e": "arc100_c",
+				"f": "arc100_d"
+			}
+		},
+		"arc101": {
+			"tasks": {
+				"c": "arc101_a",
+				"d": "arc101_b",
+				"e": "arc101_c",
+				"f": "arc101_d"
+			}
+		},
+		"arc102": {
+			"tasks": {
+				"c": "arc102_a",
+				"d": "arc102_b",
+				"e": "arc102_c",
+				"f": "arc102_d"
+			}
+		},
+		"arc103": {
+			"tasks": {
+				"c": "arc103_a",
+				"d": "arc103_b",
+				"e": "arc103_c",
+				"f": "arc103_d"
+			}
+		},
+		"atc001": {
+			"taskPrefix": "dfs",
+			"tasks": {
+				"b": "unionfind_a",
+				"c": "fft_c"
+			}
+		},
+		"atc002": {
+			"tasks": {
+				"a": "abc007_3"
+			}
+		},
+		"autumn_fest": {
+			"tasks": {
+				"a": "autumn_fest_01",
+				"b": "autumn_fest_02",
+				"c": "autumn_fest_03",
+				"d": "autumn_fest_04",
+				"e": "autumn_fest_05",
+				"f": "autumn_fest_06",
+				"g": "autumn_fest_07",
+				"h": "autumn_fest_08",
+				"i": "autumn_fest_09",
+				"j": "autumn_fest_10",
+				"k": "autumn_fest_11"
+			}
+		},
+		"awtf2024-open": {
+			"taskPrefix": "awtf2024"
+		},
+		"awtf2025algo": {
+			"taskPrefix": "awtf2025"
+		},
+		"awtf2025algo-open": {
+			"taskPrefix": "awtf2025"
+		},
+		"awtf2025heuristic": {
+			"tasks": {
+				"a-final": "awtf2025heuristic_b"
+			}
+		},
+		"awtf2026algo-open": {
+			"taskPrefix": "awtf2026algo"
+		},
+		"bcu30-2018": {
+			"taskPrefix": "bcu30_2018"
+		},
+		"bcu30-2018-qual": {
+			"taskPrefix": "bcu30_2018_qual"
+		},
+		"bcu30-2019": {
+			"taskPrefix": "bcu30_2019"
+		},
+		"bcu30-2019-qual": {
+			"taskPrefix": "bcu30_2019_qual"
+		},
+		"bitflyer2018-final": {
+			"taskPrefix": "bitflyer2018_final"
+		},
+		"bitflyer2018-final-open": {
+			"taskPrefix": "bitflyer2018_final"
+		},
+		"bitflyer2018-qual": {
+			"taskPrefix": "bitflyer2018_qual"
+		},
+		"c-league2026-1": {
+			"taskPrefix": "c_league2026_1"
+		},
+		"c-league2026-1-open": {
+			"taskPrefix": "c_league2026_1"
+		},
+		"c-league2026-2": {
+			"taskPrefix": "c_league2026_2"
+		},
+		"c-league2026-2-open": {
+			"taskPrefix": "c_league2026_2"
+		},
+		"caddi2018": {
+			"tasks": {
+				"c": "caddi2018_a",
+				"d": "caddi2018_b",
+				"e": "caddi2018_c",
+				"f": "caddi2018_d"
+			}
+		},
+		"caddi2018b": {
+			"tasks": {
+				"c": "caddi2018_a",
+				"d": "caddi2018_b"
+			}
+		},
+		"cf16-exhibition": {
+			"taskPrefix": "codefestival_2016_ex"
+		},
+		"cf16-exhibition-final": {
+			"taskPrefix": "cf16_exhibition_final"
+		},
+		"cf16-exhibition-final-open": {
+			"taskPrefix": "cf16_exhibition_final"
+		},
+		"cf16-exhibition-open": {
+			"taskPrefix": "codefestival_2016_ex"
+		},
+		"cf16-final": {
+			"taskPrefix": "codefestival_2016_final"
+		},
+		"cf16-final-open": {
+			"taskPrefix": "codefestival_2016_final"
+		},
+		"cf16-relay-open": {
+			"taskPrefix": "relay"
+		},
+		"cf16-tournament-round1-open": {
+			"tasks": {
+				"a": "asaporo_c",
+				"b": "asaporo_f"
+			}
+		},
+		"cf16-tournament-round2-open": {
+			"tasks": {
+				"a": "asaporo_e",
+				"b": "asaporo_a"
+			}
+		},
+		"cf16-tournament-round3-open": {
+			"taskPrefix": "asaporo",
+			"tasks": {
+				"a": "asaporo_d"
+			}
+		},
+		"cf17-exhibition-open": {
+			"taskPrefix": "cf17_exhibition"
+		},
+		"cf17-final": {
+			"taskPrefix": "cf17_final"
+		},
+		"cf17-final-open": {
+			"taskPrefix": "cf17_final"
+		},
+		"cf17-relay-open": {
+			"taskPrefix": "relay2"
+		},
+		"cf17-tournament-round1-open": {
+			"taskPrefix": "asaporo2"
+		},
+		"cf17-tournament-round2-open": {
+			"taskPrefix": "asaporo2"
+		},
+		"cf17-tournament-round3-open": {
+			"taskPrefix": "asaporo2"
+		},
+		"cf18-relay-open": {
+			"taskPrefix": "relay2018"
+		},
+		"chokudai001": {
+			"taskPrefix": "chokudai_001"
+		},
+		"code-festival-2014-china-open": {
+			"taskPrefix": "code_festival_china"
+		},
+		"code-festival-2014-exhibition": {
+			"taskPrefix": "code_festival_exhibition"
+		},
+		"code-festival-2014-exhibition-open": {
+			"taskPrefix": "code_festival_exhibition"
+		},
+		"code-festival-2014-final": {
+			"taskPrefix": "code_festival_final"
+		},
+		"code-festival-2014-final-open": {
+			"taskPrefix": "code_festival_final"
+		},
+		"code-festival-2014-morning-easy": {
+			"taskPrefix": "code_festival_morning_easy"
+		},
+		"code-festival-2014-morning-hard": {
+			"taskPrefix": "code_festival_morning_hard",
+			"tasks": {
+				"a": "code_festival_morning_med_c",
+				"b": "code_festival_morning_med_d"
+			}
+		},
+		"code-festival-2014-morning-middle": {
+			"taskPrefix": "code_festival_morning_med",
+			"tasks": {
+				"a": "code_festival_morning_easy_c",
+				"b": "code_festival_morning_easy_d"
+			}
+		},
+		"code-festival-2014-quala": {
+			"taskPrefix": "code_festival_qualA"
+		},
+		"code-festival-2014-qualb": {
+			"taskPrefix": "code_festival_qualB"
+		},
+		"code-festival-2014-relay": {
+			"taskPrefix": "code_festival_relay"
+		},
+		"code-festival-2015-exhibition": {
+			"taskPrefix": "codefestival_2015_ex"
+		},
+		"code-festival-2015-exhibition-open": {
+			"taskPrefix": "codefestival_2015_ex"
+		},
+		"code-festival-2015-final-open": {
+			"taskPrefix": "codefestival_2015_final"
+		},
+		"code-festival-2015-morning-easy": {
+			"taskPrefix": "cf_2015_morning_easy"
+		},
+		"code-festival-2015-morning-hard": {
+			"taskPrefix": "cf_2015_morning_hard",
+			"tasks": {
+				"d": "cf_2015_morning_hard_h"
+			}
+		},
+		"code-festival-2015-morning-middle": {
+			"tasks": {
+				"a": "cf_2015_morning_easy_c",
+				"b": "cf_2015_morning_easy_d",
+				"c": "cf_2015_morning_hard_a",
+				"d": "cf_2015_morning_hard_b"
+			}
+		},
+		"code-festival-2015-okinawa-open": {
+			"taskPrefix": "code_festival_2015_okinawa"
+		},
+		"code-festival-2015-quala": {
+			"taskPrefix": "codefestival_2015_qualA"
+		},
+		"code-festival-2015-qualb": {
+			"taskPrefix": "codefestival_2015_qualB"
+		},
+		"code-festival-2015-relay": {
+			"taskPrefix": "cf_2015_relay"
+		},
+		"code-festival-2016-quala": {
+			"taskPrefix": "codefestival_2016_qualA"
+		},
+		"code-festival-2016-qualb": {
+			"taskPrefix": "codefestival_2016_qualB"
+		},
+		"code-festival-2016-qualc": {
+			"taskPrefix": "codefestival_2016_qualC"
+		},
+		"code-festival-2017-quala": {
+			"taskPrefix": "code_festival_2017_quala"
+		},
+		"code-festival-2017-qualb": {
+			"taskPrefix": "code_festival_2017_qualb"
+		},
+		"code-festival-2017-qualc": {
+			"taskPrefix": "code_festival_2017_qualc"
+		},
+		"code-festival-2018-final": {
+			"taskPrefix": "code_festival_2018_final"
+		},
+		"code-festival-2018-final-open": {
+			"taskPrefix": "code_festival_2018_final"
+		},
+		"code-festival-2018-quala": {
+			"taskPrefix": "code_festival_2018_quala"
+		},
+		"code-festival-2018-qualb": {
+			"taskPrefix": "code_festival_2018_qualb"
+		},
+		"code-formula-2014-final": {
+			"taskPrefix": "code_formula_2014_final"
+		},
+		"code-formula-2014-quala": {
+			"taskPrefix": "code_formula_2014_qualA"
+		},
+		"code-formula-2014-qualb": {
+			"taskPrefix": "code_formula_2014_qualB"
+		},
+		"code-thanks-festival-2014-a-open": {
+			"taskPrefix": "code_thanks_festival_14_quala"
+		},
+		"code-thanks-festival-2014-b-open": {
+			"taskPrefix": "code_thanks_festival_14_qualb"
+		},
+		"code-thanks-festival-2015-open": {
+			"taskPrefix": "code_thanks_festival_2015"
+		},
+		"code-thanks-festival-2017": {
+			"taskPrefix": "code_thanks_festival_2017"
+		},
+		"code-thanks-festival-2017-open": {
+			"taskPrefix": "code_thanks_festival_2017"
+		},
+		"code-thanks-festival-2018": {
+			"taskPrefix": "code_thanks_festival_2018"
+		},
+		"code-thanks-festival-2018-open": {
+			"taskPrefix": "code_thanks_festival_2018"
+		},
+		"codequeen2023-final-open": {
+			"taskPrefix": "codequeen2023_final"
+		},
+		"codequeen2024-final-N9tn8QqD": {
+			"taskPrefix": "codequeen2024_final"
+		},
+		"codequeen2025-final-Public": {
+			"taskPrefix": "codequeen2025_final"
+		},
+		"codequeen2026-final-Public": {
+			"taskPrefix": "codequeen2026"
+		},
+		"colopl2018-final": {
+			"taskPrefix": "colopl2018_final"
+		},
+		"colopl2018-final-open": {
+			"taskPrefix": "colopl2018_final"
+		},
+		"colopl2018-qual": {
+			"taskPrefix": "colopl2018_qual"
+		},
+		"cpsco2019-s1": {
+			"taskPrefix": "cpsco2019_s1"
+		},
+		"cpsco2019-s2": {
+			"taskPrefix": "cpsco2019_s2"
+		},
+		"cpsco2019-s3": {
+			"taskPrefix": "cpsco2019_s3"
+		},
+		"cpsco2019-s4": {
+			"taskPrefix": "cpsco2019_s4"
+		},
+		"ddcc2016-final": {
+			"taskPrefix": "ddcc_2016_final"
+		},
+		"ddcc2016-qual": {
+			"taskPrefix": "ddcc_2016_qual"
+		},
+		"ddcc2017-final": {
+			"taskPrefix": "ddcc2017_final"
+		},
+		"ddcc2017-qual": {
+			"taskPrefix": "ddcc2017_qual"
+		},
+		"ddcc2019-final": {
+			"taskPrefix": "ddcc2019_final"
+		},
+		"ddcc2019-machine": {
+			"taskPrefix": "ddcc2019_machine"
+		},
+		"ddcc2019-qual": {
+			"taskPrefix": "ddcc2018_qual"
+		},
+		"ddcc2020-final": {
+			"taskPrefix": "ddcc2020_final"
+		},
+		"ddcc2020-qual": {
+			"taskPrefix": "ddcc2020_qual"
+		},
+		"digitalarts2012": {
+			"tasks": {
+				"a": "digitalarts_1",
+				"b": "digitalarts_2",
+				"c": "digitalarts_3"
+			}
+		},
+		"discovery2016-final": {
+			"taskPrefix": "discovery_2016_final"
+		},
+		"discovery2016-qual": {
+			"taskPrefix": "discovery_2016_qual"
+		},
+		"diverta2019-2": {
+			"taskPrefix": "diverta2019_2"
+		},
+		"donuts-2015": {
+			"tasks": {
+				"a": "donuts_2015_1",
+				"b": "donuts_2015_2",
+				"c": "donuts_2015_3",
+				"d": "donuts_2015_4"
+			}
+		},
+		"donuts-live2014": {
+			"tasks": {
+				"a": "donuts_live2014_1",
+				"b": "donuts_live2014_2",
+				"c": "donuts_live2014_3",
+				"d": "donuts_live2014_4",
+				"e": "donuts_live2014_5"
+			}
+		},
+		"dwacon2017-honsen": {
+			"taskPrefix": "dwango2017final"
+		},
+		"dwacon2017-prelims": {
+			"taskPrefix": "dwango2017qual"
+		},
+		"dwacon2018-final": {
+			"taskPrefix": "dwacon2018_final"
+		},
+		"dwacon2018-final-open": {
+			"taskPrefix": "dwacon2018_final"
+		},
+		"dwacon2018-prelims": {
+			"taskPrefix": "dwacon2018_prelims"
+		},
+		"dwacon5th-final": {
+			"taskPrefix": "dwacon5th_final"
+		},
+		"dwacon5th-final-open": {
+			"taskPrefix": "dwacon5th_final"
+		},
+		"dwacon5th-prelims": {
+			"taskPrefix": "dwacon5th_prelims"
+		},
+		"dwacon6th-final": {
+			"taskPrefix": "dwacon6th_final"
+		},
+		"dwacon6th-final-open": {
+			"taskPrefix": "dwacon6th_final"
+		},
+		"dwacon6th-prelims": {
+			"taskPrefix": "dwacon6th_prelims"
+		},
+		"dwango2015-finals": {
+			"tasks": {
+				"a": "dwango2015_finals_1",
+				"b": "dwango2015_finals_2",
+				"c": "dwango2015_finals_3",
+				"d": "dwango2015_finals_4"
+			}
+		},
+		"dwango2015-honsen": {
+			"tasks": {
+				"a": "dwango2015_finals_1",
+				"b": "dwango2015_finals_2",
+				"c": "dwango2015_finals_3",
+				"d": "dwango2015_finals_4"
+			}
+		},
+		"dwango2015-prelims": {
+			"tasks": {
+				"a": "dwango2015_prelims_1",
+				"b": "dwango2015_prelims_2",
+				"c": "dwango2015_prelims_3",
+				"d": "dwango2015_prelims_4",
+				"e": "dwango2015_prelims_5"
+			}
+		},
+		"dwango2016-finals": {
+			"taskPrefix": "dwango2016final"
+		},
+		"dwango2016-honsen": {
+			"taskPrefix": "dwango2016final"
+		},
+		"dwango2016-prelims": {
+			"taskPrefix": "dwango2016qual"
+		},
+		"editor-update-test": {
+			"taskPrefix": "editor_update_test"
+		},
+		"fps-24": {
+			"taskPrefix": "fps_24"
+		},
+		"fuka5": {
+			"tasks": {
+				"a": "fuka_credit",
+				"b": "fuka_insider",
+				"c": "fuka_liquid",
+				"d": "fuka_bintree",
+				"e": "fuka_sugoroku",
+				"f": "fuka_iru",
+				"g": "fuka_graphcut"
+			}
+		},
+		"future-contest-2018-final": {
+			"taskPrefix": "future_contest_2018_final"
+		},
+		"future-contest-2018-final-open": {
+			"taskPrefix": "future_contest_2018_final"
+		},
+		"future-contest-2018-qual": {
+			"taskPrefix": "future_contest_2018_qual"
+		},
+		"future-contest-2019-final": {
+			"taskPrefix": "future_contest_2019_final"
+		},
+		"future-contest-2019-final-open": {
+			"taskPrefix": "future_contest_2019_final"
+		},
+		"future-contest-2019-qual": {
+			"taskPrefix": "future_contest_2019_qual"
+		},
+		"future-contest-2020-final": {
+			"taskPrefix": "future_contest_2020_final"
+		},
+		"future-contest-2020-final-2": {
+			"taskPrefix": "future_contest_2020_final_2"
+		},
+		"future-contest-2020-final-2-open": {
+			"taskPrefix": "future_contest_2020_final_2"
+		},
+		"future-contest-2020-final-open": {
+			"taskPrefix": "future_contest_2020_final"
+		},
+		"future-contest-2020-qual": {
+			"taskPrefix": "future_contest_2020_qual"
+		},
+		"future-contest-2021-final": {
+			"taskPrefix": "future_contest_2021_final"
+		},
+		"future-contest-2021-final-open": {
+			"taskPrefix": "future_contest_2021_final"
+		},
+		"future-contest-2021-qual": {
+			"taskPrefix": "future_contest_2021_qual"
+		},
+		"future-contest-2022-final": {
+			"taskPrefix": "future_contest_2022_final"
+		},
+		"future-contest-2022-final-open": {
+			"taskPrefix": "future_contest_2022_final"
+		},
+		"future-contest-2022-qual": {
+			"taskPrefix": "future_contest_2022_qual"
+		},
+		"future-contest-2023-final": {
+			"taskPrefix": "future_contest_2023_final"
+		},
+		"future-contest-2023-final-open": {
+			"taskPrefix": "future_contest_2023_final"
+		},
+		"future-fif-digital-days": {
+			"taskPrefix": "future_fif_digital_days"
+		},
+		"future-fif-digital-days-open": {
+			"taskPrefix": "future_fif_digital_days_open"
+		},
+		"future-meets-you-contest-2018-open": {
+			"taskPrefix": "future2018career"
+		},
+		"game-24": {
+			"taskPrefix": "game"
+		},
+		"gigacode-2019": {
+			"taskPrefix": "gigacode_2019"
+		},
+		"guildfes-2026-final": {
+			"taskPrefix": "guildfes_2026_final"
+		},
+		"gwcontest2015": {
+			"taskPrefix": "gw2015"
+		},
+		"hbpc2012": {
+			"tasks": {
+				"a": "hbpc_1",
+				"b": "hbpc_2",
+				"c": "hbpc_3",
+				"d": "hbpc_4"
+			}
+		},
+		"highrate2025-parallel": {
+			"taskPrefix": "highrate2025"
+		},
+		"hokudai-hitachi2017-1": {
+			"taskPrefix": "hitachi2017_1"
+		},
+		"hokudai-hitachi2017-2": {
+			"taskPrefix": "hitachi2017_2"
+		},
+		"hokudai-hitachi2018": {
+			"taskPrefix": "hokudai_hitachi2018"
+		},
+		"hokudai-hitachi2019-1": {
+			"taskPrefix": "hokudai_hitachi2019_1"
+		},
+		"hokudai-hitachi2019-2": {
+			"taskPrefix": "hokudai_hitachi2019_2"
+		},
+		"hokudai-hitachi2020": {
+			"taskPrefix": "hokudai_hitachi2020"
+		},
+		"hokudai-hitachi2021": {
+			"taskPrefix": "hokudai_hitachi2021"
+		},
+		"hokudai-hitachi2022": {
+			"taskPrefix": "hokudai_hitachi2022"
+		},
+		"ijpc2012-1": {
+			"tasks": {
+				"a": "ijpc_animals",
+				"b": "ijpc_silver",
+				"c": "ijpc_training"
+			}
+		},
+		"ijpc2012-2": {
+			"tasks": {
+				"a": "ijpc_imo",
+				"b": "ijpc_maze",
+				"c": "ijpc_porter"
+			}
+		},
+		"ijpc2012-3": {
+			"tasks": {
+				"a": "ijpc_animals2",
+				"b": "ijpc_ghost",
+				"c": "ijpc_honest"
+			}
+		},
+		"ijpc2012pr": {
+			"tasks": {
+				"a": "ijpc_ijpc",
+				"b": "ijpc_primehazard",
+				"c": "ijpc_submission",
+				"d": "ijpc_variance"
+			}
+		},
+		"ijpc2015": {
+			"tasks": {
+				"b": "ijpc2015_c",
+				"c": "ijpc2015_d",
+				"d": "ijpc2015_g",
+				"e": "ijpc2015_j"
+			}
+		},
+		"ijpc2015-2": {
+			"tasks": {
+				"a": "ijpc2015_b",
+				"b": "ijpc2015_e",
+				"c": "ijpc2015_f",
+				"d": "ijpc2015_h",
+				"e": "ijpc2015_i"
+			}
+		},
+		"indeednow-finala-open": {
+			"taskPrefix": "indeednow_2015_finala"
+		},
+		"indeednow-finalb-open": {
+			"taskPrefix": "indeednow_2015_finalb"
+		},
+		"indeednow-quala": {
+			"tasks": {
+				"a": "indeednow_2015_quala_1",
+				"b": "indeednow_2015_quala_2",
+				"c": "indeednow_2015_quala_3",
+				"d": "indeednow_2015_quala_4"
+			}
+		},
+		"indeednow-qualb": {
+			"tasks": {
+				"a": "indeednow_2015_qualb_1",
+				"b": "indeednow_2015_qualb_2",
+				"c": "indeednow_2015_qualc_3",
+				"d": "indeednow_2015_qualb_4"
+			}
+		},
+		"intro-heuristics": {
+			"taskPrefix": "intro_heuristics"
+		},
+		"iroha2019-day1": {
+			"taskPrefix": "iroha2019_day1"
+		},
+		"iroha2019-day2": {
+			"taskPrefix": "iroha2019_day2"
+		},
+		"iroha2019-day3": {
+			"taskPrefix": "iroha2019_day3"
+		},
+		"iroha2019-day4": {
+			"taskPrefix": "iroha2019_day4"
+		},
+		"jag2012autumn": {
+			"taskPrefix": "icpc2012autumn",
+			"tasks": {
+				"i": "icpc2012autumn_j",
+				"j": "icpc2012autumn_k"
+			}
+		},
+		"jag2013autumn": {
+			"taskPrefix": "icpc2013autumn"
+		},
+		"jag2013summer-day2": {
+			"taskPrefix": "icpc2013summer_day2"
+		},
+		"jag2013summer-day3": {
+			"taskPrefix": "icpc2013summer_day3",
+			"tasks": {
+				"i": "icpc2013summer_day3_j",
+				"j": "icpc2013summer_day3_k",
+				"k": "icpc2013summer_day3_l",
+				"l": "icpc2013summer_day3_i"
+			}
+		},
+		"jag2013summer-day4": {
+			"taskPrefix": "icpc2013summer_day4"
+		},
+		"jag2013summer-warmingup": {
+			"taskPrefix": "icpc2013summer_warmingUp"
+		},
+		"jag2014autumn": {
+			"taskPrefix": "icpc2014autumn"
+		},
+		"jag2014summer-day2": {
+			"taskPrefix": "icpc2014summer_day2"
+		},
+		"jag2014summer-day4": {
+			"taskPrefix": "icpc2014summer_day4"
+		},
+		"jag2015autumn": {
+			"taskPrefix": "icpc2015autumn"
+		},
+		"jag2015spring": {
+			"taskPrefix": "icpc2015spring"
+		},
+		"jag2015summer-day2": {
+			"taskPrefix": "icpc2015summer_day2"
+		},
+		"jag2015summer-day3": {
+			"taskPrefix": "icpc2015summer_day3"
+		},
+		"jag2015summer-day4": {
+			"taskPrefix": "icpc2015summer_day4"
+		},
+		"jag2016-domestic": {
+			"taskPrefix": "jag2016secretspring"
+		},
+		"jag2016autumn": {
+			"taskPrefix": "icpc2016autumn"
+		},
+		"jag2017summer-day1": {
+			"taskPrefix": "jag2017summer_day1"
+		},
+		"jag2017summer-day3": {
+			"taskPrefix": "jag2017summer_day3"
+		},
+		"jag2018summer-day2": {
+			"taskPrefix": "jag2018summer_day2"
+		},
+		"joi2011ho": {
+			"tasks": {
+				"a": "joi2011ho1",
+				"b": "joi2011ho2",
+				"c": "joi2011ho3",
+				"d": "joi2011ho4",
+				"e": "joi2011ho5"
+			}
+		},
+		"joi2012ho": {
+			"tasks": {
+				"a": "joi2012ho1",
+				"b": "joi2012ho2",
+				"c": "joi2012ho3",
+				"d": "joi2012ho4",
+				"e": "joi2012ho5"
+			}
+		},
+		"joi2013ho": {
+			"tasks": {
+				"1": "joi2013ho1",
+				"2": "joi2013ho2",
+				"3": "joi2013ho3",
+				"4": "joi2013ho4",
+				"5": "joi2013ho5"
+			}
+		},
+		"joi2014ho": {
+			"tasks": {
+				"a": "joi2014ho1",
+				"b": "joi2014ho2",
+				"c": "joi2014ho3",
+				"d": "joi2014ho4",
+				"e": "joi2014ho5"
+			}
+		},
+		"joi2018yo": {
+			"taskPrefix": "joi2018_yo"
+		},
+		"joi2019yo": {
+			"taskPrefix": "joi2019_yo"
+		},
+		"joi2020yo1a": {
+			"taskPrefix": "joi2020_yo1a"
+		},
+		"joi2020yo1b": {
+			"taskPrefix": "joi2020_yo1b"
+		},
+		"joi2020yo1c": {
+			"taskPrefix": "joi2020_yo1c"
+		},
+		"joi2020yo2": {
+			"taskPrefix": "joi2020_yo2"
+		},
+		"joi2021yo1a": {
+			"taskPrefix": "joi2021_yo1a"
+		},
+		"joi2021yo1b": {
+			"taskPrefix": "joi2021_yo1b"
+		},
+		"joi2021yo1c": {
+			"taskPrefix": "joi2021_yo1c"
+		},
+		"joi2021yo2": {
+			"taskPrefix": "joi2021_yo2"
+		},
+		"joi2022yo1a": {
+			"taskPrefix": "joi2022_yo1a"
+		},
+		"joi2022yo1b": {
+			"taskPrefix": "joi2022_yo1b"
+		},
+		"joi2022yo1c": {
+			"taskPrefix": "joi2022_yo1c"
+		},
+		"joi2022yo2": {
+			"taskPrefix": "joi2022_yo2"
+		},
+		"joi2023yo1a": {
+			"taskPrefix": "joi2023_yo1a"
+		},
+		"joi2023yo1b": {
+			"taskPrefix": "joi2023_yo1b"
+		},
+		"joi2023yo1c": {
+			"taskPrefix": "joi2023_yo1c"
+		},
+		"joi2023yo2": {
+			"taskPrefix": "joi2023_yo2"
+		},
+		"joi2024yo1a": {
+			"taskPrefix": "joi2024_yo1a"
+		},
+		"joi2024yo1b": {
+			"taskPrefix": "joi2024_yo1b"
+		},
+		"joi2024yo1c": {
+			"taskPrefix": "joi2024_yo1c"
+		},
+		"joi2024yo2": {
+			"taskPrefix": "joi2024_yo2"
+		},
+		"joi2025yo1a": {
+			"taskPrefix": "joi2025_yo1a"
+		},
+		"joi2025yo1b": {
+			"taskPrefix": "joi2025_yo1b"
+		},
+		"joi2025yo1c": {
+			"taskPrefix": "joi2025_yo1c"
+		},
+		"joi2025yo2": {
+			"taskPrefix": "joi2025_yo2"
+		},
+		"joi2026sf": {
+			"taskPrefix": "joi2026_semifinal"
+		},
+		"joi2026yo1a": {
+			"taskPrefix": "joi2026_yo1a"
+		},
+		"joi2026yo1b": {
+			"taskPrefix": "joi2026_yo1b"
+		},
+		"joi2026yo1c": {
+			"taskPrefix": "joi2026_yo1c"
+		},
+		"joi2026yo2": {
+			"taskPrefix": "joi2026_yo2"
+		},
+		"joi2027yo1a": {
+			"taskPrefix": "joi2027_yo1a"
+		},
+		"joi2027yo1b": {
+			"taskPrefix": "joi2027_yo1b"
+		},
+		"joig2021-open": {
+			"taskPrefix": "joig2021"
+		},
+		"joig2022-open": {
+			"taskPrefix": "joig2022"
+		},
+		"joig2023-open": {
+			"taskPrefix": "joig2023"
+		},
+		"joig2024-open": {
+			"taskPrefix": "joig2024"
+		},
+		"joig2025-open": {
+			"taskPrefix": "joig2025"
+		},
+		"joiopen2012": {
+			"tasks": {
+				"a": "apio_code",
+				"b": "apio_jumps",
+				"c": "apio_mansion"
+			}
+		},
+		"joiopen2012b": {
+			"tasks": {
+				"a": "apio_code",
+				"b": "apio_jumps",
+				"c": "apio_mansion"
+			}
+		},
+		"joiopen2012c": {
+			"tasks": {
+				"a": "apio_code",
+				"b": "apio_jumps",
+				"c": "apio_mansion"
+			}
+		},
+		"joisc2007": {
+			"tasks": {
+				"anagram": "joisc2007_anagra",
+				"building": "joisc2007_buildi",
+				"circuit": "joisc2007_circui",
+				"factorial": "joisc2007_factor",
+				"packing1": "joisc2007_packin"
+			}
+		},
+		"joisc2013-day1": {
+			"tasks": {
+				"1": "joisc2013_bustour",
+				"2": "joisc2013_collecting",
+				"3": "joisc2013_communication",
+				"4": "joisc2013_joi_poster"
+			}
+		},
+		"joisc2013-day2": {
+			"tasks": {
+				"1": "joisc2013_construction",
+				"2": "joisc2013_mascots",
+				"3": "joisc2013_spy"
+			}
+		},
+		"joisc2013-day3": {
+			"tasks": {
+				"1": "joisc2013_cake",
+				"2": "joisc2013_koala",
+				"3": "joisc2013_mountain"
+			}
+		},
+		"joisc2013-day4": {
+			"tasks": {
+				"1": "joisc2013_messenger",
+				"2": "joisc2013_presents",
+				"3": "joisc2013_spaceships"
+			}
+		},
+		"joisc2020": {
+			"tasks": {
+				"k1": "joisc2020_k",
+				"k2": "joisc2020_l",
+				"k3": "joisc2020_m",
+				"k4": "joisc2020_n",
+				"k5": "joisc2020_o",
+				"k6": "joisc2020_p",
+				"l": "joisc2020_q"
+			}
+		},
+		"joisc2021": {
+			"tasks": {
+				"f": "joisc2021_g",
+				"g": "joisc2021_h",
+				"h": "joisc2021_i",
+				"i": "joisc2021_j",
+				"j": "joisc2021_k",
+				"k": "joisc2021_l",
+				"l": "joisc2021_m"
+			}
+		},
+		"jrex2017": {
+			"taskPrefix": "agc009"
+		},
+		"jsc2019-final": {
+			"taskPrefix": "jsc2019_final"
+		},
+		"jsc2019-final-open": {
+			"taskPrefix": "jsc2019_final"
+		},
+		"jsc2019-qual": {
+			"taskPrefix": "jsc2019_qual"
+		},
+		"jsc2022-final": {
+			"taskPrefix": "jsc2022_final"
+		},
+		"jsc2022-final-open": {
+			"taskPrefix": "jsc2022_final"
+		},
+		"jsc2023-final": {
+			"taskPrefix": "jsc2023_final"
+		},
+		"jsc2024-final": {
+			"taskPrefix": "jsc2024_final"
+		},
+		"jsc2025-final": {
+			"taskPrefix": "jsc2025_final"
+		},
+		"jsc2025advance-final": {
+			"taskPrefix": "abc422"
+		},
+		"jsc2026-final": {
+			"taskPrefix": "jsc2026_final"
+		},
+		"jsc2026advance-final": {
+			"taskPrefix": "abc474"
+		},
+		"judge-update-202004": {
+			"taskPrefix": "judge_update_202004"
+		},
+		"k2pc-easy": {
+			"tasks": {
+				"a": "k2pc001_e1",
+				"b": "k2pc001_e2",
+				"c": "k2pc001_e3",
+				"d": "k2pc001_e4",
+				"e": "k2pc001_e5"
+			}
+		},
+		"k2pc-hard": {
+			"tasks": {
+				"a": "k2pc001_h1",
+				"b": "k2pc001_h2",
+				"c": "k2pc001_h3",
+				"d": "k2pc001_h4",
+				"e": "k2pc001_h5"
+			}
+		},
+		"kupc2012": {
+			"tasks": {
+				"a": "kupc2012_1",
+				"b": "kupc2012_2",
+				"c": "kupc2012_3",
+				"d": "kupc2012_4",
+				"e": "kupc2012_5",
+				"f": "kupc2012_6",
+				"g": "kupc2012_7",
+				"h": "kupc2012_8",
+				"i": "kupc2012_9",
+				"j": "kupc2012_10",
+				"k": "kupc2012_11"
+			}
+		},
+		"kupc2012pr": {
+			"tasks": {
+				"a": "kupc2012pr_1",
+				"b": "kupc2012pr_2",
+				"c": "kupc2012pr_3",
+				"d": "kupc2012pr_4"
+			}
+		},
+		"kuronekoyamato-contest2019": {
+			"taskPrefix": "yamato_contest2019"
+		},
+		"language-test-ver1": {
+			"taskPrefix": "test001"
+		},
+		"m-solutions2019": {
+			"taskPrefix": "m_solutions2019"
+		},
+		"m-solutions2020": {
+			"taskPrefix": "m_solutions2020"
+		},
+		"masters-qual": {
+			"taskPrefix": "masters_qual"
+		},
+		"masters2024-final": {
+			"taskPrefix": "masters2024_final"
+		},
+		"masters2024-final-open": {
+			"taskPrefix": "masters2024_final"
+		},
+		"masters2025-final": {
+			"taskPrefix": "masters2025_final"
+		},
+		"masters2025-final-open": {
+			"taskPrefix": "masters2025_final"
+		},
+		"masters2025-qual": {
+			"taskPrefix": "masters2025_qual"
+		},
+		"masters2026-final": {
+			"taskPrefix": "masters2026_final"
+		},
+		"masters2026-final-open": {
+			"taskPrefix": "masters2026_final"
+		},
+		"masters2026-qual": {
+			"taskPrefix": "masters2026_qual"
+		},
+		"math-and-algorithm": {
+			"tasks": {
+				"100": "math_and_algorithm_bv",
+				"101": "typical90_o",
+				"102": "arc117_c",
+				"103": "math_and_algorithm_bw",
+				"104": "math_and_algorithm_bx",
+				"001": "math_and_algorithm_a",
+				"002": "math_and_algorithm_b",
+				"003": "math_and_algorithm_c",
+				"004": "math_and_algorithm_d",
+				"005": "math_and_algorithm_e",
+				"006": "math_and_algorithm_f",
+				"007": "math_and_algorithm_g",
+				"008": "math_and_algorithm_h",
+				"009": "math_and_algorithm_i",
+				"010": "math_and_algorithm_j",
+				"011": "math_and_algorithm_k",
+				"012": "math_and_algorithm_l",
+				"013": "math_and_algorithm_m",
+				"014": "math_and_algorithm_n",
+				"015": "math_and_algorithm_o",
+				"016": "math_and_algorithm_p",
+				"017": "math_and_algorithm_q",
+				"018": "math_and_algorithm_r",
+				"019": "math_and_algorithm_s",
+				"020": "math_and_algorithm_t",
+				"021": "math_and_algorithm_u",
+				"022": "math_and_algorithm_v",
+				"023": "math_and_algorithm_w",
+				"024": "math_and_algorithm_x",
+				"025": "math_and_algorithm_y",
+				"026": "math_and_algorithm_z",
+				"027": "math_and_algorithm_aa",
+				"028": "dp_a",
+				"029": "math_and_algorithm_ab",
+				"030": "dp_d",
+				"031": "math_and_algorithm_ac",
+				"032": "math_and_algorithm_ad",
+				"033": "math_and_algorithm_ae",
+				"034": "math_and_algorithm_af",
+				"035": "math_and_algorithm_ag",
+				"036": "abc168_c",
+				"037": "math_and_algorithm_ah",
+				"038": "math_and_algorithm_ai",
+				"039": "math_and_algorithm_aj",
+				"040": "math_and_algorithm_ak",
+				"041": "math_and_algorithm_al",
+				"042": "abc172_d",
+				"043": "math_and_algorithm_am",
+				"044": "math_and_algorithm_an",
+				"045": "typical90_bz",
+				"046": "abc007_3",
+				"047": "math_and_algorithm_ao",
+				"048": "arc084_b",
+				"049": "math_and_algorithm_ap",
+				"050": "math_and_algorithm_aq",
+				"051": "math_and_algorithm_ar",
+				"052": "abc145_d",
+				"053": "math_and_algorithm_as",
+				"054": "math_and_algorithm_at",
+				"055": "math_and_algorithm_au",
+				"056": "math_and_algorithm_av",
+				"057": "math_and_algorithm_aw",
+				"058": "math_and_algorithm_ax",
+				"059": "math_and_algorithm_ay",
+				"060": "math_and_algorithm_az",
+				"061": "math_and_algorithm_ba",
+				"062": "abc167_d",
+				"063": "math_and_algorithm_bb",
+				"064": "math_and_algorithm_bc",
+				"065": "panasonic2020_b",
+				"066": "math_and_algorithm_bd",
+				"067": "typical90_d",
+				"068": "math_and_algorithm_be",
+				"069": "abc178_b",
+				"070": "abc075_d",
+				"071": "math_and_algorithm_bf",
+				"072": "jsc2021_c",
+				"073": "math_and_algorithm_bg",
+				"074": "math_and_algorithm_bh",
+				"075": "math_and_algorithm_bi",
+				"076": "abc186_d",
+				"077": "math_and_algorithm_bj",
+				"078": "math_and_algorithm_bk",
+				"079": "abc139_d",
+				"080": "math_and_algorithm_bl",
+				"081": "math_and_algorithm_bm",
+				"082": "math_and_algorithm_bn",
+				"083": "typical90_n",
+				"084": "panasonic2020_c",
+				"085": "math_and_algorithm_bo",
+				"086": "math_and_algorithm_bp",
+				"087": "math_and_algorithm_bq",
+				"088": "arc107_a",
+				"089": "math_and_algorithm_by",
+				"090": "typical90_y",
+				"091": "math_and_algorithm_br",
+				"092": "math_and_algorithm_bs",
+				"093": "typical90_al",
+				"094": "abc140_c",
+				"095": "typical90_j",
+				"096": "abc204_d",
+				"097": "math_and_algorithm_bt",
+				"098": "math_and_algorithm_bu",
+				"099": "typical90_am"
+			}
+		},
+		"maximum-cup-2013": {
+			"taskPrefix": "maximum_2013"
+		},
+		"maximum-cup-2018": {
+			"taskPrefix": "maximum_cup_2018"
+		},
+		"maximum-cup-2023": {
+			"taskPrefix": "maximum_cup_2023"
+		},
+		"mujin-pc-2016": {
+			"taskPrefix": "mujin_pc_2016"
+		},
+		"mujin-pc-2017": {
+			"taskPrefix": "mujin_pc_2017"
+		},
+		"mujin-pc-2018": {
+			"taskPrefix": "mujin_pc_2018"
+		},
+		"ndpc": {
+			"taskPrefix": "ndpc2026"
+		},
+		"newjudge-2308-algorithm": {
+			"taskPrefix": "abc244",
+			"tasks": {
+				"a": "abc264_a",
+				"b": "abc273_b",
+				"d": "abc309_d",
+				"e": "abc304_e",
+				"f": "abc260_f",
+				"g": "abc254_g",
+				"h": "abc294_h"
+			}
+		},
+		"newjudge-2308-heuristic": {
+			"taskPrefix": "newjudge_2308_heuristic"
+		},
+		"nikkei2019-2-final": {
+			"taskPrefix": "nikkei2019_2_final"
+		},
+		"nikkei2019-2-qual": {
+			"taskPrefix": "nikkei2019_2_qual"
+		},
+		"nikkei2019-ex": {
+			"taskPrefix": "nikkei2019ex",
+			"tasks": {
+				"e": "nikkei2019ex_f",
+				"f": "nikkei2019ex_e"
+			}
+		},
+		"nikkei2019-final": {
+			"taskPrefix": "nikkei2019_final"
+		},
+		"nikkei2019-qual": {
+			"taskPrefix": "nikkei2019_qual"
+		},
+		"oupc2023-day1": {
+			"taskPrefix": "oupc2023_day1"
+		},
+		"pakencamp-2018-day2": {
+			"taskPrefix": "pakencamp_2018_day2"
+		},
+		"pakencamp-2018-day3": {
+			"taskPrefix": "pakencamp_2018_day3"
+		},
+		"pakencamp-2019-day2": {
+			"taskPrefix": "pakencamp_2019_day2"
+		},
+		"pakencamp-2019-day3": {
+			"taskPrefix": "pakencamp_2019_day3"
+		},
+		"pakencamp-2019-day4": {
+			"taskPrefix": "pakencamp_2019_day4"
+		},
+		"pakencamp-2020-day1": {
+			"taskPrefix": "pakencamp_2020_day1"
+		},
+		"pakencamp-2020-day2": {
+			"taskPrefix": "pakencamp_2020_day2"
+		},
+		"pakencamp-2021-day2": {
+			"taskPrefix": "pakencamp_2021_day2"
+		},
+		"pakencamp-2021-day3": {
+			"taskPrefix": "pakencamp_2021_day3"
+		},
+		"pakencamp-2022-day1": {
+			"taskPrefix": "pakencamp_2022_day1"
+		},
+		"pakencamp-2022-day2": {
+			"taskPrefix": "pakencamp_2022_day2"
+		},
+		"pakencamp-2022-day3": {
+			"taskPrefix": "pakencamp_2022_day3"
+		},
+		"pakencamp-2023-day1": {
+			"taskPrefix": "pakencamp_2023_day1"
+		},
+		"pakencamp-2023-day2": {
+			"taskPrefix": "pakencamp_2023_day2"
+		},
+		"pakencamp-2023-day3": {
+			"taskPrefix": "pakencamp_2023_day3"
+		},
+		"pakencamp-2024-day1": {
+			"taskPrefix": "pakencamp_2024_day1"
+		},
+		"pakencamp-2024-day2": {
+			"taskPrefix": "pakencamp_2024_day2"
+		},
+		"pakencamp-2024-day3-1": {
+			"taskPrefix": "pakencamp_2024_day3_1"
+		},
+		"pakencamp-2024-day3-2": {
+			"taskPrefix": "pakencamp_2024_day3_2",
+			"tasks": {
+				"b": "pakencamp_2024_day3_1_b",
+				"c": "pakencamp_2024_day3_1_c",
+				"f": "pakencamp_2024_day3_1_f",
+				"h": "pakencamp_2024_day3_1_h",
+				"i": "pakencamp_2024_day3_1_i",
+				"k": "pakencamp_2024_day3_1_k",
+				"n": "pakencamp_2024_day3_1_n"
+			}
+		},
+		"pakencamp-2025-day1": {
+			"taskPrefix": "pakencamp_2025_day1"
+		},
+		"pakencamp-2025-day2": {
+			"taskPrefix": "pakencamp_2025_day2"
+		},
+		"pakencamp-2025-day3": {
+			"taskPrefix": "pakencamp_2025_day3"
+		},
+		"past15-open": {
+			"taskPrefix": "past202306"
+		},
+		"past16-open": {
+			"taskPrefix": "past202309"
+		},
+		"past17-open": {
+			"taskPrefix": "past17"
+		},
+		"past18-open": {
+			"taskPrefix": "past18"
+		},
+		"past19-open": {
+			"taskPrefix": "past19"
+		},
+		"past20-open": {
+			"taskPrefix": "past20"
+		},
+		"past201912-open": {
+			"taskPrefix": "past201912"
+		},
+		"past202004-open": {
+			"taskPrefix": "past202004"
+		},
+		"past202005-open": {
+			"taskPrefix": "past202005"
+		},
+		"past202010-open": {
+			"taskPrefix": "past202010"
+		},
+		"past202012-open": {
+			"taskPrefix": "past202012"
+		},
+		"past202104-open": {
+			"taskPrefix": "past202104"
+		},
+		"past202107-open": {
+			"taskPrefix": "past202107"
+		},
+		"past202109-open": {
+			"taskPrefix": "past202109"
+		},
+		"past202112-open": {
+			"taskPrefix": "past202112"
+		},
+		"past202203-open": {
+			"taskPrefix": "past202203"
+		},
+		"past202206-open": {
+			"taskPrefix": "past202206"
+		},
+		"past202209-open": {
+			"taskPrefix": "past202209"
+		},
+		"past202212-open": {
+			"taskPrefix": "past202212"
+		},
+		"past202303-open": {
+			"taskPrefix": "past202303"
+		},
+		"past21-open": {
+			"taskPrefix": "past21"
+		},
+		"past22-open": {
+			"taskPrefix": "past22"
+		},
+		"past23-open": {
+			"taskPrefix": "past23"
+		},
+		"past24-open": {
+			"taskPrefix": "past24"
+		},
+		"practice": {
+			"tasks": {
+				"a": "practice_1",
+				"b": "practice_2"
+			}
+		},
+		"rcl-contest-2020-final": {
+			"taskPrefix": "rcl_contest_2020_final"
+		},
+		"rcl-contest-2020-final-open": {
+			"taskPrefix": "rcl_contest_2020_final"
+		},
+		"rcl-contest-2020-qual": {
+			"taskPrefix": "rcl_contest_2020_qual"
+		},
+		"rcl-contest-2021": {
+			"taskPrefix": "rcl_contest_2021"
+		},
+		"rcl-contest-2021-long": {
+			"taskPrefix": "rcl_contest_2021_long"
+		},
+		"rco-contest-2017-final": {
+			"taskPrefix": "rco_contest_2017_final"
+		},
+		"rco-contest-2017-final-open": {
+			"taskPrefix": "rco_contest_2017_final"
+		},
+		"rco-contest-2017-qual": {
+			"taskPrefix": "rco_contest_2017_qual"
+		},
+		"rco-contest-2018-final": {
+			"taskPrefix": "rco_contest_2018_final"
+		},
+		"rco-contest-2018-final-open": {
+			"taskPrefix": "rco_contest_2018_final"
+		},
+		"rco-contest-2018-qual": {
+			"taskPrefix": "rco_contest_2018_qual"
+		},
+		"rco-contest-2019-final": {
+			"taskPrefix": "rco_contest_2019_final"
+		},
+		"rco-contest-2019-final-open": {
+			"taskPrefix": "rco_contest_2019_final"
+		},
+		"rco-contest-2019-qual": {
+			"taskPrefix": "rco_contest_2019_qual"
+		},
+		"s8pc-1": {
+			"taskPrefix": "s8pc_1"
+		},
+		"s8pc-2": {
+			"taskPrefix": "s8pc_2"
+		},
+		"s8pc-3": {
+			"taskPrefix": "s8pc_3"
+		},
+		"s8pc-4": {
+			"taskPrefix": "s8pc_4"
+		},
+		"s8pc-5": {
+			"taskPrefix": "s8pc_5"
+		},
+		"s8pc-6": {
+			"taskPrefix": "s8pc_6"
+		},
+		"scpc2026-div1": {
+			"taskPrefix": "scpc2026_div1"
+		},
+		"scpc2026-div2": {
+			"taskPrefix": "scpc2026_div2"
+		},
+		"scpc2026-div3": {
+			"taskPrefix": "scpc2026_div3"
+		},
+		"soundhound2018-summer-final": {
+			"taskPrefix": "soundhound2018_summer_final"
+		},
+		"soundhound2018-summer-final-open": {
+			"taskPrefix": "soundhound2018_summer_final"
+		},
+		"soundhound2018-summer-qual": {
+			"taskPrefix": "soundhound2018_summer_qual"
+		},
+		"stage0-2021": {
+			"taskPrefix": "stage0_2021"
+		},
+		"stpc2025_2": {
+			"tasks": {
+				"c": "stpc2025_1_c",
+				"f": "stpc2025_1_f",
+				"h": "stpc2025_1_h",
+				"i": "stpc2025_1_i",
+				"k": "stpc2025_1_k"
+			}
+		},
+		"sumitrust2019": {
+			"taskPrefix": "sumitb2019"
+		},
+		"summerfes2018-div1": {
+			"taskPrefix": "summerfes2018"
+		},
+		"summerfes2018-div2": {
+			"taskPrefix": "summerfes2018"
+		},
+		"tdpc": {
+			"tasks": {
+				"a": "tdpc_contest",
+				"b": "tdpc_game",
+				"c": "tdpc_tournament",
+				"d": "tdpc_dice",
+				"e": "tdpc_number",
+				"f": "tdpc_semiexp",
+				"g": "tdpc_lexicographical",
+				"h": "tdpc_knapsack",
+				"i": "tdpc_iwi",
+				"j": "tdpc_ball",
+				"k": "tdpc_target",
+				"l": "tdpc_cat",
+				"m": "tdpc_house",
+				"n": "tdpc_tree",
+				"o": "tdpc_string",
+				"p": "tdpc_eel",
+				"q": "tdpc_concatenation",
+				"r": "tdpc_graph",
+				"s": "tdpc_grid",
+				"t": "tdpc_fibonacci"
+			}
+		},
+		"tenka1-2012-final": {
+			"taskPrefix": "tenka1_2012_final"
+		},
+		"tenka1-2012-qualA": {
+			"tasks": {
+				"a": "tenka1_2012_qualA_1",
+				"b": "tenka1_2012_qualA_2",
+				"c": "tenka1_2012_qualA_3",
+				"d": "tenka1_2012_qualA_4"
+			}
+		},
+		"tenka1-2012-qualB": {
+			"tasks": {
+				"a": "tenka1_2012_5",
+				"b": "tenka1_2012_6",
+				"c": "tenka1_2012_7",
+				"d": "tenka1_2012_8"
+			}
+		},
+		"tenka1-2012-qualC": {
+			"tasks": {
+				"a": "tenka1_2012_9",
+				"b": "tenka1_2012_10",
+				"c": "tenka1_2012_11",
+				"d": "tenka1_2012_12"
+			}
+		},
+		"tenka1-2013-final": {
+			"taskPrefix": "tenka1_2013_final"
+		},
+		"tenka1-2013-quala": {
+			"taskPrefix": "tenka1_2013_qualA"
+		},
+		"tenka1-2013-qualb": {
+			"taskPrefix": "tenka1_2013_qualB"
+		},
+		"tenka1-2014-final": {
+			"taskPrefix": "tenka1_2014_final"
+		},
+		"tenka1-2014-final-open": {
+			"taskPrefix": "tenka1_2014_final"
+		},
+		"tenka1-2014-quala": {
+			"taskPrefix": "tenka1_2014_qualA"
+		},
+		"tenka1-2014-qualb": {
+			"taskPrefix": "tenka1_2014_qualB"
+		},
+		"tenka1-2015-final": {
+			"taskPrefix": "tenka1_2015_final"
+		},
+		"tenka1-2015-final-open": {
+			"taskPrefix": "tenka1_2015_final"
+		},
+		"tenka1-2015-quala": {
+			"taskPrefix": "tenka1_2015_qualA"
+		},
+		"tenka1-2015-qualb": {
+			"taskPrefix": "tenka1_2015_qualB"
+		},
+		"tenka1-2016-final": {
+			"taskPrefix": "tenka1_2016_final"
+		},
+		"tenka1-2016-final-open": {
+			"taskPrefix": "tenka1_2016_final"
+		},
+		"tenka1-2016-quala": {
+			"taskPrefix": "tenka1_2016_qualA"
+		},
+		"tenka1-2016-qualb": {
+			"taskPrefix": "tenka1_2016_qualB"
+		},
+		"tenka1-2017": {
+			"taskPrefix": "tenka1_2017"
+		},
+		"tenka1-2017-beginner": {
+			"taskPrefix": "tenka1_2017"
+		},
+		"tenka1-2018": {
+			"taskPrefix": "tenka1_2018"
+		},
+		"tenka1-2018-beginner": {
+			"taskPrefix": "tenka1_2018"
+		},
+		"tenka1-2019": {
+			"taskPrefix": "tenka1_2019"
+		},
+		"tenka1-2019-beginner": {
+			"taskPrefix": "tenka1_2019"
+		},
+		"tessoku-book": {
+			"tasks": {
+				"a01": "tessoku_book_a",
+				"a02": "tessoku_book_b",
+				"a03": "tessoku_book_c",
+				"a04": "tessoku_book_d",
+				"a05": "tessoku_book_e",
+				"a06": "math_and_algorithm_ai",
+				"a07": "tessoku_book_g",
+				"a08": "tessoku_book_h",
+				"a09": "tessoku_book_i",
+				"a10": "tessoku_book_j",
+				"a11": "tessoku_book_k",
+				"a12": "tessoku_book_l",
+				"a13": "tessoku_book_m",
+				"a14": "tessoku_book_n",
+				"a15": "tessoku_book_o",
+				"a16": "tessoku_book_p",
+				"a17": "tessoku_book_q",
+				"a18": "tessoku_book_r",
+				"a19": "tessoku_book_s",
+				"a20": "tessoku_book_t",
+				"a21": "tessoku_book_u",
+				"a22": "tessoku_book_v",
+				"a23": "tessoku_book_w",
+				"a24": "tessoku_book_x",
+				"a25": "tessoku_book_y",
+				"a26": "tessoku_book_z",
+				"a27": "math_and_algorithm_o",
+				"a28": "tessoku_book_ab",
+				"a29": "math_and_algorithm_aq",
+				"a30": "tessoku_book_ad",
+				"a31": "tessoku_book_ae",
+				"a32": "tessoku_book_af",
+				"a33": "tessoku_book_ag",
+				"a34": "tessoku_book_ah",
+				"a35": "tessoku_book_ai",
+				"a36": "tessoku_book_aj",
+				"a37": "tessoku_book_ak",
+				"a38": "tessoku_book_al",
+				"a39": "math_and_algorithm_bn",
+				"a40": "tessoku_book_an",
+				"a41": "tessoku_book_ao",
+				"a42": "tessoku_book_ap",
+				"a43": "tessoku_book_aq",
+				"a44": "tessoku_book_ar",
+				"a45": "tessoku_book_as",
+				"a46": "tessoku_book_at",
+				"a49": "tessoku_book_aw",
+				"a50": "future_contest_2018_qual_a",
+				"a51": "tessoku_book_ay",
+				"a52": "tessoku_book_az",
+				"a53": "tessoku_book_ba",
+				"a54": "tessoku_book_bb",
+				"a55": "tessoku_book_bc",
+				"a56": "tessoku_book_bd",
+				"a57": "tessoku_book_be",
+				"a58": "tessoku_book_bf",
+				"a59": "tessoku_book_bg",
+				"a60": "tessoku_book_bh",
+				"a61": "tessoku_book_bi",
+				"a62": "math_and_algorithm_am",
+				"a63": "math_and_algorithm_an",
+				"a64": "tessoku_book_bl",
+				"a65": "tessoku_book_bm",
+				"a66": "tessoku_book_bn",
+				"a67": "tessoku_book_bo",
+				"a68": "tessoku_book_bp",
+				"a69": "tessoku_book_bq",
+				"a70": "tessoku_book_br",
+				"a71": "tessoku_book_bs",
+				"a72": "tessoku_book_bt",
+				"a73": "tessoku_book_bu",
+				"a74": "tessoku_book_bv",
+				"a75": "tessoku_book_bw",
+				"a76": "tessoku_book_bx",
+				"a77": "typical90_a",
+				"b01": "tessoku_book_bz",
+				"b02": "tessoku_book_ca",
+				"b03": "tessoku_book_cb",
+				"b04": "tessoku_book_cc",
+				"b06": "tessoku_book_ce",
+				"b07": "math_and_algorithm_al",
+				"b08": "tessoku_book_cg",
+				"b09": "tessoku_book_ch",
+				"b11": "tessoku_book_cj",
+				"b12": "tessoku_book_ck",
+				"b13": "tessoku_book_cl",
+				"b14": "tessoku_book_cm",
+				"b16": "dp_a",
+				"b17": "tessoku_book_cp",
+				"b18": "tessoku_book_cq",
+				"b19": "tessoku_book_cr",
+				"b20": "tessoku_book_cs",
+				"b21": "tessoku_book_ct",
+				"b23": "tessoku_book_cv",
+				"b24": "tessoku_book_cw",
+				"b26": "tessoku_book_cy",
+				"b27": "tessoku_book_cz",
+				"b28": "math_and_algorithm_ap",
+				"b29": "tessoku_book_db",
+				"b30": "tessoku_book_dc",
+				"b31": "tessoku_book_dd",
+				"b32": "tessoku_book_de",
+				"b33": "tessoku_book_df",
+				"b34": "tessoku_book_dg",
+				"b36": "tessoku_book_di",
+				"b37": "tessoku_book_dj",
+				"b38": "tessoku_book_dk",
+				"b39": "tessoku_book_dl",
+				"b40": "tessoku_book_dm",
+				"b41": "tessoku_book_dn",
+				"b42": "tessoku_book_do",
+				"b43": "tessoku_book_dp",
+				"b44": "tessoku_book_dq",
+				"b45": "tessoku_book_dr",
+				"b51": "tessoku_book_dx",
+				"b52": "tessoku_book_dy",
+				"b54": "tessoku_book_ea",
+				"b55": "tessoku_book_eb",
+				"b56": "tessoku_book_ec",
+				"b57": "tessoku_book_ed",
+				"b58": "tessoku_book_ee",
+				"b59": "tessoku_book_ef",
+				"b61": "tessoku_book_eh",
+				"b62": "tessoku_book_ei",
+				"b63": "abc007_3",
+				"b64": "tessoku_book_ek",
+				"b65": "tessoku_book_el",
+				"b66": "tessoku_book_em",
+				"b67": "tessoku_book_en",
+				"b68": "tessoku_book_eo",
+				"b69": "tessoku_book_ep",
+				"c01": "tessoku_book_ey",
+				"c02": "tessoku_book_ez",
+				"c03": "tessoku_book_fa",
+				"c04": "tessoku_book_fb",
+				"c05": "tessoku_book_fc",
+				"c06": "tessoku_book_fd",
+				"c07": "tessoku_book_fe",
+				"c08": "tessoku_book_ff",
+				"c09": "math_and_algorithm_ac",
+				"c10": "tessoku_book_fh",
+				"c11": "tessoku_book_fi",
+				"c12": "tessoku_book_fj",
+				"c13": "tessoku_book_fk",
+				"c14": "tessoku_book_fl",
+				"c15": "tessoku_book_fm",
+				"c16": "tessoku_book_fn",
+				"c17": "tessoku_book_fo",
+				"c18": "typical90_s",
+				"c19": "tessoku_book_fq",
+				"c20": "tessoku_book_fr"
+			}
+		},
+		"tkppc": {
+			"taskPrefix": "tkppc2015"
+		},
+		"tkppc2": {
+			"taskPrefix": "tkppc2016"
+		},
+		"tkppc4-1": {
+			"taskPrefix": "tkppc4_1"
+		},
+		"tkppc4-2": {
+			"taskPrefix": "tkppc4_2"
+		},
+		"tkppc6-1": {
+			"taskPrefix": "tkppc6_1"
+		},
+		"tkppc6-2": {
+			"taskPrefix": "tkppc6_2"
+		},
+		"toyota-hc-2023spring": {
+			"taskPrefix": "toyota_hc_2023spring"
+		},
+		"toyota2023spring-final": {
+			"taskPrefix": "toyota2023spring_final"
+		},
+		"toyota2023spring-final-open": {
+			"taskPrefix": "toyota2023spring_final"
+		},
+		"toyota2023summer-final": {
+			"taskPrefix": "toyota2023summer_final"
+		},
+		"toyota2023summer-final-open": {
+			"taskPrefix": "toyota2023summer_final"
+		},
+		"tricky": {
+			"tasks": {
+				"a": "tricky_1",
+				"b": "tricky_2",
+				"c": "tricky_3",
+				"d": "tricky_4",
+				"e": "tricky_5"
+			}
+		},
+		"ttpc2024_2": {
+			"tasks": {
+				"a": "ttpc2024_1_a",
+				"b": "ttpc2024_1_b",
+				"c": "ttpc2024_1_c",
+				"e": "ttpc2024_1_e",
+				"i": "ttpc2024_1_i",
+				"j": "ttpc2024_1_j",
+				"l": "ttpc2024_1_l"
+			}
+		},
+		"typical90": {
+			"tasks": {
+				"001": "typical90_a",
+				"002": "typical90_b",
+				"003": "typical90_c",
+				"004": "typical90_d",
+				"005": "typical90_e",
+				"006": "typical90_f",
+				"007": "typical90_g",
+				"008": "typical90_h",
+				"009": "typical90_i",
+				"010": "typical90_j",
+				"011": "typical90_k",
+				"012": "typical90_l",
+				"013": "typical90_m",
+				"014": "typical90_n",
+				"015": "typical90_o",
+				"016": "typical90_p",
+				"017": "typical90_q",
+				"018": "typical90_r",
+				"019": "typical90_s",
+				"020": "typical90_t",
+				"021": "typical90_u",
+				"022": "typical90_v",
+				"023": "typical90_w",
+				"024": "typical90_x",
+				"025": "typical90_y",
+				"026": "typical90_z",
+				"027": "typical90_aa",
+				"028": "typical90_ab",
+				"029": "typical90_ac",
+				"030": "typical90_ad",
+				"031": "typical90_ae",
+				"032": "typical90_af",
+				"033": "typical90_ag",
+				"034": "typical90_ah",
+				"035": "typical90_ai",
+				"036": "typical90_aj",
+				"037": "typical90_ak",
+				"038": "typical90_al",
+				"039": "typical90_am",
+				"040": "typical90_an",
+				"041": "typical90_ao",
+				"042": "typical90_ap",
+				"043": "typical90_aq",
+				"044": "typical90_ar",
+				"045": "typical90_as",
+				"046": "typical90_at",
+				"047": "typical90_au",
+				"048": "typical90_av",
+				"049": "typical90_aw",
+				"050": "typical90_ax",
+				"051": "typical90_ay",
+				"052": "typical90_az",
+				"053": "typical90_ba",
+				"054": "typical90_bb",
+				"055": "typical90_bc",
+				"056": "typical90_bd",
+				"057": "typical90_be",
+				"058": "typical90_bf",
+				"059": "typical90_bg",
+				"060": "typical90_bh",
+				"061": "typical90_bi",
+				"062": "typical90_bj",
+				"063": "typical90_bk",
+				"064": "typical90_bl",
+				"065": "typical90_bm",
+				"066": "typical90_bn",
+				"067": "typical90_bo",
+				"068": "typical90_bp",
+				"069": "typical90_bq",
+				"070": "typical90_br",
+				"071": "typical90_bs",
+				"072": "typical90_bt",
+				"073": "typical90_bu",
+				"074": "typical90_bv",
+				"075": "typical90_bw",
+				"076": "typical90_bx",
+				"077": "typical90_by",
+				"078": "typical90_bz",
+				"079": "typical90_ca",
+				"080": "typical90_cb",
+				"081": "typical90_cc",
+				"082": "typical90_cd",
+				"083": "typical90_ce",
+				"084": "typical90_cf",
+				"085": "typical90_cg",
+				"086": "typical90_ch",
+				"087": "typical90_ci",
+				"088": "typical90_cj",
+				"089": "typical90_ck",
+				"090": "typical90_cl"
+			}
+		},
+		"utpc2011": {
+			"tasks": {
+				"a": "utpc2011_1",
+				"b": "utpc2011_2",
+				"c": "utpc2011_3",
+				"d": "utpc2011_4",
+				"e": "utpc2011_5",
+				"f": "utpc2011_6",
+				"g": "utpc2011_7",
+				"h": "utpc2011_8",
+				"i": "utpc2011_9",
+				"j": "utpc2011_10",
+				"k": "utpc2011_11",
+				"l": "utpc2011_12"
+			}
+		},
+		"utpc2012": {
+			"tasks": {
+				"a": "utpc2012_01",
+				"b": "utpc2012_02",
+				"c": "utpc2012_03",
+				"d": "utpc2012_04",
+				"e": "utpc2012_05",
+				"f": "utpc2012_06",
+				"g": "utpc2012_07",
+				"h": "utpc2012_08",
+				"i": "utpc2012_09",
+				"j": "utpc2012_10",
+				"k": "utpc2012_11",
+				"l": "utpc2012_12"
+			}
+		},
+		"utpc2013": {
+			"tasks": {
+				"a": "utpc2013_01",
+				"b": "utpc2013_02",
+				"c": "utpc2013_03",
+				"d": "utpc2013_04",
+				"e": "utpc2013_05",
+				"f": "utpc2013_06",
+				"g": "utpc2013_07",
+				"h": "utpc2013_08",
+				"i": "utpc2013_09",
+				"j": "utpc2013_10",
+				"k": "utpc2013_11",
+				"l": "utpc2013_12"
+			}
+		},
+		"waipc-qual": {
+			"taskPrefix": "waipc_qual"
+		},
+		"wtf19-open": {
+			"taskPrefix": "wtf19"
+		},
+		"wtf22-day1": {
+			"taskPrefix": "wtf22_day1"
+		},
+		"wtf22-day1-open": {
+			"taskPrefix": "wtf22_day1"
+		},
+		"wtf22-day2": {
+			"taskPrefix": "wtf22_day2"
+		},
+		"wtf22-day2-open": {
+			"taskPrefix": "wtf22_day2"
+		},
+		"wupc2012": {
+			"tasks": {
+				"a": "wupc2012_1",
+				"b": "wupc2012_2",
+				"c": "wupc2012_3",
+				"d": "wupc2012_4",
+				"e": "wupc2012_5",
+				"f": "wupc2012_6"
+			}
+		},
+		"wupc2012-closed": {
+			"tasks": {
+				"a": "wupc2012_1",
+				"b": "wupc2012_2",
+				"c": "wupc2012_3",
+				"d": "wupc2012_4",
+				"e": "wupc2012_5",
+				"f": "wupc2012_6"
+			}
+		},
+		"wupc2nd": {
+			"tasks": {
+				"a": "wupc_01",
+				"b": "wupc_02",
+				"c": "wupc_03",
+				"d": "wupc_04",
+				"e": "wupc_05",
+				"f": "wupc_06",
+				"g": "wupc_07",
+				"h": "wupc_08",
+				"i": "wupc_09"
+			}
+		},
+		"xmascon16midnight": {
+			"taskPrefix": "xmascon16"
+		},
+		"xmascon16noon": {
+			"taskPrefix": "xmascon16"
+		},
+		"xmascontest2015noon": {
+			"taskPrefix": "xmascontest2015"
+		},
+		"yahoo-procon2017-final": {
+			"taskPrefix": "yahoo_procon2017_final"
+		},
+		"yahoo-procon2017-final-open": {
+			"taskPrefix": "yahoo_procon2017_final"
+		},
+		"yahoo-procon2017-qual": {
+			"taskPrefix": "yahoo_procon2017_qual"
+		},
+		"yahoo-procon2018-final": {
+			"taskPrefix": "yahoo_procon2018_final"
+		},
+		"yahoo-procon2018-final-open": {
+			"taskPrefix": "yahoo_procon2018_final"
+		},
+		"yahoo-procon2018-qual": {
+			"taskPrefix": "yahoo_procon2018_qual"
+		},
+		"yahoo-procon2019-final": {
+			"taskPrefix": "yahoo_procon2019_final"
+		},
+		"yahoo-procon2019-final-open": {
+			"taskPrefix": "yahoo_procon2019_final"
+		},
+		"yahoo-procon2019-qual": {
+			"taskPrefix": "yahoo_procon2019_qual"
+		},
+		"yuha-c83": {
+			"tasks": {
+				"a": "yuha_c83_01",
+				"b": "yuha_c83_02",
+				"c": "yuha_c83_03",
+				"d": "yuha_c83_04",
+				"e": "yuha_c83_05"
+			}
+		},
+		"yuha-c88": {
+			"taskPrefix": "yuha_c88"
+		}
+	},
+	"taskContestPrefixes": {
+		"1202Contest": "DEGwer2023",
+		"ajo2024_final": "ajo2024-final",
+		"ajo2025_final": "ajo2025-final-open",
+		"apio": "joiopen2012c",
+		"asaporo": "cf16-tournament-round1-open",
+		"asaporo2": "cf17-tournament-round1-open",
+		"asprocon10": "ahc023",
+		"awtf2025": "awtf2025algo-open",
+		"bcu30_2018": "bcu30-2018",
+		"bcu30_2018_qual": "bcu30-2018-qual",
+		"bcu30_2019": "bcu30-2019",
+		"bcu30_2019_qual": "bcu30-2019-qual",
+		"bitflyer2018_final": "bitflyer2018-final",
+		"bitflyer2018_qual": "bitflyer2018-qual",
+		"c_league2026_1": "c-league2026-1",
+		"c_league2026_2": "c-league2026-2",
+		"cf16_exhibition_final": "cf16-exhibition-final",
+		"cf17_exhibition": "cf17-exhibition-open",
+		"cf17_final": "cf17-final",
+		"cf_2015_morning_easy": "code-festival-2015-morning-easy",
+		"cf_2015_morning_hard": "code-festival-2015-morning-hard",
+		"cf_2015_relay": "code-festival-2015-relay",
+		"chokudai_001": "chokudai001",
+		"code_festival_2015_okinawa": "code-festival-2015-okinawa-open",
+		"code_festival_2017_quala": "code-festival-2017-quala",
+		"code_festival_2017_qualb": "code-festival-2017-qualb",
+		"code_festival_2017_qualc": "code-festival-2017-qualc",
+		"code_festival_2018_final": "code-festival-2018-final-open",
+		"code_festival_2018_quala": "code-festival-2018-quala",
+		"code_festival_2018_qualb": "code-festival-2018-qualb",
+		"code_festival_china": "code-festival-2014-china-open",
+		"code_festival_exhibition": "code-festival-2014-exhibition",
+		"code_festival_final": "code-festival-2014-final",
+		"code_festival_morning_easy": "code-festival-2014-morning-easy",
+		"code_festival_morning_hard": "code-festival-2014-morning-hard",
+		"code_festival_morning_med": "code-festival-2014-morning-middle",
+		"code_festival_qualA": "code-festival-2014-quala",
+		"code_festival_qualB": "code-festival-2014-qualb",
+		"code_festival_relay": "code-festival-2014-relay",
+		"code_formula_2014_final": "code-formula-2014-final",
+		"code_formula_2014_qualA": "code-formula-2014-quala",
+		"code_formula_2014_qualB": "code-formula-2014-qualb",
+		"code_thanks_festival_14_quala": "code-thanks-festival-2014-a-open",
+		"code_thanks_festival_14_qualb": "code-thanks-festival-2014-b-open",
+		"code_thanks_festival_2015": "code-thanks-festival-2015-open",
+		"code_thanks_festival_2017": "code-thanks-festival-2017",
+		"code_thanks_festival_2018": "code-thanks-festival-2018",
+		"codefestival_2015_ex": "code-festival-2015-exhibition",
+		"codefestival_2015_final": "code-festival-2015-final-open",
+		"codefestival_2015_qualA": "code-festival-2015-quala",
+		"codefestival_2015_qualB": "code-festival-2015-qualb",
+		"codefestival_2016_ex": "cf16-exhibition",
+		"codefestival_2016_final": "cf16-final",
+		"codefestival_2016_qualA": "code-festival-2016-quala",
+		"codefestival_2016_qualB": "code-festival-2016-qualb",
+		"codefestival_2016_qualC": "code-festival-2016-qualc",
+		"codequeen2023_final": "codequeen2023-final-open",
+		"codequeen2024_final": "codequeen2024-final-N9tn8QqD",
+		"codequeen2025_final": "codequeen2025-final-Public",
+		"codequeen2026": "codequeen2026-final-Public",
+		"colopl2018_final": "colopl2018-final",
+		"colopl2018_qual": "colopl2018-qual",
+		"cpsco2019_s1": "cpsco2019-s1",
+		"cpsco2019_s2": "cpsco2019-s2",
+		"cpsco2019_s3": "cpsco2019-s3",
+		"cpsco2019_s4": "cpsco2019-s4",
+		"ddcc2017_final": "ddcc2017-final",
+		"ddcc2017_qual": "ddcc2017-qual",
+		"ddcc2018_qual": "ddcc2019-qual",
+		"ddcc2019_final": "ddcc2019-final",
+		"ddcc2019_machine": "ddcc2019-machine",
+		"ddcc2020_final": "ddcc2020-final",
+		"ddcc2020_qual": "ddcc2020-qual",
+		"ddcc_2016_final": "ddcc2016-final",
+		"ddcc_2016_qual": "ddcc2016-qual",
+		"dfs": "atc001",
+		"digitalarts": "digitalarts2012",
+		"discovery_2016_final": "discovery2016-final",
+		"discovery_2016_qual": "discovery2016-qual",
+		"diverta2019_2": "diverta2019-2",
+		"donuts_2015": "donuts-2015",
+		"donuts_live2014": "donuts-live2014",
+		"dwacon2018_final": "dwacon2018-final-open",
+		"dwacon2018_prelims": "dwacon2018-prelims",
+		"dwacon5th_final": "dwacon5th-final-open",
+		"dwacon5th_prelims": "dwacon5th-prelims",
+		"dwacon6th_final": "dwacon6th-final-open",
+		"dwacon6th_prelims": "dwacon6th-prelims",
+		"dwango2015_finals": "dwango2015-honsen",
+		"dwango2015_prelims": "dwango2015-prelims",
+		"dwango2016final": "dwango2016-honsen",
+		"dwango2016qual": "dwango2016-prelims",
+		"dwango2017final": "dwacon2017-honsen",
+		"dwango2017qual": "dwacon2017-prelims",
+		"editor_update_test": "editor-update-test",
+		"fft": "atc001",
+		"fps_24": "fps-24",
+		"fuka": "fuka5",
+		"future2018career": "future-meets-you-contest-2018-open",
+		"future_contest_2018_final": "future-contest-2018-final",
+		"future_contest_2018_qual": "future-contest-2018-qual",
+		"future_contest_2019_final": "future-contest-2019-final",
+		"future_contest_2019_qual": "future-contest-2019-qual",
+		"future_contest_2020_final": "future-contest-2020-final",
+		"future_contest_2020_final_2": "future-contest-2020-final-2",
+		"future_contest_2020_qual": "future-contest-2020-qual",
+		"future_contest_2021_final": "future-contest-2021-final-open",
+		"future_contest_2021_qual": "future-contest-2021-qual",
+		"future_contest_2022_final": "future-contest-2022-final-open",
+		"future_contest_2022_qual": "future-contest-2022-qual",
+		"future_contest_2023_final": "future-contest-2023-final-open",
+		"future_fif_digital_days": "future-fif-digital-days",
+		"future_fif_digital_days_open": "future-fif-digital-days-open",
+		"game": "game-24",
+		"gigacode_2019": "gigacode-2019",
+		"guildfes_2026_final": "guildfes-2026-final",
+		"gw2015": "gwcontest2015",
+		"hbpc": "hbpc2012",
+		"highrate2025": "highrate2025-parallel",
+		"hitachi2017_1": "hokudai-hitachi2017-1",
+		"hitachi2017_2": "hokudai-hitachi2017-2",
+		"hokudai_hitachi2018": "hokudai-hitachi2018",
+		"hokudai_hitachi2019_1": "hokudai-hitachi2019-1",
+		"hokudai_hitachi2019_2": "hokudai-hitachi2019-2",
+		"hokudai_hitachi2020": "hokudai-hitachi2020",
+		"hokudai_hitachi2021": "hokudai-hitachi2021",
+		"hokudai_hitachi2022": "hokudai-hitachi2022",
+		"icpc2012autumn": "jag2012autumn",
+		"icpc2013autumn": "jag2013autumn",
+		"icpc2013spring": "JAG2013Spring",
+		"icpc2013summer_day2": "jag2013summer-day2",
+		"icpc2013summer_day3": "jag2013summer-day3",
+		"icpc2013summer_day4": "jag2013summer-day4",
+		"icpc2013summer_warmingUp": "jag2013summer-warmingup",
+		"icpc2014autumn": "jag2014autumn",
+		"icpc2014spring": "JAG2014Spring",
+		"icpc2014summer_day2": "jag2014summer-day2",
+		"icpc2014summer_day4": "jag2014summer-day4",
+		"icpc2015autumn": "jag2015autumn",
+		"icpc2015spring": "jag2015spring",
+		"icpc2015summer_day2": "jag2015summer-day2",
+		"icpc2015summer_day3": "jag2015summer-day3",
+		"icpc2015summer_day4": "jag2015summer-day4",
+		"icpc2016autumn": "jag2016autumn",
+		"ijpc": "ijpc2012pr",
+		"indeednow_2015_finala": "indeednow-finala-open",
+		"indeednow_2015_finalb": "indeednow-finalb-open",
+		"indeednow_2015_quala": "indeednow-quala",
+		"indeednow_2015_qualb": "indeednow-qualb",
+		"indeednow_2015_qualc": "indeednow-qualb",
+		"intro_heuristics": "intro-heuristics",
+		"iroha2019_day1": "iroha2019-day1",
+		"iroha2019_day2": "iroha2019-day2",
+		"iroha2019_day3": "iroha2019-day3",
+		"iroha2019_day4": "iroha2019-day4",
+		"jag2016secretspring": "jag2016-domestic",
+		"jag2017summer_day1": "jag2017summer-day1",
+		"jag2017summer_day3": "jag2017summer-day3",
+		"jag2018summer_day2": "jag2018summer-day2",
+		"joi2018_yo": "joi2018yo",
+		"joi2019_yo": "joi2019yo",
+		"joi2020_yo1a": "joi2020yo1a",
+		"joi2020_yo1b": "joi2020yo1b",
+		"joi2020_yo1c": "joi2020yo1c",
+		"joi2020_yo2": "joi2020yo2",
+		"joi2021_yo1a": "joi2021yo1a",
+		"joi2021_yo1b": "joi2021yo1b",
+		"joi2021_yo1c": "joi2021yo1c",
+		"joi2021_yo2": "joi2021yo2",
+		"joi2022_yo1a": "joi2022yo1a",
+		"joi2022_yo1b": "joi2022yo1b",
+		"joi2022_yo1c": "joi2022yo1c",
+		"joi2022_yo2": "joi2022yo2",
+		"joi2023_yo1a": "joi2023yo1a",
+		"joi2023_yo1b": "joi2023yo1b",
+		"joi2023_yo1c": "joi2023yo1c",
+		"joi2023_yo2": "joi2023yo2",
+		"joi2024_yo1a": "joi2024yo1a",
+		"joi2024_yo1b": "joi2024yo1b",
+		"joi2024_yo1c": "joi2024yo1c",
+		"joi2024_yo2": "joi2024yo2",
+		"joi2025_yo1a": "joi2025yo1a",
+		"joi2025_yo1b": "joi2025yo1b",
+		"joi2025_yo1c": "joi2025yo1c",
+		"joi2025_yo2": "joi2025yo2",
+		"joi2026_semifinal": "joi2026sf",
+		"joi2026_yo1a": "joi2026yo1a",
+		"joi2026_yo1b": "joi2026yo1b",
+		"joi2026_yo1c": "joi2026yo1c",
+		"joi2026_yo2": "joi2026yo2",
+		"joi2027_yo1a": "joi2027yo1a",
+		"joi2027_yo1b": "joi2027yo1b",
+		"joig2021": "joig2021-open",
+		"joig2022": "joig2022-open",
+		"joig2023": "joig2023-open",
+		"joig2024": "joig2024-open",
+		"joig2025": "joig2025-open",
+		"joisc2009_starry": "joisc2009",
+		"joisc2012_fortune": "joisc2012",
+		"joisc2012_joi": "joisc2012",
+		"joisc2013": "joisc2013-day1",
+		"joisc2013_joi": "joisc2013-day1",
+		"jsc2019_final": "jsc2019-final",
+		"jsc2019_qual": "jsc2019-qual",
+		"jsc2022_final": "jsc2022-final-open",
+		"jsc2023_final": "jsc2023-final",
+		"jsc2024_final": "jsc2024-final",
+		"jsc2025_final": "jsc2025-final",
+		"jsc2026_final": "jsc2026-final",
+		"judge_update_202004": "judge-update-202004",
+		"k2pc001": "k2pc-easy",
+		"m_solutions2019": "m-solutions2019",
+		"m_solutions2020": "m-solutions2020",
+		"masters2024_final": "masters2024-final-open",
+		"masters2025_final": "masters2025-final-open",
+		"masters2025_qual": "masters2025-qual",
+		"masters2026_final": "masters2026-final",
+		"masters2026_qual": "masters2026-qual",
+		"masters_qual": "masters-qual",
+		"math_and_algorithm": "math-and-algorithm",
+		"maximum_2013": "maximum-cup-2013",
+		"maximum_cup_2018": "maximum-cup-2018",
+		"maximum_cup_2023": "maximum-cup-2023",
+		"mujin_pc_2016": "mujin-pc-2016",
+		"mujin_pc_2017": "mujin-pc-2017",
+		"mujin_pc_2018": "mujin-pc-2018",
+		"ndpc2026": "ndpc",
+		"newjudge_2308_heuristic": "newjudge-2308-heuristic",
+		"nikkei2019_2_final": "nikkei2019-2-final",
+		"nikkei2019_2_qual": "nikkei2019-2-qual",
+		"nikkei2019_final": "nikkei2019-final",
+		"nikkei2019_qual": "nikkei2019-qual",
+		"nikkei2019ex": "nikkei2019-ex",
+		"nyc2015": "NYC2015",
+		"oupc2023_day1": "oupc2023-day1",
+		"pakencamp_2018_day2": "pakencamp-2018-day2",
+		"pakencamp_2018_day3": "pakencamp-2018-day3",
+		"pakencamp_2019_day2": "pakencamp-2019-day2",
+		"pakencamp_2019_day3": "pakencamp-2019-day3",
+		"pakencamp_2019_day4": "pakencamp-2019-day4",
+		"pakencamp_2020_day1": "pakencamp-2020-day1",
+		"pakencamp_2020_day2": "pakencamp-2020-day2",
+		"pakencamp_2021_day2": "pakencamp-2021-day2",
+		"pakencamp_2021_day3": "pakencamp-2021-day3",
+		"pakencamp_2022_day1": "pakencamp-2022-day1",
+		"pakencamp_2022_day2": "pakencamp-2022-day2",
+		"pakencamp_2022_day3": "pakencamp-2022-day3",
+		"pakencamp_2023_day1": "pakencamp-2023-day1",
+		"pakencamp_2023_day2": "pakencamp-2023-day2",
+		"pakencamp_2023_day3": "pakencamp-2023-day3",
+		"pakencamp_2024_day1": "pakencamp-2024-day1",
+		"pakencamp_2024_day2": "pakencamp-2024-day2",
+		"pakencamp_2024_day3_1": "pakencamp-2024-day3-1",
+		"pakencamp_2024_day3_2": "pakencamp-2024-day3-2",
+		"pakencamp_2025_day1": "pakencamp-2025-day1",
+		"pakencamp_2025_day2": "pakencamp-2025-day2",
+		"pakencamp_2025_day3": "pakencamp-2025-day3",
+		"past17": "past17-open",
+		"past18": "past18-open",
+		"past19": "past19-open",
+		"past20": "past20-open",
+		"past201912": "past201912-open",
+		"past202004": "past202004-open",
+		"past202005": "past202005-open",
+		"past202010": "past202010-open",
+		"past202012": "past202012-open",
+		"past202104": "past202104-open",
+		"past202107": "past202107-open",
+		"past202109": "past202109-open",
+		"past202112": "past202112-open",
+		"past202203": "past202203-open",
+		"past202206": "past202206-open",
+		"past202209": "past202209-open",
+		"past202212": "past202212-open",
+		"past202303": "past202303-open",
+		"past202306": "past15-open",
+		"past202309": "past16-open",
+		"past21": "past21-open",
+		"past22": "past22-open",
+		"past23": "past23-open",
+		"past24": "past24-open",
+		"rcl_contest_2020_final": "rcl-contest-2020-final",
+		"rcl_contest_2020_qual": "rcl-contest-2020-qual",
+		"rcl_contest_2021": "rcl-contest-2021",
+		"rcl_contest_2021_long": "rcl-contest-2021-long",
+		"rco_contest_2017_final": "rco-contest-2017-final",
+		"rco_contest_2017_qual": "rco-contest-2017-qual",
+		"rco_contest_2018_final": "rco-contest-2018-final",
+		"rco_contest_2018_qual": "rco-contest-2018-qual",
+		"rco_contest_2019_final": "rco-contest-2019-final",
+		"rco_contest_2019_qual": "rco-contest-2019-qual",
+		"recruite_2013_pre": "Recruit-Programing-contest-practice",
+		"relay": "cf16-relay-open",
+		"relay2": "cf17-relay-open",
+		"relay2018": "cf18-relay-open",
+		"s8pc_1": "s8pc-1",
+		"s8pc_2": "s8pc-2",
+		"s8pc_3": "s8pc-3",
+		"s8pc_4": "s8pc-4",
+		"s8pc_5": "s8pc-5",
+		"s8pc_6": "s8pc-6",
+		"scpc2026_div1": "scpc2026-div1",
+		"scpc2026_div2": "scpc2026-div2",
+		"scpc2026_div3": "scpc2026-div3",
+		"soundhound2018_summer_final": "soundhound2018-summer-final",
+		"soundhound2018_summer_qual": "soundhound2018-summer-qual",
+		"stage0_2021": "stage0-2021",
+		"sumitb2019": "sumitrust2019",
+		"summerfes2018": "summerfes2018-div1",
+		"tenka1_2012": "tenka1-2012-qualB",
+		"tenka1_2012_final": "tenka1-2012-final",
+		"tenka1_2012_qualA": "tenka1-2012-qualA",
+		"tenka1_2013_final": "tenka1-2013-final",
+		"tenka1_2013_qualA": "tenka1-2013-quala",
+		"tenka1_2013_qualB": "tenka1-2013-qualb",
+		"tenka1_2014_final": "tenka1-2014-final-open",
+		"tenka1_2014_qualA": "tenka1-2014-quala",
+		"tenka1_2014_qualB": "tenka1-2014-qualb",
+		"tenka1_2015_final": "tenka1-2015-final",
+		"tenka1_2015_qualA": "tenka1-2015-quala",
+		"tenka1_2015_qualB": "tenka1-2015-qualb",
+		"tenka1_2016_final": "tenka1-2016-final",
+		"tenka1_2016_qualA": "tenka1-2016-quala",
+		"tenka1_2016_qualB": "tenka1-2016-qualb",
+		"tenka1_2017": "tenka1-2017",
+		"tenka1_2018": "tenka1-2018",
+		"tenka1_2019": "tenka1-2019",
+		"tessoku_book": "tessoku-book",
+		"test001": "language-test-ver1",
+		"tkppc2015": "tkppc",
+		"tkppc2016": "tkppc2",
+		"tkppc4_1": "tkppc4-1",
+		"tkppc4_2": "tkppc4-2",
+		"tkppc6_1": "tkppc6-1",
+		"tkppc6_2": "tkppc6-2",
+		"toyota2023spring_final": "toyota2023spring-final-open",
+		"toyota2023summer_final": "toyota2023summer-final-open",
+		"toyota_hc_2023spring": "toyota-hc-2023spring",
+		"unionfind": "atc001",
+		"waipc_qual": "waipc-qual",
+		"wtf22_day1": "wtf22-day1-open",
+		"wtf22_day2": "wtf22-day2",
+		"wupc": "wupc2nd",
+		"yahoo_procon2017_final": "yahoo-procon2017-final",
+		"yahoo_procon2017_qual": "yahoo-procon2017-qual",
+		"yahoo_procon2018_final": "yahoo-procon2018-final",
+		"yahoo_procon2018_qual": "yahoo-procon2018-qual",
+		"yahoo_procon2019_final": "yahoo-procon2019-final",
+		"yahoo_procon2019_qual": "yahoo-procon2019-qual",
+		"yamato_contest2019": "kuronekoyamato-contest2019",
+		"yuha_c83": "yuha-c83",
+		"yuha_c88": "yuha-c88"
+	},
+	"taskContests": {
+		"asaporo2_a": "cf17-tournament-round2-open",
+		"asaporo2_b": "cf17-tournament-round2-open",
+		"asaporo2_e": "cf17-tournament-round3-open",
+		"asaporo2_f": "cf17-tournament-round3-open",
+		"asaporo_a": "cf16-tournament-round2-open",
+		"asaporo_b": "cf16-tournament-round3-open",
+		"asaporo_d": "cf16-tournament-round3-open",
+		"asaporo_e": "cf16-tournament-round2-open",
+		"cf_2015_morning_hard_a": "code-festival-2015-morning-middle",
+		"cf_2015_morning_hard_b": "code-festival-2015-morning-middle",
+		"ijpc2015_b": "ijpc2015-2",
+		"ijpc2015_e": "ijpc2015-2",
+		"ijpc2015_f": "ijpc2015-2",
+		"ijpc2015_h": "ijpc2015-2",
+		"ijpc2015_i": "ijpc2015-2",
+		"ijpc_animals": "ijpc2012-1",
+		"ijpc_animals2": "ijpc2012-3",
+		"ijpc_ghost": "ijpc2012-3",
+		"ijpc_honest": "ijpc2012-3",
+		"ijpc_imo": "ijpc2012-2",
+		"ijpc_maze": "ijpc2012-2",
+		"ijpc_porter": "ijpc2012-2",
+		"ijpc_silver": "ijpc2012-1",
+		"ijpc_training": "ijpc2012-1",
+		"joi2011ho1": "joi2011ho",
+		"joi2011ho2": "joi2011ho",
+		"joi2011ho3": "joi2011ho",
+		"joi2011ho4": "joi2011ho",
+		"joi2011ho5": "joi2011ho",
+		"joi2012ho1": "joi2012ho",
+		"joi2012ho2": "joi2012ho",
+		"joi2012ho3": "joi2012ho",
+		"joi2012ho4": "joi2012ho",
+		"joi2012ho5": "joi2012ho",
+		"joi2013ho1": "joi2013ho",
+		"joi2013ho2": "joi2013ho",
+		"joi2013ho3": "joi2013ho",
+		"joi2013ho4": "joi2013ho",
+		"joi2013ho5": "joi2013ho",
+		"joi2014ho1": "joi2014ho",
+		"joi2014ho2": "joi2014ho",
+		"joi2014ho3": "joi2014ho",
+		"joi2014ho4": "joi2014ho",
+		"joi2014ho5": "joi2014ho",
+		"joisc2013_cake": "joisc2013-day3",
+		"joisc2013_construction": "joisc2013-day2",
+		"joisc2013_koala": "joisc2013-day3",
+		"joisc2013_mascots": "joisc2013-day2",
+		"joisc2013_messenger": "joisc2013-day4",
+		"joisc2013_mountain": "joisc2013-day3",
+		"joisc2013_presents": "joisc2013-day4",
+		"joisc2013_spaceships": "joisc2013-day4",
+		"joisc2013_spy": "joisc2013-day2",
+		"k2pc001_h1": "k2pc-hard",
+		"k2pc001_h2": "k2pc-hard",
+		"k2pc001_h3": "k2pc-hard",
+		"k2pc001_h4": "k2pc-hard",
+		"k2pc001_h5": "k2pc-hard",
+		"masters2025_final_d": "masters2025-final",
+		"pakencamp_2024_day3_1_b": "pakencamp-2024-day3-2",
+		"pakencamp_2024_day3_1_c": "pakencamp-2024-day3-2",
+		"pakencamp_2024_day3_1_f": "pakencamp-2024-day3-2",
+		"pakencamp_2024_day3_1_h": "pakencamp-2024-day3-2",
+		"pakencamp_2024_day3_1_i": "pakencamp-2024-day3-2",
+		"pakencamp_2024_day3_1_k": "pakencamp-2024-day3-2",
+		"pakencamp_2024_day3_1_n": "pakencamp-2024-day3-2",
+		"summerfes2018_a": "summerfes2018-div2",
+		"summerfes2018_b": "summerfes2018-div2",
+		"summerfes2018_c": "summerfes2018-div2",
+		"tenka1_2012_10": "tenka1-2012-qualC",
+		"tenka1_2012_11": "tenka1-2012-qualC",
+		"tenka1_2012_12": "tenka1-2012-qualC",
+		"tenka1_2012_9": "tenka1-2012-qualC",
+		"tenka1_2017_a": "tenka1-2017-beginner",
+		"tenka1_2017_b": "tenka1-2017-beginner",
+		"tenka1_2018_a": "tenka1-2018-beginner",
+		"tenka1_2018_b": "tenka1-2018-beginner",
+		"tenka1_2019_a": "tenka1-2019-beginner",
+		"tenka1_2019_b": "tenka1-2019-beginner"
+	}
+}
