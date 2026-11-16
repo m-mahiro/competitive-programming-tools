@@ -52,10 +52,10 @@ local-runner/
 
 使える言語は、起動時に設定の `languages` から決めます(`daemon/languages.ts`)。要求の `compilerName` が言語の名前で、省略されていれば Java として扱います。
 
-| 言語     | 経路                                                                                             |
-|----------|--------------------------------------------------------------------------------------------------|
+| 言語     | 経路                                                                                          |
+|----------|-----------------------------------------------------------------------------------------------|
 | `java`   | `javaEngine.ts`。常駐 JVM(`dispatcher.ts`、`compiler.ts`)の中で、変換、コンパイル、実行を行う |
-| それ以外 | `commandEngine.ts`。設定のコマンドでコンパイルし、サンプルごとにプロセスを起動する               |
+| それ以外 | `commandEngine.ts`。設定のコマンドでコンパイルし、サンプルごとにプロセスを起動する            |
 
 振り分けは `execution.ts` が行います。`server.ts` は要求を確かめて `mode` ごとに `execution.ts` を呼ぶだけで、言語ごとの処理を持ちません。
 
@@ -139,7 +139,7 @@ Easy Test+ は最後のエディタの変更から 180ms 後に `precompile` を
 - サーバーが起動時に読む項目は、`serverSettingsDigest` の対象にする。`status` は、この値で起動後の変更を見つける
 - `headers` は要求のたびに読み直す。それ以外は、プロセスの起動時に一度だけ読む
 
-環境変数は設定に使いません。Local Runner の動作を変える変数は次の3つだけです。ほかに、処理系を探すときに `PATH` を、`~` を展開するときに `HOME` と `USERPROFILE` を読みます。以前の版の文書に載せていた変数(`ATCODER_SESSION` など)が残っていると、起動時に警告します。
+環境変数は設定に使いません。Local Runner の動作を変える変数は次の4つだけです。ほかに、処理系を探すときに `PATH` を、`~` を展開するときに `HOME` と `USERPROFILE` を読みます。以前の版の文書に載せていた変数(`ATCODER_SESSION` など)が残っていると、起動時に警告します。
 
 以前のバージョンからの後始末は `src/migration/` にまとめます。古い環境変数の警告(`environment.ts`)、以前の形式の設定ファイルの書き換え(`settingsFile.ts`)、以前のバージョンが作ったファイルの削除(`files.ts`)です。名前や置き場所を変えたときは、古いものをここに足し、本体には互換の分岐を残しません。
 
@@ -152,6 +152,7 @@ Easy Test+ は最後のエディタの変更から 180ms 後に `precompile` を
 | `LOCAL_RUNNER_SETTINGS_FILE` | 設定ファイルの場所。テストが、利用者の設定を読まないようにするために使う                 |
 | `LOCAL_RUNNER_PROJECT_ROOT`  | `local-runner` フォルダの親のフォルダの場所。`bin/_runner.cmd` が、exe にした CLI へ渡す |
 | `NO_COLOR`                   | 色付きの表示を止める                                                                     |
+| `FORCE_COLOR`                | `1` でCLIの色付き表示を強制する。`0` は無効。`NO_COLOR` を優先する                       |
 
 サーバーは、常駐 JVM へ設定の値を環境変数(`LOCAL_RUNNER_JAVAC_RELEASE`、`LOCAL_RUNNER_RUN_STACK_BYTES`、`LOCAL_RUNNER_CAPTURE_LIMIT_BYTES`、`LOCAL_RUNNER_LIBRARY_LAST`)で渡します。これらは起動のたびにサーバーが決めるので、利用者が設定しても使われません。
 

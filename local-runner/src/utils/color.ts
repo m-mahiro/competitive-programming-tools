@@ -13,7 +13,10 @@ export function stripAnsi(text: string): string {
 }
 
 export function supportsCliColor() {
-	return process.stdout.isTTY && !process.env.NO_COLOR;
+	if (process.env.NO_COLOR) return false;
+	const forceColor = process.env.FORCE_COLOR;
+	if (forceColor !== undefined) return forceColor !== "0";
+	return Boolean(process.stdout.isTTY);
 }
 
 export function supportsRunnerColor() {

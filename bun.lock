@@ -7,7 +7,7 @@
     },
     "local-runner": {
       "name": "@atcoder-tools/runner",
-      "version": "0.2.0",
+      "version": "1.0.1",
       "dependencies": {
         "@atcoder-tools/shared": "workspace:*",
       },
