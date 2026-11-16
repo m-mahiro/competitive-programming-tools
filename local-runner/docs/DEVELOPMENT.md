@@ -8,7 +8,7 @@ Local Runner を変更する人向けの文書です。使い方は [README.md](
 local-runner/
 ├── package.json
 ├── src/
-│   ├── cli/           # test、submit、短縮表記、AtCoder との通信、サンプルの判定
+│   ├── cli/           # test、submit、ファイル名からの問題推定、AtCoder との通信、サンプルの判定
 │   ├── daemon/        # main.ts(ソースから動かすときの入口)、lifecycle.ts(起動と終了)、server.ts(HTTP API)、
 │   │                  # execution.ts(言語ごとの経路の振り分け)、runResponse.ts(実行の応答の組み立て)、
 │   │                  # javaEngine.ts(Java の変換、コンパイル、実行)、dispatcher.ts(常駐 JVM との連携)、
