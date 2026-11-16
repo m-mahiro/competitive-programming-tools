@@ -25,7 +25,8 @@ export function formatCompileSummary(
 	timeMs?: number,
 ) {
 	const shortId = programId.length <= 16 ? programId : `${programId.slice(0, 16)}...`;
-	return `[Compile] Lang=${language} Status=${result}${timeMs === undefined ? "" : ` Time=${timeMs}ms`} Id=${shortId}`;
+	const status = result === "NG" ? color.colorizeError(result) : result === "CACHED" ? color.colorizeNote(result) : result;
+	return `[Compile] Lang=${language} Status=${status}${timeMs === undefined ? "" : ` Time=${timeMs}ms`} Id=${shortId}`;
 }
 
 /**

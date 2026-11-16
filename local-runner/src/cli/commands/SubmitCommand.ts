@@ -19,10 +19,10 @@ export class SubmitCommand extends TaskCommand {
 	protected async onSamplesComplete({task, language, transformed, allAccepted, force}: TaskRunContext): Promise<number> {
 		if (!allAccepted) {
 			if (!force) {
-				console.log("Not submitting because at least one sample test is not AC.");
+				console.log(color.colorizeWarning("Not submitting because at least one sample test is not AC.", "cli"));
 				return 5;
 			}
-			console.log("Warning: forcing submit despite non-AC sample results (-f/--force).");
+			console.log(color.colorizeWarning("Warning: forcing submit despite non-AC sample results (-f/--force).", "cli"));
 		}
 
 		const cookieHeader = atcoder.toCookieHeader();
@@ -49,7 +49,7 @@ export class SubmitCommand extends TaskCommand {
 			return finalResult.status === "AC" ? 0 : 8;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			console.log(`Submitted successfully (ID: ${submissionId} | URL: ${submissionUrl}), but result tracking failed: ${message}`);
+			console.log(`${color.colorizeSuccess("Submitted successfully", "cli")} (ID: ${submissionId} | URL: ${submissionUrl}), but result tracking failed: ${message}`);
 			return 9;
 		}
 	}

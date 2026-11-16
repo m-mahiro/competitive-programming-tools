@@ -6,6 +6,7 @@ import {loadedLibrarySource} from "../javaLibrary/prepare";
 import {serverSettingsDigest} from "../settings/settings";
 import {latestVersion} from "../update/check";
 import {VERSION} from "../version";
+import * as color from "../utils/color";
 import * as logging from "../utils/logging";
 import * as compiler from "./compiler";
 import * as dispatcher from "./dispatcher";
@@ -88,7 +89,7 @@ export function createRunnerServer(requestShutdown: () => void): http.Server {
 		res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
 		if (!originAllowed) {
-			logging.logWarn(`[Server] Rejected request from disallowed origin: ${origin}`);
+			logging.logWarn(color.colorizeWarning(`[Server] Rejected request from disallowed origin: ${origin}`));
 			res.writeHead(403, {"Content-Type": "text/plain"});
 			res.end("Forbidden origin");
 			return;

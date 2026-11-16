@@ -1,6 +1,7 @@
 import {pathToFileURL} from "node:url";
 import {migrateFromEarlierVersions} from "../migration";
 import {removeStaleFile} from "../update/installer";
+import {colorizeError} from "../utils/color";
 import {CliUsageError} from "./commands/Command";
 import * as registry from "./commands/registry";
 
@@ -34,7 +35,7 @@ export async function main(rawArgs = process.argv.slice(2)): Promise<number> {
 			return 1;
 		}
 		const message = error instanceof Error ? error.message : String(error);
-		console.error(message.startsWith("[auth] ") ? message : `Error: ${message}`);
+		console.error(colorizeError(message.startsWith("[auth] ") ? message : `Error: ${message}`, "cli"));
 		return 1;
 	}
 }

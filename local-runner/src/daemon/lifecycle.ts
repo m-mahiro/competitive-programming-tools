@@ -100,7 +100,7 @@ async function bootstrap() {
 		logging.logInfo(color.supportsRunnerColor() ? `${color.ANSI.GREEN}${message}${color.ANSI.RESET} ${color.ANSI.CYAN}${link}${color.ANSI.RESET}` : `${message} ${link}`);
 		logging.logInfo(`Allowed browser origins: ${[...ALLOWED_ORIGIN_HOSTS, ...config.SETTINGS.server.extraOrigins].join(", ")}`);
 		logging.logInfo(`Runner label: ${compiler.RUNNER_LABEL}`);
-		if (config.SETTINGS.update.check) void checkForUpdate(config.SETTINGS.update.repository, VERSION, logging.logInfo);
+		if (config.SETTINGS.update.check) void checkForUpdate(config.SETTINGS.update.repository, VERSION, (message) => logging.logInfo(color.colorizeWarning(message)));
 	});
 }
 
@@ -120,7 +120,7 @@ function shutdown(signal: string) {
  */
 export async function startServer(): Promise<void> {
 	server.on("error", (error) => {
-		logging.logError(`[Server] ${error.message}`);
+		logging.logError(color.colorizeError(`[Server] ${error.message}`));
 		process.exit(1);
 	});
 	process.on("SIGINT", () => shutdown("SIGINT"));
@@ -130,7 +130,7 @@ export async function startServer(): Promise<void> {
 		await bootstrap();
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
-		logging.logError(`[Bootstrap] ${message}`);
+		logging.logError(color.colorizeError(`[Bootstrap] ${message}`));
 		process.exit(1);
 	}
 }

@@ -111,7 +111,7 @@ async function postSubmitWithRetry(url: string, headers: Record<string, string>,
 			res.headers.get("retry-after"),
 			CLI_CONFIG.submitPostRetryBaseMs * (attempt + 1),
 		);
-		console.log(`Warning: submit is rate-limited (429). Retrying in ${waitMs}ms...`);
+		console.log(color.colorizeWarning(`Warning: submit is rate-limited (429). Retrying in ${waitMs}ms...`, "cli"));
 		await shared.sleep(waitMs);
 	}
 	throw new Error("Unreachable submit retry state.");
@@ -141,7 +141,7 @@ export async function submitToAtCoder(
 	} catch (error) {
 		if (String(error instanceof Error ? error.message : error).includes("(429)")) {
 			canTrackByDiff = false;
-			console.log("Warning: submissions/me is rate-limited (429). Continue submit without strict ID diff tracking.");
+			console.log(color.colorizeWarning("Warning: submissions/me is rate-limited (429). Continue submit without strict ID diff tracking.", "cli"));
 		} else {
 			throw error;
 		}

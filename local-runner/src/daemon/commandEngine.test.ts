@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
+import {stripAnsi} from "../utils/color";
 import {CommandEngine, type CommandLanguage, expandArguments, rewriteDebugFlag} from "./commandEngine";
 import {CanceledError, ensureLauncher, findOnPath} from "./processRunner";
 
@@ -84,7 +85,7 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 			outputLimitBytes: overrides.outputLimitBytes ?? 1024 * 1024,
 			maxPrograms: 10,
 			launcher: overrides.launcher === undefined ? launcher : overrides.launcher,
-			log: (message) => logs.push(message),
+			log: (message) => logs.push(stripAnsi(message)),
 		});
 	}
 

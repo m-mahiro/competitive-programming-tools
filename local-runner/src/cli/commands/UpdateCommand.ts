@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {PROJECT_ROOT, SETTINGS} from "../../config";
 import {findNewerRelease, installRelease} from "../../update/update";
+import * as color from "../../utils/color";
 import {VERSION} from "../../version";
 import {postToRunner} from "../runnerClient";
 import type {Command} from "./Command";
@@ -55,7 +56,7 @@ export class UpdateCommand implements Command {
 			console.log(`Local Runner ${VERSION} is the latest version.`);
 			return 0;
 		}
-		console.log(`Local Runner ${release.version} is available (installed: ${VERSION}).`);
+		console.log(color.colorizeWarning(`Local Runner ${release.version} is available (installed: ${VERSION}).`, "cli"));
 		if (option === "--check") {
 			console.log("Run update to install it.");
 			return 0;
@@ -80,7 +81,7 @@ export class UpdateCommand implements Command {
 				console.log(`Installing ${fileCount} files into ${PROJECT_ROOT}...`);
 			},
 		});
-		console.log(`Updated Local Runner to ${release.version}. The settings file was not changed.`);
+		console.log(color.colorizeSuccess(`Updated Local Runner to ${release.version}. The settings file was not changed.`, "cli"));
 		return 0;
 	}
 }

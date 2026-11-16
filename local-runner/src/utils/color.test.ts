@@ -1,5 +1,5 @@
 import {afterAll, afterEach, describe, expect, spyOn, test} from "bun:test";
-import {ANSI, colorizeStatus, supportsCliColor} from "./color";
+import {ANSI, colorizeError, colorizeNote, colorizeStatus, colorizeSuccess, colorizeWarning, supportsCliColor} from "./color";
 
 const originalForceColor = process.env.FORCE_COLOR;
 const originalNoColor = process.env.NO_COLOR;
@@ -45,5 +45,16 @@ describe("CLI の色", () => {
 		process.env.NO_COLOR = "1";
 		tty.mockReturnValue(true);
 		expect(colorizeStatus("AC")).toBe("AC");
+	});
+
+	test("文の種類ごとの色を付け、NO_COLOR なら付けない", () => {
+		delete process.env.NO_COLOR;
+		expect(colorizeWarning("w")).toBe(`${ANSI.YELLOW}w${ANSI.RESET}`);
+		expect(colorizeError("e")).toBe(`${ANSI.RED}e${ANSI.RESET}`);
+		expect(colorizeSuccess("s")).toBe(`${ANSI.GREEN}s${ANSI.RESET}`);
+		expect(colorizeNote("n")).toBe(`${ANSI.CYAN}n${ANSI.RESET}`);
+		process.env.NO_COLOR = "1";
+		expect(colorizeError("e")).toBe("e");
+		expect(colorizeError("e", "cli")).toBe("e");
 	});
 });
