@@ -1,7 +1,9 @@
 $ErrorActionPreference = "Stop"
 
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($null -eq $userPath) { $userPath = "" }
+if ($null -eq $userPath) {
+	$userPath = ""
+}
 $pathList = $userPath.Split(';', [System.StringSplitOptions]::RemoveEmptyEntries)
 
 if ($PSScriptRoot -in $pathList) {

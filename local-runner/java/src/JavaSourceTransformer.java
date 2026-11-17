@@ -126,7 +126,9 @@ final class JavaSourceTransformer {
 		return cachedIndex;
 	}
 
-	/** ライブラリのフォルダにある Java のソースを、名前の順で返します。package-info と module-info は型ではないので除きます。 */
+	/**
+	 * ライブラリのフォルダにある Java のソースを、名前の順で返します。package-info と module-info は型ではないので除きます。
+	 */
 	private List<Path> librarySources(final Path root) throws IOException {
 		try (Stream<Path> files = Files.walk(root)) {
 			return files.filter(path -> {
