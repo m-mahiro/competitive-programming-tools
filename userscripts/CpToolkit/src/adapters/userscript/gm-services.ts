@@ -13,10 +13,19 @@ export class GmClipboard implements Clipboard {
 	}
 }
 
+/** 指定しないと閉じるまで残るので、画面の内側の通知と同じ程度で閉じる。 */
+const NOTIFICATION_TIMEOUT_MS = 10_000;
+
 export class GmNotifier implements Notifier {
-	notify({title, text, url}: Notification): void {
-		// 通知のクリックはページの操作ではないので、window.open だとブロックされる
-		GM_notification({title, text, ...(url !== undefined && {onclick: () => GM_openInTab(url, {active: true})})});
+	notify({title, text, url, tag}: Notification): void {
+		GM_notification({
+			title,
+			text,
+			timeout: NOTIFICATION_TIMEOUT_MS,
+			...(tag !== undefined && {tag}),
+			// 通知のクリックはページの操作ではないので、window.open だとブロックされる
+			...(url !== undefined && {onclick: () => GM_openInTab(url, {active: true})}),
+		});
 	}
 }
 

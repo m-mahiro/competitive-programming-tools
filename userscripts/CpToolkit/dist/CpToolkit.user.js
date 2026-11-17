@@ -2,7 +2,7 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        2.1.1
+// @version        2.1.2
 // @description    競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
 // @description:en A toolkit of competitive programming helpers that can be switched on and off individually.
 // @description:ja 競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
@@ -2018,11 +2018,15 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		}
 	}
 
+	var NOTIFICATION_TIMEOUT_MS = 1e4;
+
 	class GmNotifier {
-		notify({title, text, url}) {
+		notify({title, text, url, tag}) {
 			GM_notification({
 				title,
 				text,
+				timeout: NOTIFICATION_TIMEOUT_MS,
+				...(tag !== undefined && {tag}),
 				...(url !== undefined && {onclick: () => GM_openInTab(url, {active: true})}),
 			});
 		}
@@ -7105,7 +7109,8 @@ ${inner}
 				const title = translate("clarNotifier.arrived").replace("{count}", String(added));
 				const text = document.querySelector(".contest-title")?.textContent?.trim() ?? contestId;
 				showToast({title, detail: text, tone: "warning", href: url, durationMs: TOAST_DURATION_MS});
-				if (options.desktop && !document.hasFocus()) notifier.notify({title, text, url});
+				if (options.desktop && !document.hasFocus())
+					notifier.notify({title, text, url, tag: `clar-notifier:${contestId}:${count}`});
 			};
 			const stop = ticker.start(TICK_INTERVAL_MS, () => {
 				const now = page.serverNow();
@@ -9440,7 +9445,8 @@ ${efficient_layout_default}`);
 					href: url,
 					durationMs: TOAST_DURATION_MS2,
 				});
-				if (options.desktop && !document.hasFocus()) notifier.notify({title, text: detail, url});
+				if (options.desktop && !document.hasFocus())
+					notifier.notify({title, text: detail, url, tag: `result-notifier:${submission.id}`});
 			};
 			const checkContest = async (id, submissions) => {
 				const url = buildAtCoderSubmissionStatusJsonUrl(

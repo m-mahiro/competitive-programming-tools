@@ -72,7 +72,7 @@ export const resultNotifier = defineFeature({
 				href: url,
 				durationMs: TOAST_DURATION_MS,
 			});
-			if (options.desktop && !document.hasFocus()) notifier.notify({title, text: detail, url});
+			if (options.desktop && !document.hasFocus()) notifier.notify({title, text: detail, url, tag: `result-notifier:${submission.id}`});
 		};
 
 		/** 結果を読めたら真を返す。ログインが切れると、ログインのページが 200 で返る。 */

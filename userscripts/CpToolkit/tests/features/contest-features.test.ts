@@ -75,6 +75,7 @@ describe("resultNotifier", () => {
 			title: "AC: A - Sum",
 			text: "12 ms",
 			url: "https://atcoder.jp/contests/abc1/submissions/123",
+			tag: "result-notifier:123",
 		}]);
 	});
 
@@ -231,7 +232,12 @@ describe("clarNotifier", () => {
 		expect(site.requests).toHaveLength(3);
 		expect(site.requests[0]?.url).toContain("/contests/abc1/clarifications/count?t=");
 		expect(sent.map(({title}) => title)).toEqual(["新しい Clar が 1 件あります", "新しい Clar が 2 件あります"]);
-		expect(sent[0]).toMatchObject({text: "ABC 1", url: "https://atcoder.jp/contests/abc1/clarifications"});
+		expect(sent[0]).toMatchObject({
+			text: "ABC 1",
+			url: "https://atcoder.jp/contests/abc1/clarifications",
+			tag: "clar-notifier:abc1:1",
+		});
+		expect(sent[1]?.tag).toBe("clar-notifier:abc1:3");
 	});
 
 	test("確認は1分に1回までにする", async () => {

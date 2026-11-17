@@ -8,6 +8,8 @@ export type Notification = {
 	readonly title: string;
 	readonly text: string;
 	readonly url?: string;
+	/** 同じ内容の通知を識別する。タブが重なって同時に通知しても、1つにまとめる。 */
+	readonly tag?: string;
 };
 
 export interface Notifier {

@@ -50,7 +50,7 @@ export const clarNotifier = defineFeature({
 			const title = translate("clarNotifier.arrived").replace("{count}", String(added));
 			const text = document.querySelector(".contest-title")?.textContent?.trim() ?? contestId;
 			showToast({title, detail: text, tone: "warning", href: url, durationMs: TOAST_DURATION_MS});
-			if (options.desktop && !document.hasFocus()) notifier.notify({title, text, url});
+			if (options.desktop && !document.hasFocus()) notifier.notify({title, text, url, tag: `clar-notifier:${contestId}:${count}`});
 		};
 
 		const stop = ticker.start(TICK_INTERVAL_MS, () => {
