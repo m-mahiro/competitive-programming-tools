@@ -105,14 +105,14 @@ update
 | コマンド                                                       | 説明                                                                                               |
 |----------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
 | `test <taskScreenName> <sourceFile>`                           | AtCoder のサンプルで実行し、AC か WA かを判定する                                                  |
-| `test <sourceFile>`                                            | フォルダとファイル名から問題を推定する(例: `test C_deque.java`)                                   |
+| `test <sourceFile>`                                            | フォルダとファイル名から問題を推定する(例: `test C_deque.java`)                                    |
 | `submit [-f] <taskScreenName> <sourceFile>`                    | サンプルがすべて AC なら提出する。`-f` で強制的に提出する                                          |
-| `submit [-f] <sourceFile>`                                     | フォルダとファイル名から問題を推定する(例: `submit A_2.java`)                                     |
+| `submit [-f] <sourceFile>`                                     | フォルダとファイル名から問題を推定する(例: `submit A_2.java`)                                      |
 | `localtest <sourceFile> [testDir]`                             | `.in` と `.out` を自動で探し、オフラインで実行して判定する                                         |
 | `run <sourceFile> [inputFile]`                                 | 1回だけ実行して出力を表示する。`inputFile` を省くと標準入力は空になる                              |
 | `crosscheck <actualSourceFile> <expectedSourceFile> [testDir]` | `.in` を入力に2つのコードを実行し、標準出力を比べる。`.out` は不要                                 |
 | `tomain <sourceFile> [outFile]`                                | 提出用のソースを `Main.java` など言語ごとの名前で書き出す。`-f` で上書きする                       |
-| `toclip <sourceFile>`                                         | 提出用のソースをクリップボードへコピーする。拡張子は省略可能                                     |
+| `toclip <sourceFile>`                                          | 提出用のソースをクリップボードへコピーする。拡張子は省略可能                                       |
 | `serve`                                                        | サーバーを起動し、準備が終わるまで待つ                                                             |
 | `stop`                                                         | サーバーを停止する                                                                                 |
 | `status`                                                       | サーバーの状態を表示する。稼働中なら終了コード 0、停止中なら 1                                     |
