@@ -44,13 +44,14 @@ describe("easyTest", () => {
 		submit: ReturnType<typeof mock>
 	} {
 		const anchor = document.createElement("span");
-		document.body.append(anchor);
+		const secondAnchor = document.createElement("span");
+		document.body.append(anchor, secondAnchor);
 		const buttons = document.createElement("div");
 		const results = document.createElement("div");
 		document.body.append(buttons, results);
 		const samples: readonly SampleCase[] = [
-			{title: "Sample 1", input: "1", output: "1", anchor},
-			{title: "Sample 2", input: "2", output: "2", anchor: null},
+			{title: "Sample 1", input: "1", output: "1", anchors: [anchor, secondAnchor]},
+			{title: "Sample 2", input: "2", output: "2", anchors: []},
 		];
 		return {
 			id: "atcoder",
@@ -135,9 +136,9 @@ describe("easyTest", () => {
 		});
 	});
 
-	test("サンプルの実行ボタンは置ける場所にだけ追加する", async () => {
+	test("サンプルの実行ボタンは、置ける場所のすべてに追加する", async () => {
 		await start(createSite(), echo);
-		expect([...document.querySelectorAll("button")].filter(({textContent}) => textContent === "Run")).toHaveLength(1);
+		expect([...document.querySelectorAll("button")].filter(({textContent}) => textContent === "Run")).toHaveLength(2);
 	});
 
 	test("すべて正解なら提出する", async () => {

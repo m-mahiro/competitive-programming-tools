@@ -33,15 +33,14 @@ submission:
   shortcut: Ctrl+Shift+Enter
   submitButtons: ['#submit']
 
-# サンプルの場所。コンテストにより問題文の書式が違うので、見つかるまで順に試す
+# 一言語分の問題文を起点に、書式に合うセレクタまで順に試す
 samples:
-  - {selector: '#task-statement p+pre.literal-block', container: .section}
-  - {selector: '#task-statement pre.source-code-for-copy', container: .part}
-  - {selector: '#task-statement .lang>*:nth-child(1) .div-btn-copy+pre', container: .part}
-  - {selector: '#task-statement .div-btn-copy+pre', container: .part}
-  - {selector: '#task-statement>.part pre.linenums', container: .part}
-  - {selector: '#task-statement>.part section>pre', container: .part}
-  - {selector: '#task-statement>.part:not(.io-style)>h3+section>pre', container: .part}
-  - {selector: '#task-statement pre', container: .part}
+  - {selector: 'p+pre.literal-block', container: .section}
+  - {selector: 'pre.source-code-for-copy', container: .part}
+  - {selector: '.div-btn-copy+pre', container: .part}
+  - {selector: ':scope>.part pre.linenums', container: .part}
+  - {selector: ':scope>.part section>pre', container: .part}
+  - {selector: ':scope>.part:not(.io-style)>h3+section>pre', container: .part}
+  - {selector: 'pre', container: .part}
   # maximum_cup_2018_d はサンプルも .io-style の中にある
-  - {selector: '#task-statement .div-btn-copy+pre', container: .part, insideIoStyle: true}
+  - {selector: '.div-btn-copy+pre', container: .part, insideIoStyle: true}

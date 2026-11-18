@@ -51,6 +51,19 @@ describe("statementHighlight", () => {
 		expect(document.querySelector("style")).toBeNull();
 	});
 
+	test("英語の見出しでも、対象の数字を強調してサンプルは除く", async () => {
+		document.body.innerHTML = `
+			<div id="task-statement">
+				<section><h3>Constraints</h3><p>1 to 100</p></section>
+				<section><h3>Sample Input 1</h3><p>42</p></section>
+			</div>`;
+		const dispose = await run(statementHighlight);
+		await wait(150);
+
+		expect([...document.querySelectorAll(".cp-number")].map((element) => element.textContent)).toEqual(["1", "100"]);
+		dispose?.();
+	});
+
 	test("設定すると 2 秒と 1024 MiB の制限も強調する", async () => {
 		renderStatement("Time Limit: 2 sec / Memory Limit: 1024 MiB");
 		const dispose = await run(statementHighlight, {alwaysEmphasizeLimits: true});
@@ -186,6 +199,24 @@ describe("statementCopy", () => {
 		expect(text).toContain("$N$");
 		expect(text).toContain("- a");
 		expect(text).not.toContain("入力例");
+	});
+
+	test("英語の問題文でも、サンプルを含めずにコピーする", async () => {
+		document.body.innerHTML = `
+			<h2 class="h2">A - Sample</h2>
+			<div id="task-statement">
+				<span class="lang-en">
+					<div class="part"><section><h3>Problem Statement</h3><p>Print <var>N</var>.</p></section></div>
+					<div class="part"><section><h3>Sample Input 1</h3><pre>1</pre></section></div>
+				</span>
+			</div>`;
+		const target = clipboard();
+		await run(statementCopy, undefined, {clipboard: target, statementConverter: new TurndownStatementConverter()});
+		document.querySelector<HTMLElement>(".pull-right button")?.click();
+
+		const text = target.write.mock.calls[0]?.[0] ?? "";
+		expect(text).toContain("### Problem Statement");
+		expect(text).not.toContain("Sample Input");
 	});
 
 	test("プレーンテキストでもコピーできる", async () => {
@@ -348,6 +379,20 @@ describe("efficientLayout", () => {
 		expect(document.querySelector(".cp-samples-row > div")?.children).toHaveLength(2);
 		expect(document.querySelector("details > .io-style")).not.toBeNull();
 		expect(document.querySelector("hr")).toBeNull();
+	});
+
+	test("日英併記の問題文では、言語ごとにサンプルを並べる", async () => {
+		const language = (name: string, input: string, output: string) => `<span class="lang-${name}">
+			<div class="io-style"><div class="part">I</div></div>
+			<div class="part"><h3>${input} 1</h3></div><div class="part"><h3>${output} 1</h3></div>
+		</span>`;
+		document.body.innerHTML = `<span class="lang">${language("ja", "入力例", "出力例")}${language("en", "Sample Input", "Sample Output")}</span>`;
+		await run(efficientLayout);
+
+		for (const name of ["ja", "en"]) {
+			expect(document.querySelectorAll(`.lang-${name} .cp-samples-row > div`)).toHaveLength(1);
+			expect(document.querySelector(`.lang-${name} .cp-samples-row > div`)?.children).toHaveLength(2);
+		}
 	});
 
 	test("部分点はサンプルに含めず、入力例と出力例の組を保つ", async () => {

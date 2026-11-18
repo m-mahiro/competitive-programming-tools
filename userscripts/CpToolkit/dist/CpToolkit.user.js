@@ -2,7 +2,7 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        2.1.2
+// @version        2.1.3
 // @description    競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
 // @description:en A toolkit of competitive programming helpers that can be switched on and off individually.
 // @description:ja 競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
@@ -3144,39 +3144,35 @@ a:focus > .cp-settings-entry {
 		},
 		samples: [
 			{
-				selector: "#task-statement p+pre.literal-block",
+				selector: "p+pre.literal-block",
 				container: ".section",
 			},
 			{
-				selector: "#task-statement pre.source-code-for-copy",
+				selector: "pre.source-code-for-copy",
 				container: ".part",
 			},
 			{
-				selector: "#task-statement .lang>*:nth-child(1) .div-btn-copy+pre",
+				selector: ".div-btn-copy+pre",
 				container: ".part",
 			},
 			{
-				selector: "#task-statement .div-btn-copy+pre",
+				selector: ":scope>.part pre.linenums",
 				container: ".part",
 			},
 			{
-				selector: "#task-statement>.part pre.linenums",
+				selector: ":scope>.part section>pre",
 				container: ".part",
 			},
 			{
-				selector: "#task-statement>.part section>pre",
+				selector: ":scope>.part:not(.io-style)>h3+section>pre",
 				container: ".part",
 			},
 			{
-				selector: "#task-statement>.part:not(.io-style)>h3+section>pre",
+				selector: "pre",
 				container: ".part",
 			},
 			{
-				selector: "#task-statement pre",
-				container: ".part",
-			},
-			{
-				selector: "#task-statement .div-btn-copy+pre",
+				selector: ".div-btn-copy+pre",
 				container: ".part",
 				insideIoStyle: true,
 			},
@@ -4405,9 +4401,9 @@ a:focus > .cp-settings-entry {
 		});
 	}
 
-	function parseSamples(page) {
+	function parseSamplesIn(root) {
 		for (const {selector, container, insideIoStyle} of atcoderSampleSelectors) {
-			const elements = [...page.querySelectorAll(selector)].filter((element) => {
+			const elements = [...root.querySelectorAll(selector)].filter((element) => {
 				if (insideIoStyle) return element.childElementCount === 0;
 				return !element.closest(".io-style") && !element.querySelector("var");
 			});
@@ -4418,11 +4414,25 @@ a:focus > .cp-settings-entry {
 					title: `Sample ${index + 1}`,
 					input: input.textContent ?? "",
 					output: output.textContent ?? "",
-					anchor: parent?.querySelector(".btn-copy") ?? parent?.querySelector("h1,h2,h3,h4,h5,h6") ?? input,
+					anchors: [
+						parent?.querySelector(".btn-copy") ?? parent?.querySelector("h1,h2,h3,h4,h5,h6") ?? input,
+					],
 				};
 			});
 		}
 		return [];
+	}
+
+	function parseSamples(page) {
+		const statement = page.getElementById("task-statement");
+		if (!statement) return [];
+		const languages = [...statement.querySelectorAll(".lang > .lang-ja, .lang > .lang-en")];
+		if (languages.length === 0) return parseSamplesIn(statement);
+		const [first = [], ...others] = languages.map(parseSamplesIn);
+		return first.map((sample, index) => ({
+			...sample,
+			anchors: [...sample.anchors, ...others.flatMap((samples) => samples[index]?.anchors ?? [])],
+		}));
 	}
 
 	class AtCoderSite extends JudgeSiteBase {
@@ -4503,7 +4513,7 @@ a:focus > .cp-settings-entry {
 			const response = await this.site.send({url: taskUri});
 			if (response.status !== 200) throw new Error(`Failed to fetch ${taskUri}: ${response.status}`);
 			const samples = parseSamples(new DOMParser().parseFromString(response.text, "text/html"));
-			return samples.map((sample) => ({...sample, anchor: null}));
+			return samples.map((sample) => ({...sample, anchors: []}));
 		}
 	}
 
@@ -4598,7 +4608,7 @@ a:focus > .cp-settings-entry {
 						title: `Sample ${samples.length + 1}`,
 						input: readSampleBlock(input),
 						output: readSampleBlock(output),
-						anchor,
+						anchors: [anchor],
 					});
 				});
 			}
@@ -4666,7 +4676,7 @@ a:focus > .cp-settings-entry {
 				title: `Sample ${index + 1}`,
 				input: block.querySelector(".input pre.content")?.textContent ?? "",
 				output: block.querySelector(".output pre.content")?.textContent ?? "",
-				anchor: block.querySelector(".input .title") ?? block,
+				anchors: [block.querySelector(".input .title") ?? block],
 			}));
 		}
 	}
@@ -4742,7 +4752,7 @@ a:focus > .cp-settings-entry {
 						title: `Sample ${index + 1}`,
 						input: input.textContent ?? "",
 						output: output.textContent ?? "",
-						anchor: sample.querySelector(".copy-sample-input") ?? sample,
+						anchors: [sample.querySelector(".copy-sample-input") ?? sample],
 					},
 				];
 			});
@@ -8247,11 +8257,17 @@ summary {
 			this.readSamples().then((samples) => {
 				const label = this.context.translate("easyTest.run");
 				for (const sample of samples) {
-					if (!(sample.anchor instanceof Element)) continue;
-					const button = this.createButton(label, "btn-primary btn-sm", () => void this.runSample(sample));
-					button.style.verticalAlign = "top";
-					button.style.marginLeft = "0.5em";
-					sample.anchor.after(button);
+					for (const anchor of sample.anchors) {
+						if (!(anchor instanceof Element)) continue;
+						const button = this.createButton(
+							label,
+							"btn-primary btn-sm",
+							() => void this.runSample(sample),
+						);
+						button.style.verticalAlign = "top";
+						button.style.marginLeft = "0.5em";
+						anchor.after(button);
+					}
 				}
 			});
 		}

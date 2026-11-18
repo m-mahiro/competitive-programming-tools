@@ -12,10 +12,10 @@ function pairs<T>(items: readonly T[]): Array<[T, T]> {
 	});
 }
 
-/** コンテストにより書式が違うので、サンプルが見つかるセレクタまで順に試す。 */
-function parseSamples(page: Document): SampleCase[] {
+/** コンテストにより書式が違うので、一言語分の問題文から、サンプルが見つかるセレクタまで順に試す。 */
+function parseSamplesIn(root: Element): SampleCase[] {
 	for (const {selector, container, insideIoStyle} of atcoderSampleSelectors) {
-		const elements = [...page.querySelectorAll(selector)].filter((element) => {
+		const elements = [...root.querySelectorAll(selector)].filter((element) => {
 			if (insideIoStyle) return element.childElementCount === 0;
 			return !element.closest(".io-style") && !element.querySelector("var");
 		});
@@ -26,11 +26,27 @@ function parseSamples(page: Document): SampleCase[] {
 				title: `Sample ${index + 1}`,
 				input: input.textContent ?? "",
 				output: output.textContent ?? "",
-				anchor: parent?.querySelector(".btn-copy") ?? parent?.querySelector("h1,h2,h3,h4,h5,h6") ?? input,
+				anchors: [parent?.querySelector(".btn-copy") ?? parent?.querySelector("h1,h2,h3,h4,h5,h6") ?? input],
 			};
 		});
 	}
 	return [];
+}
+
+/**
+ * 問題文が日英で並ぶので、本文は先頭の言語から取り、Run ボタンの置き場所は全言語から集める。
+ * 表示中の言語は切り替えのたびに変わるので、どちらが見えているかは見ない。
+ */
+function parseSamples(page: Document): SampleCase[] {
+	const statement = page.getElementById("task-statement");
+	if (!statement) return [];
+	const languages = [...statement.querySelectorAll(".lang > .lang-ja, .lang > .lang-en")];
+	if (languages.length === 0) return parseSamplesIn(statement);
+	const [first = [], ...others] = languages.map(parseSamplesIn);
+	return first.map((sample, index) => ({
+		...sample,
+		anchors: [...sample.anchors, ...others.flatMap((samples) => samples[index]?.anchors ?? [])],
+	}));
 }
 
 export class AtCoderSite extends JudgeSiteBase {
@@ -112,6 +128,6 @@ export class AtCoderSite extends JudgeSiteBase {
 		const response = await this.site.send({url: taskUri});
 		if (response.status !== 200) throw new Error(`Failed to fetch ${taskUri}: ${response.status}`);
 		const samples = parseSamples(new DOMParser().parseFromString(response.text, "text/html"));
-		return samples.map((sample) => ({...sample, anchor: null}));
+		return samples.map((sample) => ({...sample, anchors: []}));
 	}
 }

@@ -81,7 +81,7 @@ export class CodeforcesSite extends JudgeSiteBase {
 					title: `Sample ${samples.length + 1}`,
 					input: readSampleBlock(input),
 					output: readSampleBlock(output),
-					anchor,
+					anchors: [anchor],
 				});
 			});
 		}
@@ -150,7 +150,7 @@ export class CodeforcesMobileSite extends JudgeSiteBase {
 			title: `Sample ${index + 1}`,
 			input: block.querySelector(".input pre.content")?.textContent ?? "",
 			output: block.querySelector(".output pre.content")?.textContent ?? "",
-			anchor: block.querySelector(".input .title") ?? block,
+			anchors: [block.querySelector(".input .title") ?? block],
 		}));
 	}
 }

@@ -215,7 +215,8 @@ describe("AtCoderSite", () => {
 		const samples = await new AtCoderSite(bridge, noHttp).samples();
 		expect(samples).toHaveLength(1);
 		expect(samples[0]).toMatchObject({title: "Sample 1", input: "1 2", output: "3"});
-		expect(samples[0]?.anchor).toBe(document.querySelector(".btn-copy"));
+		expect(samples[0]?.anchors).toHaveLength(1);
+		expect(samples[0]?.anchors[0]).toBe(document.querySelector(".btn-copy") ?? undefined);
 	});
 
 	test("起動時に読み取ったサンプルを使い続ける", async () => {
@@ -238,13 +239,49 @@ describe("AtCoderSite", () => {
 		</div></div></div>`;
 		const samples = await new AtCoderSite(bridge, noHttp).samples();
 		expect(samples).toMatchObject([{input: "1", output: "2"}]);
-		expect(samples[0]?.anchor).toBe(document.querySelector(".btn-copy"));
+		expect(samples[0]?.anchors).toHaveLength(1);
+		expect(samples[0]?.anchors[0]).toBe(document.querySelector(".btn-copy") ?? undefined);
 	});
 
-	test("提出ページでは問題ページからサンプルを取得する", async () => {
+	describe("日英併記の問題ページ", () => {
+		const block = (title: string, body: string) => `<div class="part"><section><h3>${title}</h3><div class="div-btn-copy"></div><pre>${body}</pre></section></div>`;
+		const language = (name: string, style: string, ...parts: string[]) => `<span class="lang-${name}" style="${style}">${parts.join("")}</span>`;
+
+		test.each([
+			["日本語だけが表示されている", "", "display: none"],
+			["英語だけが表示されている", "display: none", ""],
+			["どちらも表示されていない(AtCoder の CSS の初期状態)", "display: none", "display: none"],
+		])("%s ときも、両方の言語に実行ボタンを置く", async (_, jaStyle, enStyle) => {
+			history.replaceState(null, "", "/contests/abc1/tasks/abc1_a");
+			document.body.innerHTML = `<div id="task-statement"><span class="lang">
+				${language("ja", jaStyle, block("入力例 1", "1"), block("出力例 1", "2"))}
+				${language("en", enStyle, block("Sample Input 1", "1"), block("Sample Output 1", "2"))}
+			</span></div>`;
+			const samples = await new AtCoderSite(bridge, noHttp).samples();
+			expect(samples).toHaveLength(1);
+			expect(samples[0]).toMatchObject({title: "Sample 1", input: "1", output: "2"});
+			expect(samples[0]?.anchors).toEqual([...document.querySelectorAll(".lang-ja h3, .lang-en h3")].filter((h3) => /入力例|Sample Input/.test(h3.textContent ?? "")));
+		});
+
+		test("サンプルの数が言語で違っても、ある分だけ置く", async () => {
+			history.replaceState(null, "", "/contests/abc1/tasks/abc1_b");
+			document.body.innerHTML = `<div id="task-statement"><span class="lang">
+				${language("ja", "", block("入力例 1", "1"), block("出力例 1", "2"), block("入力例 2", "3"), block("出力例 2", "4"))}
+				${language("en", "", block("Sample Input 1", "1"), block("Sample Output 1", "2"))}
+			</span></div>`;
+			const samples = await new AtCoderSite(bridge, noHttp).samples();
+			expect(samples.map((sample) => sample.anchors.length)).toEqual([2, 1]);
+		});
+	});
+
+	test("提出ページでは日英併記の問題から一言語分のサンプルを取得する", async () => {
 		history.replaceState(null, "", "/contests/abc1/submit");
 		document.body.innerHTML = '<select id="select-task"><option value="abc1_a" selected>A</option></select>';
-		const html = '<div id="task-statement"><div class="part"><section><pre>1</pre></section></div><div class="part"><section><pre>2</pre></section></div></div>';
+		const blocks = '<div class="part"><section><pre>1</pre></section></div><div class="part"><section><pre>2</pre></section></div>'
+			+ '<div class="part"><section><pre>3</pre></section></div><div class="part"><section><pre>4</pre></section></div>';
+		const html = `<div id="task-statement"><span class="lang">
+			<span class="lang-ja">${blocks}</span><span class="lang-en">${blocks}</span>
+		</span></div>`;
 		const http = new FakeHttpClient(() => ({status: 200, text: html}));
 		const site = new AtCoderSite(bridge, http);
 		const globals = globalThis as {unsafeWindow?: unknown};
@@ -252,7 +289,10 @@ describe("AtCoderSite", () => {
 		try {
 			const samples = await site.samples();
 			await site.samples();
-			expect(samples[0]).toMatchObject({input: "1", output: "2", anchor: null});
+			expect(samples).toEqual([
+				{title: "Sample 1", input: "1", output: "2", anchors: []},
+				{title: "Sample 2", input: "3", output: "4", anchors: []},
+			]);
 			expect(http.requests).toHaveLength(1);
 		} finally {
 			delete globals.unsafeWindow;
@@ -301,7 +341,8 @@ describe("YukicoderSite", () => {
 		document.body.innerHTML = '<div class="sample"><button class="copy-sample-input"></button><pre>1</pre><pre>2</pre></div>';
 		const samples = await new YukicoderSite(bridge).samples();
 		expect(samples[0]).toMatchObject({input: "1", output: "2"});
-		expect(samples[0]?.anchor).toBe(document.querySelector(".copy-sample-input"));
+		expect(samples[0]?.anchors).toHaveLength(1);
+		expect(samples[0]?.anchors[0]).toBe(document.querySelector(".copy-sample-input") ?? undefined);
 	});
 
 	test("CodeMirror のエディタからソースを読み書きする", () => {

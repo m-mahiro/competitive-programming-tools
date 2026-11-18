@@ -124,11 +124,13 @@ class EasyTest {
 		void this.readSamples().then((samples) => {
 			const label = this.context.translate("easyTest.run");
 			for (const sample of samples) {
-				if (!(sample.anchor instanceof Element)) continue;
-				const button = this.createButton(label, "btn-primary btn-sm", () => void this.runSample(sample));
-				button.style.verticalAlign = "top";
-				button.style.marginLeft = "0.5em";
-				sample.anchor.after(button);
+				for (const anchor of sample.anchors) {
+					if (!(anchor instanceof Element)) continue;
+					const button = this.createButton(label, "btn-primary btn-sm", () => void this.runSample(sample));
+					button.style.verticalAlign = "top";
+					button.style.marginLeft = "0.5em";
+					anchor.after(button);
+				}
 			}
 		});
 	}

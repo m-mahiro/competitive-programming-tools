@@ -73,7 +73,7 @@ export class YukicoderSite extends JudgeSiteBase {
 				title: `Sample ${index + 1}`,
 				input: input.textContent ?? "",
 				output: output.textContent ?? "",
-				anchor: sample.querySelector(".copy-sample-input") ?? sample,
+				anchors: [sample.querySelector(".copy-sample-input") ?? sample],
 			}];
 		});
 	}

@@ -1,8 +1,8 @@
 import type {JudgeLanguage, TestCase} from "@domain/execution/result";
 
 export type SampleCase = TestCase & {
-	/** Run ボタンを置く要素。ページの外から取得したサンプルでは null。 */
-	readonly anchor: object | null;
+	/** Run ボタンを置く要素。問題文が複数の言語で並ぶサイトでは、言語ごとに1つずつ持つ。ページの外から取得したサンプルでは空。 */
+	readonly anchors: readonly object[];
 };
 
 export type JudgeMounts = {
