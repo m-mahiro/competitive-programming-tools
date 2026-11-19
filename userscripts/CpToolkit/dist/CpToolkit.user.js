@@ -2,7 +2,7 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        2.1.4
+// @version        2.1.5
 // @description    競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
 // @description:en A toolkit of competitive programming helpers that can be switched on and off individually.
 // @description:ja 競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
@@ -8686,15 +8686,20 @@ ${efficient_layout_default}`);
 				item.addEventListener("mouseleave", () => item.classList.remove(OPEN_CLASS), {signal});
 			}
 			for (const wrapper of document.querySelectorAll(".j-dropdown_mypage")) {
-				const parts = wrapper.querySelectorAll(".header-mypage_btn, .header-mypage_detail");
+				const button = wrapper.querySelector(".header-mypage_btn");
+				if (!button) continue;
 				wrapper.addEventListener(
 					"mouseenter",
-					() => parts.forEach((part) => part.classList.add(ACTIVE_CLASS)),
+					() => {
+						if (!button.classList.contains(ACTIVE_CLASS)) button.click();
+					},
 					{signal},
 				);
 				wrapper.addEventListener(
 					"mouseleave",
-					() => parts.forEach((part) => part.classList.remove(ACTIVE_CLASS)),
+					() => {
+						if (button.classList.contains(ACTIVE_CLASS)) button.click();
+					},
 					{signal},
 				);
 			}

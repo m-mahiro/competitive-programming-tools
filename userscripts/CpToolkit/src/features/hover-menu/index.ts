@@ -21,11 +21,16 @@ export const hoverMenu = defineFeature({
 			item.addEventListener("mouseleave", () => item.classList.remove(OPEN_CLASS), {signal});
 		}
 		// 新しいヘッダー(ホーム、コンテスト一覧、ユーザーページなど)のユーザーメニューは、
-		// ボタンとメニュー本体の両方に active が付くと開く
+		// ボタンのクリックで開閉するので、重ねたときと離したときにそのクリックを起こす
 		for (const wrapper of document.querySelectorAll(".j-dropdown_mypage")) {
-			const parts = wrapper.querySelectorAll(".header-mypage_btn, .header-mypage_detail");
-			wrapper.addEventListener("mouseenter", () => parts.forEach(part => part.classList.add(ACTIVE_CLASS)), {signal});
-			wrapper.addEventListener("mouseleave", () => parts.forEach(part => part.classList.remove(ACTIVE_CLASS)), {signal});
+			const button = wrapper.querySelector<HTMLElement>(".header-mypage_btn");
+			if (!button) continue;
+			wrapper.addEventListener("mouseenter", () => {
+				if (!button.classList.contains(ACTIVE_CLASS)) button.click();
+			}, {signal});
+			wrapper.addEventListener("mouseleave", () => {
+				if (button.classList.contains(ACTIVE_CLASS)) button.click();
+			}, {signal});
 		}
 		return () => controller.abort();
 	},
