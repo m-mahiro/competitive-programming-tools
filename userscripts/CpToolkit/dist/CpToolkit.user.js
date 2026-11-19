@@ -2,7 +2,7 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        2.1.3
+// @version        2.1.4
 // @description    競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
 // @description:en A toolkit of competitive programming helpers that can be switched on and off individually.
 // @description:ja 競技プログラミングの補助機能をまとめ、機能ごとに ON/OFF できるようにします。
@@ -8667,6 +8667,7 @@ ${efficient_layout_default}`);
 
 	// CpToolkit/src/features/hover-menu/index.ts
 	var OPEN_CLASS = "open";
+	var ACTIVE_CLASS = "active";
 	var hoverMenu = defineFeature({
 		id: "hover-menu",
 		title: "hoverMenu.title",
@@ -8683,6 +8684,19 @@ ${efficient_layout_default}`);
 			for (const item of document.querySelectorAll(".nav > li:not(.pull-right)")) {
 				item.addEventListener("mouseenter", () => item.classList.add(OPEN_CLASS), {signal});
 				item.addEventListener("mouseleave", () => item.classList.remove(OPEN_CLASS), {signal});
+			}
+			for (const wrapper of document.querySelectorAll(".j-dropdown_mypage")) {
+				const parts = wrapper.querySelectorAll(".header-mypage_btn, .header-mypage_detail");
+				wrapper.addEventListener(
+					"mouseenter",
+					() => parts.forEach((part) => part.classList.add(ACTIVE_CLASS)),
+					{signal},
+				);
+				wrapper.addEventListener(
+					"mouseleave",
+					() => parts.forEach((part) => part.classList.remove(ACTIVE_CLASS)),
+					{signal},
+				);
 			}
 			return () => controller.abort();
 		},
