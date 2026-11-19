@@ -2,7 +2,7 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](efficient-layout.md)
 
-> View sample pairs side by side, with each pair sized to fit its contents.
+> Show samples side by side, with each pair's width fitted to its contents automatically.
 
 **This feature is off by default. Turn it on in the settings.**
 
@@ -18,11 +18,11 @@
 
 Open this feature’s “Detailed settings” in CP Toolkit.
 
-| Setting                                      | Default |
-|----------------------------------------------|---------|
-| How to size each sample pair                 | Auto    |
-| Fixed width (% of viewport width)            | `23`    |
-| Maximum width in auto mode (% of the screen) | `40`    |
+| Setting                                            | Default |
+|----------------------------------------------------|---------|
+| How to size each sample pair                       | Auto    |
+| Fixed width (% of the window width)                | `23`    |
+| Maximum width in auto mode (% of the window width) | `40`    |
 
 ## Pages
 

@@ -58,12 +58,12 @@ statementCopy.copied: 'Copied!'
 statementCopy.defaultTitle: 問題
 
 efficientLayout.title: サンプルの横並び
-efficientLayout.description: 入出力例を組ごとに横に並べ、内容に合わせて各組の幅を自動調整します。
+efficientLayout.description: 入出力例を横に並べ、幅は内容に合わせて自動で決めます。
 efficientLayout.widthMode: サンプル1組の幅の決め方
 efficientLayout.widthModeAuto: 自動（内容に合わせる）
 efficientLayout.widthModeFixed: 固定
 efficientLayout.sampleWidth: 固定時の幅（画面幅に対する %）
-efficientLayout.maxSampleWidth: 自動のときの上限(画面幅に対する %)
+efficientLayout.maxSampleWidth: 自動のときの上限（画面幅に対する %）
 efficientLayout.samples: 入出力例
 efficientLayout.ioFormat: 入出力形式
 
@@ -72,8 +72,8 @@ submissionQuery.description: 「すべての提出」と「自分の提出」を
 
 submissionShortcuts.title: AC 提出へのボタン
 submissionShortcuts.description: 問題ページから、実行時間順やコード長順などで AC 提出の一覧を開けます。
-submissionShortcuts.language: 言語(空欄ならすべて)
-submissionShortcuts.label: AC提出
+submissionShortcuts.language: 言語（空欄ならすべて）
+submissionShortcuts.label: AC 提出
 submissionShortcuts.time: 実行時間
 submissionShortcuts.length: コード長
 submissionShortcuts.created: 提出時間
@@ -114,8 +114,8 @@ sourceComments.style: 既定のコメントの形式
 sourceComments.styleLine: 単一行コメントを並べる
 sourceComments.styleBlock: 複数行コメント
 sourceComments.panel: ヘッダーとフッター
-sourceComments.header: ヘッダー(コードの先頭)
-sourceComments.footer: フッター(コードの末尾)
+sourceComments.header: ヘッダー（コードの先頭）
+sourceComments.footer: フッター（コードの末尾）
 sourceComments.placeholder: 参照元の URL など
 sourceComments.taskOnly: この問題のみ
 sourceComments.commentOut: 挿入時にコメントアウトする
@@ -130,7 +130,7 @@ sourceComments.variables: "{url} は問題の URL、{task} は問題の ID、{co
 sourceComments.notInserted: コメントを挿入していません
 sourceComments.unsupported: この言語はコメントの書き方が分からないので、挿入していません。
 taskStatus.title: 提出結果による問題の色分け
-taskStatus.description: 自分の提出結果に応じて、問題一覧と「問題」メニューを色分けします。
+taskStatus.description: 自分の提出結果に応じて、問題一覧と「問題」タブのドロップダウンを色分けします。
 taskStatus.acceptedColor: AC または得点のある問題の色
 taskStatus.rejectedColor: AC も得点もない提出済みの問題の色
 taskDropdown.title: 問題のドロップダウン
@@ -138,7 +138,7 @@ taskDropdown.description: 「問題」タブから各問題へ移動したり、
 taskDropdown.newTab: 新しいタブで開く
 taskDropdown.taskTable: 問題一覧
 taskDropdown.openAtOnce: まとめて開く
-taskDropdown.loadFailed: (読み込み失敗)
+taskDropdown.loadFailed: （読み込み失敗）
 taskDropdown.all: すべて
 taskDropdown.range: 範囲を指定
 taskDropdown.reverse: 逆順で開く
@@ -176,7 +176,7 @@ tessokuDifficulty.sortById: 問題番号順で並べ替え
 ratingGraph.title: レーティンググラフにパフォーマンスを表示
 ratingGraph.description: ユーザーページのレーティンググラフに、Rated 参加時のパフォーマンスを重ねて表示します。
 ratingGraph.recentByDefault: 最初は最近の結果だけを表示する
-ratingGraph.recentRange: "最近の結果の範囲(例: 20 で直近20回、50% で直近の半分)"
+ratingGraph.recentRange: "最近の結果の範囲（例：20 で直近20回、50% で直近の半分）"
 ratingGraph.recentRangeInvalid: "1 以上の整数か、1% から 100% の割合を入力してください。"
 ratingGraph.togglePerformance: パフォーマンスの ON/OFF
 ratingGraph.showAll: all
@@ -197,13 +197,13 @@ javaSubmit.removePackage: Local Runner がないときにパッケージ宣言�
 javaSubmit.renameClass: Local Runner がないときにクラス名を Main にする
 javaSubmit.fixDebug: Local Runner がないときに DEBUG を false にする
 javaSubmit.addHeader: 提出用のヘッダーを付ける
-javaSubmit.headerName: ヘッダーの名前(空欄なら既定)
+javaSubmit.headerName: ヘッダーの名前（空欄なら既定）
 javaSubmit.foldOnPaste: 貼り付け後にクラスとコメントを折りたたむ
 
 easyTest.title: Easy Test+
 easyTest.description: 問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。
 easyTest.precompile: Local Runner で編集中のコードを事前にコンパイルする
-easyTest.keyboardShortcuts: ショートカットを使う(Ctrl+Enter、Alt+Enter、Alt+Esc)
+easyTest.keyboardShortcuts: ショートカットを使う（Ctrl+Enter、Alt+Enter、Alt+Esc）
 easyTest.savedCodeLimit: コードを保存する問題数
 easyTest.allowableError: 許容誤差
 easyTest.run: Run
@@ -229,4 +229,4 @@ easyTest.restoreConfirm: 現在のコードを置き換えます。よろしい�
 
 paizaLanguage.title: paiza の言語選択
 paizaLanguage.description: paiza の提出ページで、あらかじめ指定した言語を自動選択します。
-paizaLanguage.language: "言語(例: c++, java, python3)"
+paizaLanguage.language: "言語（例：c++、java、python3）"

@@ -113,7 +113,7 @@ describe("submissionShortcuts", () => {
 		renderTitle();
 		await run(submissionShortcuts, {language: "Java"}, {page: createFakePage()});
 		const control = document.querySelector(".cp-title-control");
-		expect(control?.firstElementChild?.textContent).toBe("AC提出:");
+		expect(control?.firstElementChild?.textContent).toBe("AC 提出:");
 		const links = [...(control?.querySelectorAll<HTMLAnchorElement>(".btn-group a") ?? [])];
 		expect(links.map(({textContent}) => textContent)).toEqual(["実行時間", "コード長", "提出時間", "メモリ"]);
 		expect(links[0]?.getAttribute("href")).toContain("orderBy=time_consumption");

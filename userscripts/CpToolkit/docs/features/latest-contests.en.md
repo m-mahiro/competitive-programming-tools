@@ -9,7 +9,7 @@
 ## How it works
 
 - Hover over “Next contests” in the header to see the upcoming contests listed on the home page.
-- The list is fetched when the menu opens and cached for one hour.
+- The list is fetched when you open “Next contests” and cached for one hour.
 
 ## Pages
 

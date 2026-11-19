@@ -8,7 +8,7 @@
 
 ## How it works
 
-- Replaces the official contest introduction on the top page with links to past contests by type, such as ABC, ARC, AGC and AHC.
+- Replaces the official contest introduction on the top page with a link to the contest list and links to past contests by type: ABC, ARC, AGC and AHC.
 
 ## Pages
 

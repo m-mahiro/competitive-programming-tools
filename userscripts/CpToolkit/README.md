@@ -88,7 +88,7 @@ Tampermonkey の「設定を開く」、または AtCoder のヘッダーにあ�
 </thead>
 <tbody><tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/efficient-layout.md"><strong>サンプルの横並び</strong></a> <sub>既定で OFF</sub>&emsp;</td>
-<td>入出力例を組ごとに横に並べ、内容に合わせて各組の幅を自動調整します。</td>
+<td>入出力例を横に並べ、幅は内容に合わせて自動で決めます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-highlight.md"><strong>問題文の強調表示</strong></a>&emsp;</td>
@@ -158,7 +158,7 @@ Tampermonkey の「設定を開く」、または AtCoder のヘッダーにあ�
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/task-status.md"><strong>提出結果による問題の色分け</strong></a>&emsp;</td>
-<td>自分の提出結果に応じて、問題一覧と「問題」メニューを色分けします。</td>
+<td>自分の提出結果に応じて、問題一覧と「問題」タブのドロップダウンを色分けします。</td>
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/editorial-list.md"><strong>解説の一覧表示</strong></a>&emsp;</td>
@@ -255,7 +255,7 @@ KaTeX、Prettify、Pyodide、AtCoder Library は、版を固定して読み込�
 <li><strong>提出結果による問題の色分け</strong>: 問題一覧を開いたときと、ドロップダウンを初めて開いたときに、自分の提出一覧を全ページ順に取得します。開始から5分は取得しません。</li>
 <li><strong>問題のドロップダウン</strong>: コンテストごとに1回取得し、10日間記憶します。</li>
 <li><strong>解説の一覧表示</strong>: 画面に表示された解説だけを、0.5秒間隔で取得します。</li>
-<li><strong>次のコンテスト</strong>: メニューを開いたときだけ取得し、1時間記憶します。</li>
+<li><strong>次のコンテスト</strong>: 「次のコンテスト」を開いたときだけ取得し、1時間記憶します。</li>
 <li><strong>レーティンググラフにパフォーマンスを表示</strong>: ユーザーのページを開いたときに1回取得します。</li>
 <li><strong>Easy Test+</strong> は、提出ページで入出力例を取得します。AtCoder のコードテストで実行するときはコードと入力を送ります。</li>
 </ul>
@@ -287,7 +287,7 @@ AtCoder Custom Default Submissions、AtCoder Easy Test for Java、AtCoder Highli
 <details>
 <summary><b>旧スクリプトとの違い</b></summary>
 <ul>
-<li>提出タブの既定の絞り込みは廃止しました。AC 提出は問題ページの「AC提出」のボタンから開きます。</li>
+<li>提出タブの既定の絞り込みは廃止しました。AC 提出は問題ページの「AC 提出」のボタンから開きます。</li>
 <li>Easy Test+ は既定で OFF です。AtCoder Easy Test for Java から移行すると ON になります。</li>
 <li>デスクトップ通知は、別のタブを見ているときだけでなく、ブラウザから離れているときにも出します。</li>
 <li>Java Code Submitter の設定と、旧スクリプトで保存したコードは引き継ぎません。</li>

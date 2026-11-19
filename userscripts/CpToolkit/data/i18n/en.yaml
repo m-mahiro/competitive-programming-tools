@@ -57,12 +57,12 @@ statementCopy.copied: 'Copied!'
 statementCopy.defaultTitle: Task
 
 efficientLayout.title: Side-by-side samples
-efficientLayout.description: View sample pairs side by side, with each pair sized to fit its contents.
+efficientLayout.description: Show samples side by side, with each pair's width fitted to its contents automatically.
 efficientLayout.widthMode: How to size each sample pair
 efficientLayout.widthModeAuto: Automatic (fit to content)
 efficientLayout.widthModeFixed: Fixed
-efficientLayout.sampleWidth: Fixed width (% of viewport width)
-efficientLayout.maxSampleWidth: Maximum width in auto mode (% of the screen)
+efficientLayout.sampleWidth: Fixed width (% of the window width)
+efficientLayout.maxSampleWidth: Maximum width in auto mode (% of the window width)
 efficientLayout.samples: Samples
 efficientLayout.ioFormat: Input and output
 
@@ -70,14 +70,14 @@ submissionQuery.title: Keep submission filters
 submissionQuery.description: Keep search filters when switching between All Submissions and My Submissions.
 
 submissionShortcuts.title: AC submission buttons
-submissionShortcuts.description: Open accepted submissions for a task sorted by runtime, code length, submission time or memory usage.
+submissionShortcuts.description: Open accepted submissions for a task sorted by runtime, code size, submission time or memory.
 submissionShortcuts.language: Language (empty for all)
 submissionShortcuts.label: AC submissions
-submissionShortcuts.time: Time
-submissionShortcuts.length: Size
-submissionShortcuts.created: Submitted
+submissionShortcuts.time: Runtime
+submissionShortcuts.length: Code size
+submissionShortcuts.created: Submission time
 submissionShortcuts.memory: Memory
-submissionShortcuts.byTime: Show the button sorted by time
+submissionShortcuts.byTime: Show the button sorted by runtime
 submissionShortcuts.byLength: Show the button sorted by code size
 submissionShortcuts.byCreated: Show the button sorted by submission time
 submissionShortcuts.byMemory: Show the button sorted by memory
@@ -132,7 +132,7 @@ taskStatus.title: Task status colors
 taskStatus.description: Color tasks in the task list and the Tasks dropdown according to your submission results.
 taskStatus.acceptedColor: Color for tasks with an AC or a positive score
 taskStatus.rejectedColor: Color for attempted tasks with no AC or positive score
-taskDropdown.title: Task dropdown
+taskDropdown.title: Tasks dropdown
 taskDropdown.description: Open a task from the Tasks tab, or open several tasks at once.
 taskDropdown.newTab: Open in a new tab
 taskDropdown.taskTable: Task table

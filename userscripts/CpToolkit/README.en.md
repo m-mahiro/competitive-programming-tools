@@ -88,7 +88,7 @@ All features are enabled from the start, except those marked <sub>off by default
 </thead>
 <tbody><tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/efficient-layout.en.md"><strong>Side-by-side samples</strong></a> <sub>off by default</sub>&emsp;</td>
-<td>View sample pairs side by side, with each pair sized to fit its contents.</td>
+<td>Show samples side by side, with each pair's width fitted to its contents automatically.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-highlight.en.md"><strong>Statement highlighting</strong></a>&emsp;</td>
@@ -127,7 +127,7 @@ All features are enabled from the start, except those marked <sub>off by default
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-shortcuts.en.md"><strong>AC submission buttons</strong></a>&emsp;</td>
-<td>Open accepted submissions for a task sorted by runtime, code length, submission time or memory usage.</td>
+<td>Open accepted submissions for a task sorted by runtime, code size, submission time or memory.</td>
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-query.en.md"><strong>Keep submission filters</strong></a>&emsp;</td>
@@ -153,7 +153,7 @@ All features are enabled from the start, except those marked <sub>off by default
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/task-dropdown.en.md"><strong>Task dropdown</strong></a>&emsp;</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/task-dropdown.en.md"><strong>Tasks dropdown</strong></a>&emsp;</td>
 <td>Open a task from the Tasks tab, or open several tasks at once.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
@@ -253,9 +253,9 @@ KaTeX, Prettify, Pyodide and AtCoder Library are loaded at pinned versions. "Add
 <li><strong>Submission notifications</strong>: Checks only while you have submissions being judged. The interval follows the site, at least 1 second, and checking stops after 30 minutes. Failed requests increase the polling interval.</li>
 <li><strong>Clarification notifications</strong>: Checks once a minute during a contest, but not in the first 5 minutes</li>
 <li><strong>Task status colors</strong>: Fetches every page of your submissions in order when you open the task list or open the dropdown for the first time, but not in the first 5 minutes of a contest</li>
-<li><strong>Task dropdown</strong>: Fetches once per contest and remembers it for 10 days</li>
+<li><strong>Tasks dropdown</strong>: Fetches once per contest and remembers it for 10 days</li>
 <li><strong>All editorials</strong>: Fetches only the editorials shown on screen, every 0.5 seconds</li>
-<li><strong>Next contests</strong>: Fetches only when you open the menu and remembers it for 1 hour</li>
+<li><strong>Next contests</strong>: Fetches only when you open Next contests and remembers it for 1 hour</li>
 <li><strong>Performance on the rating graph</strong>: Fetches once when you open a user page</li>
 <li><strong>Easy Test+</strong> fetches samples on the submission page and sends code and input when you run an AtCoder custom test.</li>
 </ul>

@@ -7,7 +7,8 @@
 ## How it works
 
 - [Easy Test+](easy-test.en.md) uses this connection to run code. The [Java submission helper](java-submit.en.md) uses it to expand libraries and prepare submissions.
-- Set the URL of your own server. You can use [Local Runner](../../../../local-runner/README.md) or any server that implements the same API.
+- Set the URL of your own server. You can use [Local Runner](../../../../local-runner/README.md) or any server that implements the same API. Local Runner needs a separate installation.
+- If you run Local Runner on your computer with its default settings, use `http://localhost:8080` as the server URL.
 
 ## Detailed settings
 
