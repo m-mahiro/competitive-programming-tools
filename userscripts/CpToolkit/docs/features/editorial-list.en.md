@@ -2,14 +2,14 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](editorial-list.md)
 
-> Shows the editorials of every task on the editorial page.
+> Read editorials directly below their links on the editorials page.
 
 ![All editorials](../images/editorial-list.png)
 
 ## How it works
 
-- On the editorial page of a contest, the text of each editorial is expanded below its link so all of them can be read on one page
-- Only the editorials shown on screen are fetched, every 0.5 seconds
+- Scroll through the list to expand AtCoder-hosted editorials below their links. External links and editorials marked as spoilers stay collapsed.
+- Editorials are fetched at half-second intervals.
 
 ## Pages
 

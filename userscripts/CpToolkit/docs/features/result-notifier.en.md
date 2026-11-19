@@ -2,18 +2,17 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](result-notifier.md)
 
-> Shows the verdict right after judging finishes, on any page. Keep at least one AtCoder tab open.
+> Receive a notification when judging finishes.
 
 ## How it works
 
-- After you submit, the verdict is shown on any page as soon as judging finishes
-- While you are not looking at AtCoder, a desktop notification is also shown, both while you view another tab and while you are away from the browser
-- Your open AtCoder tabs do the checking. Keep at least one AtCoder tab open
-- The interval follows the site, at least 1 second. Submissions still judging after 30 minutes are no longer checked
+- Tracking starts when a pending submission appears on My Submissions. Keep at least one AtCoder tab open to receive the verdict.
+- Results appear on the AtCoder page. If you switch tabs or apps, you can also receive a desktop notification.
+- Polling follows the interval supplied by AtCoder, with a minimum of one second. Tracking stops after 30 minutes.
 
 ## Detailed settings
 
-Change these under "Detailed settings" of each feature in the settings.
+Open this feature’s “Detailed settings” in CP Toolkit.
 
 | Setting                                                   | Default |
 |-----------------------------------------------------------|---------|
@@ -21,5 +20,4 @@ Change these under "Detailed settings" of each feature in the settings.
 
 ## Pages
 
-- Every AtCoder page
-- AtCoder top page
+- All AtCoder pages

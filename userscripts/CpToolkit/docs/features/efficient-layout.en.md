@@ -2,7 +2,7 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](efficient-layout.md)
 
-> Places the input and output formats and samples side by side.
+> View sample pairs side by side, with each pair sized to fit its contents.
 
 **This feature is off by default. Turn it on in the settings.**
 
@@ -10,19 +10,19 @@
 
 ## How it works
 
-- Places the input and output formats side by side, and each sample pair next to the others. Scroll sideways when they do not fit
-- By default, each sample pair is as wide as its content
-- Set the sizing to "Fixed" to give every pair the same width as a percentage of the screen. **20 to 30 is recommended by the author**
+- The input and output formats appear side by side. Each sample input stays with its output, and the pairs sit in a row.
+- **By default, each pair adjusts to its longest line.** Pairs share any spare space. Scroll horizontally if the row does not fit.
+- For equal widths, select “Fixed” and enter a percentage of the viewport width.
 
 ## Detailed settings
 
-Change these under "Detailed settings" of each feature in the settings.
+Open this feature’s “Detailed settings” in CP Toolkit.
 
-| Setting                                             | Default |
-|-----------------------------------------------------|---------|
-| How to size each sample pair                        | Auto    |
-| Fixed width (% of the screen; 20 to 30 recommended) | `23`    |
-| Maximum width in auto mode (% of the screen)        | `40`    |
+| Setting                                      | Default |
+|----------------------------------------------|---------|
+| How to size each sample pair                 | Auto    |
+| Fixed width (% of viewport width)            | `23`    |
+| Maximum width in auto mode (% of the screen) | `40`    |
 
 ## Pages
 

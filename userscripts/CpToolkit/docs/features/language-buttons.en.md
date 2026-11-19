@@ -2,15 +2,14 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](language-buttons.md)
 
-> Saves your frequently used languages as a row of buttons, so you can switch to one in a single click. Pick the languages from the gear below the language selector.
+> Pin frequently used submission languages and switch between them with one click.
 
 ![Language switch buttons](../images/language-buttons.png)
 
 ## How it works
 
-- **Save your frequently used languages as a row of buttons.** The buttons appear below the language selector, and one click switches to that language
-- Pick the languages from the gear below the selector. The choice is saved, and the same buttons appear on task, submit and custom test pages
-- You no longer have to search the long language list each time
+- Click the gear below the language selector and choose the languages to pin.
+- The buttons appear on task, submission and custom test pages wherever those languages are available.
 
 ## Pages
 

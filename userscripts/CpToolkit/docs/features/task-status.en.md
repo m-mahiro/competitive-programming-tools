@@ -2,26 +2,24 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](task-status.md)
 
-> Colors the task list and the dropdown by all your submissions, including those after the contest. A task with an AC or a score counts as accepted.
+> Color tasks in the task list and the Tasks dropdown according to your submission results.
 
 ![Task status colors](../images/task-status.png)
 
 ## How it works
 
-- Colors the rows of the task list and the Tasks tab menu by the results of your submissions
-- Your submission list is read, so submissions both during and after the contest are reflected
-- A task with at least one AC or scored submission gets the accepted color (light green by default), and a task with submissions but none accepted gets the rejected color (light red by default). Submissions still being judged are not counted. In the image above, A to D are accepted, E is rejected, and F and G have no submissions
-- The colors can be changed in the detailed settings
-- Nothing is fetched while you are logged out or in the first 5 minutes of a contest
+- Colors in the task list and Tasks dropdown reflect your submissions, including those made after the contest.
+- By default, green means at least one AC or a positive score. Red means all judged submissions scored zero and none was accepted. Unattempted tasks stay uncolored. Pending submissions are excluded.
+- Results are fetched while you are signed in, starting five minutes after the contest begins.
 
 ## Detailed settings
 
-Change these under "Detailed settings" of each feature in the settings.
+Open this feature’s “Detailed settings” in CP Toolkit.
 
-| Setting                     | Default   |
-|-----------------------------|-----------|
-| Color of accepted tasks     | `#c3e6cb` |
-| Color of tasks not accepted | `#f5c6cb` |
+| Setting                                                | Default   |
+|--------------------------------------------------------|-----------|
+| Color for tasks with an AC or a positive score         | `#c3e6cb` |
+| Color for attempted tasks with no AC or positive score | `#f5c6cb` |
 
 ## Pages
 

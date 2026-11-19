@@ -1,16 +1,16 @@
-# Open menus on hover
+# Open dropdowns on hover
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](hover-menu.md)
 
-> Opens menus when the pointer moves over them.
+> Hover over your username, the language selector or the Results tab to open its dropdown.
 
-![Open menus on hover](../images/hover-menu.png)
+![Open dropdowns on hover](../images/hover-menu.png)
 
 ## How it works
 
-- Menus in the header and the contest tabs open when the pointer moves over them, without clicking
-- For example, moving over "Results" opens the menu with "All Submissions" and "My Submissions"
+- Hover over your username in the header to open your account options, including settings.
+- On contest pages, hover over the language selector to switch languages or over Results to open a submissions list.
 
 ## Pages
 
-- Every AtCoder page
+- AtCoder pages other than the site root (/)

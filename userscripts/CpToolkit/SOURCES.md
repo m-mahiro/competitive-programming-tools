@@ -2,13 +2,13 @@
 
 CP Toolkit の機能の出典をまとめます。各機能は元のスクリプトの動作を手本に作り直したもので、上流には追従しません。
 
-| 区分 | 意味                                                                                                 |
-|------|------------------------------------------------------------------------------------------------------|
-| 派生 | コードを引き継いだ。ライセンスの表記は [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) にある |
-| 模倣 | 公開されたスクリプトの動作を手本に、コードを写さずに作成した                                         |
-| 移植 | nsubaru のスクリプトを移した                                                                         |
-| 参照 | 類似する公開スクリプト。動作や実装を読み比べた                                                       |
-| 独自 | 手本がない                                                                                           |
+| 区分 | 意味                                                                                                       |
+|------|------------------------------------------------------------------------------------------------------------|
+| 派生 | コードを引き継いだ。ライセンスの表記は [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) にあります。 |
+| 模倣 | 公開されたスクリプトの動作を手本に、コードを写さずに作成しました。                                         |
+| 移植 | nsubaru のスクリプトを移しました。                                                                         |
+| 参照 | 類似する公開スクリプト。動作や実装を読み比べました。                                                       |
+| 独自 | 手本がありません。                                                                                         |
 
 作者とライセンスの欄は Greasy Fork と GitHub の表記です(2026-11-01 に確認)。「記載なし」は表記がないもの、「不明」は確認できなかったものです。模倣と参照ではコードを含めないので、配布物のライセンスには影響しません。
 
@@ -16,12 +16,12 @@ CP Toolkit の機能の出典をまとめます。各機能は元のスクリプ
 
 ### 表示
 
-| 機能                 | 区分 | スクリプト                                                                          | 作者      | ライセンス |
-|----------------------|------|-------------------------------------------------------------------------------------|-----------|------------|
-| ページ幅の拡張       | 移植 | AtCoder Widen Container                                                             | nsubaru   | MIT        |
-|                      | 参照 | [AtCoder Style Optimizer for Single Display](https://greasyfork.org/scripts/463585) | xero_cats | MIT        |
-|                      | 参照 | [AtCoder for Large Display](https://greasyfork.org/scripts/439100)                  | magurofly | CC0-1.0    |
-| メニューのホバー表示 | 模倣 | [Atcoder Easy Accordion](https://greasyfork.org/scripts/532617)                     | Rac75116  | MIT        |
+| 機能                         | 区分 | スクリプト                                                                          | 作者      | ライセンス |
+|------------------------------|------|-------------------------------------------------------------------------------------|-----------|------------|
+| ページ幅の拡張               | 移植 | AtCoder Widen Container                                                             | nsubaru   | MIT        |
+|                              | 参照 | [AtCoder Style Optimizer for Single Display](https://greasyfork.org/scripts/463585) | xero_cats | MIT        |
+|                              | 参照 | [AtCoder for Large Display](https://greasyfork.org/scripts/439100)                  | magurofly | CC0-1.0    |
+| ドロップダウンをホバーで開く | 模倣 | [Atcoder Easy Accordion](https://greasyfork.org/scripts/532617)                     | Rac75116  | MIT        |
 
 ### 問題文
 
@@ -39,19 +39,19 @@ CP Toolkit の機能の出典をまとめます。各機能は元のスクリプ
 
 ### 提出
 
-| 機能                     | 区分 | スクリプト                                                                                     | 作者        | ライセンス   |
-|--------------------------|------|------------------------------------------------------------------------------------------------|-------------|--------------|
-| 提出一覧の検索条件の保持 | 模倣 | [AtCoder Search Query Holder](https://greasyfork.org/scripts/460696)                           | gmmtea      | MIT          |
-| AC 提出へのボタン        | 派生 | [AtCoder Custom Default Submissions](https://greasyfork.org/scripts/393705)                    | ktnyori     | MIT          |
-|                          | 参照 | [AtCoder Add Submissions Shortcuts](https://greasyfork.org/scripts/463453)                     | xero_cats   | MIT          |
-|                          | 参照 | [AtCoder quickly check fastest codes](https://greasyfork.org/scripts/499102)                   | zica87      | GPL-3.0-only |
-| 言語の切り替えボタン     | 模倣 | [AtCoderLanguageButtons](https://greasyfork.org/scripts/421663)                                | magurofly   | 記載なし     |
-| ヘッダーとフッター       | 参照 | [AtCoder Template](https://greasyfork.org/scripts/438105)(言語ごとの保存)                      | magurofly   | CC0-1.0      |
-|                          | 参照 | [AtCoder Code Template](https://greasyfork.org/scripts/584183)(名前付きの保存、挿入内容の記憶) | kirameku    | MIT          |
-| 提出結果の通知           | 模倣 | [AtCoderResultNotifier](https://greasyfork.org/scripts/371225)                                 | satanic0258 | MIT          |
-|                          | 参照 | [comfortable-atcoder](https://github.com/urneighbor1/comfortable-atcoder)(判定の監視)          | urneighbor1 | 記載なし     |
-| テストケースの平均       | 模倣 | [AtCoderAverageResult](https://greasyfork.org/scripts/429155)                                  | merom686    | 記載なし     |
-| 提出の予約               | 模倣 | [AtCoder Submission Timer](https://greasyfork.org/scripts/451696)                              | Coki628     | MIT          |
+| 機能                       | 区分 | スクリプト                                                                                     | 作者        | ライセンス   |
+|----------------------------|------|------------------------------------------------------------------------------------------------|-------------|--------------|
+| 提出一覧の検索条件の保持   | 模倣 | [AtCoder Search Query Holder](https://greasyfork.org/scripts/460696)                           | gmmtea      | MIT          |
+| AC 提出へのボタン          | 派生 | [AtCoder Custom Default Submissions](https://greasyfork.org/scripts/393705)                    | ktnyori     | MIT          |
+|                            | 参照 | [AtCoder Add Submissions Shortcuts](https://greasyfork.org/scripts/463453)                     | xero_cats   | MIT          |
+|                            | 参照 | [AtCoder quickly check fastest codes](https://greasyfork.org/scripts/499102)                   | zica87      | GPL-3.0-only |
+| 言語の切り替えボタン       | 模倣 | [AtCoderLanguageButtons](https://greasyfork.org/scripts/421663)                                | magurofly   | 記載なし     |
+| コードのヘッダーとフッター | 参照 | [AtCoder Template](https://greasyfork.org/scripts/438105)(言語ごとの保存)                      | magurofly   | CC0-1.0      |
+|                            | 参照 | [AtCoder Code Template](https://greasyfork.org/scripts/584183)(名前付きの保存、挿入内容の記憶) | kirameku    | MIT          |
+| 提出結果の通知             | 模倣 | [AtCoderResultNotifier](https://greasyfork.org/scripts/371225)                                 | satanic0258 | MIT          |
+|                            | 参照 | [comfortable-atcoder](https://github.com/urneighbor1/comfortable-atcoder)(判定の監視)          | urneighbor1 | 記載なし     |
+| テストケースの平均         | 模倣 | [AtCoderAverageResult](https://greasyfork.org/scripts/429155)                                  | merom686    | 記載なし     |
+| 提出の予約                 | 模倣 | [AtCoder Submission Timer](https://greasyfork.org/scripts/451696)                              | Coki628     | MIT          |
 
 ### コンテスト
 
@@ -61,7 +61,7 @@ CP Toolkit の機能の出典をまとめます。各機能は元のスクリプ
 | 問題のドロップダウン         | 派生 | [AtCoder Listing Tasks](https://github.com/luuguas/AtCoderListingTasks)                | luuguas        | Apache-2.0 |
 |                              | 参照 | [AtCoder Dropdown Tasks](https://greasyfork.org/scripts/529085)                        | magurofly      | CC0-1.0    |
 |                              | 参照 | [atcoder_all_open](https://greasyfork.org/scripts/387471)                              | man hot        | 記載なし   |
-| 問題の正誤の色分け           | 模倣 | [atcoder-tasks-page-colorize-during-contests](https://greasyfork.org/scripts/426049)   | iilj           | MIT        |
+| 提出結果による問題の色分け   | 模倣 | [atcoder-tasks-page-colorize-during-contests](https://greasyfork.org/scripts/426049)   | iilj           | MIT        |
 |                              | 参照 | [atcoder-tasks-page-colorizer](https://greasyfork.org/scripts/380404)                  | keymoon        | MIT        |
 | 解説の一覧表示               | 模倣 | [View All Editorials(解説ぜんぶ見る)](https://greasyfork.org/scripts/416554)           | w0mbat         | 記載なし   |
 | トップページのコンテスト一覧 | 模倣 | [Add a link to the AtCoder contest description](https://greasyfork.org/scripts/579801) | kirameku       | MIT        |
@@ -75,10 +75,10 @@ CP Toolkit の機能の出典をまとめます。各機能は元のスクリプ
 
 ### 成績
 
-| 機能                                         | 区分 | スクリプト                                                      | 作者     | ライセンス |
-|----------------------------------------------|------|-----------------------------------------------------------------|----------|------------|
-| ユーザーページのグラフへのパフォーマンス表示 | 派生 | [AtCoder Perf Graph](https://greasyfork.org/scripts/476103)     | nzm_ort  | MIT        |
-|                                              | 参照 | [New AtCoder Perf Graph](https://greasyfork.org/scripts/586685) | kirameku | MIT        |
+| 機能                                     | 区分 | スクリプト                                                      | 作者     | ライセンス |
+|------------------------------------------|------|-----------------------------------------------------------------|----------|------------|
+| レーティンググラフにパフォーマンスを表示 | 派生 | [AtCoder Perf Graph](https://greasyfork.org/scripts/476103)     | nzm_ort  | MIT        |
+|                                          | 参照 | [New AtCoder Perf Graph](https://greasyfork.org/scripts/586685) | kirameku | MIT        |
 
 ### 実行環境
 
@@ -88,9 +88,10 @@ CP Toolkit の機能の出典をまとめます。各機能は元のスクリプ
 | Java の提出補助  | 移植 | Java Code Submitter                                                                             | nsubaru    | MIT        |
 |                  | 参照 | [AtCoder_submit_keyboard_shortcut](https://greasyfork.org/scripts/378760)                       | Osmium1008 | MIT        |
 |                  | 参照 | [Atcoder Submission Shortcut](https://greasyfork.org/scripts/509606)                            | Rac75116   | MIT        |
-| Local Runner     | 独自 |                                                                                                 |            |            |
 | paiza の言語選択 | 移植 | Paiza Language Selector                                                                         | nsubaru    | MIT        |
 | 更新の確認       | 参照 | [AtCoder Easy Test v2](https://greasyfork.org/scripts/433152)(1日に1回の確認と、更新へのリンク) | magurofly  | MIT        |
+
+Easy Test+ の実行サーバー連携は AtCoder Easy Test v2 にもあります。CP Toolkit では、編集中の事前コンパイルと Java の提出用変換にも Local Runner を使います。
 
 Paiza Language Selector に類似する公開スクリプトは見つかりませんでした。
 

@@ -6,8 +6,8 @@ CP Toolkit を変更する人向けの文書です。利用者向けの説明は
 
 | 文書                                   | 読者   | 内容                                                     |
 |----------------------------------------|--------|----------------------------------------------------------|
-| [README.md](./README.md)               | 利用者 | 導入、機能、通信、移行。Greasy Fork の説明文を兼ねる     |
-| [README.en.md](./README.en.md)         | 利用者 | README の英語版。Greasy Fork の英語の説明文を兼ねる      |
+| [README.md](./README.md)               | 利用者 | 導入、機能、通信、移行。Greasy Fork の説明文を兼ねます。 |
+| [README.en.md](./README.en.md)         | 利用者 | README の英語版。Greasy Fork の英語の説明文を兼ねます。  |
 | `docs/features/<機能の ID>.md`         | 利用者 | 機能ごとの詳細。英語版は `.en.md`、画像は `docs/images/` |
 | [COMPATIBILITY.md](./COMPATIBILITY.md) | 利用者 | 併用できるスクリプトと、併用を推奨しないスクリプト       |
 | [SOURCES.md](./SOURCES.md)             | 全員   | 各機能の出典                                             |
@@ -17,9 +17,9 @@ README は Greasy Fork でも読まれるので、リンクは絶対 URL で書�
 
 ## 公開の手順
 
-1. `meta.json` の `version` を、下の「版の付け方」に従って上げる
-2. `bun run --cwd userscripts build` で配布物を作る
-3. `main` へ push する。Greasy Fork は `dist/CpToolkit.user.js` の raw URL から同期する
+1. `meta.json` の `version` を、下の「版の付け方」に従って上げます。
+2. `bun run --cwd userscripts build` で配布物を作ります。
+3. `main` へ push します。Greasy Fork は `dist/CpToolkit.user.js` の raw URL から同期します。
 
 説明文は配布物とは別に同期します。Greasy Fork の設定に README の raw URL を指定するか、README の変更を貼り付けます。
 
@@ -73,23 +73,23 @@ app ──► features ──► application ──► catalog ──► domain 
 
 規則は文書ではなく検査で守ります。
 
-| 規則                   | 検査                                                                                                        |
-|------------------------|-------------------------------------------------------------------------------------------------------------|
-| 層の依存方向           | `tsc -b`。各層の `tsconfig.json` の `references` にない層は import できない                                 |
-| 使える環境 API         | `tsc -b`。層ごとの `lib` と `types` にない API は型エラーになる                                             |
-| YAML の形              | `tsc -b`。`catalog` で型に代入できなければ型エラーになる                                                    |
-| 型を消せば JS になる   | `tsc -b`。`erasableSyntaxOnly` により、引数プロパティ、`enum`、`namespace` は型エラーになる                 |
-| 機能どうしの独立性     | `tests/architecture.test.ts`                                                                                |
-| 文字列を HTML にしない | `tests/architecture.test.ts`。`innerHTML`、`insertAdjacentHTML`、`eval`、文字列の `setTimeout` などを禁じる |
-| YAML の内容            | `tests/data.test.ts`。正規表現の妥当性や ID の重複、外部ファイルの版の固定と integrity など                 |
+| 規則                   | 検査                                                                                                            |
+|------------------------|-----------------------------------------------------------------------------------------------------------------|
+| 層の依存方向           | `tsc -b`。各層の `tsconfig.json` の `references` にない層は import できません。                                 |
+| 使える環境 API         | `tsc -b`。層ごとの `lib` と `types` にない API は型エラーになります。                                           |
+| YAML の形              | `tsc -b`。`catalog` で型に代入できなければ型エラーになります。                                                  |
+| 型を消せば JS になる   | `tsc -b`。`erasableSyntaxOnly` により、引数プロパティ、`enum`、`namespace` は型エラーになります。               |
+| 機能どうしの独立性     | `tests/architecture.test.ts`                                                                                    |
+| 文字列を HTML にしない | `tests/architecture.test.ts`。`innerHTML`、`insertAdjacentHTML`、`eval`、文字列の `setTimeout` などを禁じます。 |
+| YAML の内容            | `tests/data.test.ts`。正規表現の妥当性や ID の重複、外部ファイルの版の固定と integrity など                     |
 
 ## データ
 
 人が管理する表はコードに書かず、次の順で考えます。
 
-1. サイトや API から実行時に取れるなら、データとして持たない
-2. 値だけが変わる表は `data/` の YAML に置く
-3. 分岐を伴う処理は TypeScript に残す
+1. サイトや API から実行時に取れるなら、データとして持ちません。
+2. 値だけが変わる表は `data/` の YAML に置きます。
+3. 分岐を伴う処理は TypeScript に残します。
 
 CSS は `.css` に分けます。YAML と CSS はビルド時に JS へ同梱されるので、配布物は1ファイルのままです。
 
@@ -105,10 +105,10 @@ YAML の型は `scripts/gen-data-types.ts` が `<name>.d.yaml.ts` として生�
 
 ## 機能の追加
 
-1. `src/features/<機能名>/index.ts` で `defineFeature` を使って宣言する
-2. 文言のキーを `data/i18n/ja.yaml` と `en.yaml` に追加する
-3. 対象ページが新しければ `data/judges/*.yaml` の `routes` に追加する
-4. `src/app/registry.ts` に登録する
+1. `src/features/<機能名>/index.ts` で `defineFeature` を使って宣言します。
+2. 文言のキーを `data/i18n/ja.yaml` と `en.yaml` に追加します。
+3. 対象ページが新しければ `data/judges/*.yaml` の `routes` に追加します。
+4. `src/app/registry.ts` に登録します。
 
 貼り付けたコードを加工する機能は、`editor.onPaste` ではなく `paste.add` に登録します。加工の順番が結果に影響するので、`order` の小さいものから順に実行します。
 
@@ -122,12 +122,12 @@ YAML の型は `scripts/gen-data-types.ts` が `<name>.d.yaml.ts` として生�
 
 ### 判定と Clar の確認
 
-- 提出の直後に一覧のページが開いた時点で最初の確認を行い、以降はサイトが返す `Interval` の間隔で確認する。下限は1秒
-- 確認の周期は Web Worker のタイマーで作る。ブラウザが背景のタブのタイマーを間引いても遅れない
-- 別のアプリを操作していても確認を止めない。提出から30分で打ち切る
-- 確認に失敗すると待ち時間を5秒から倍にしていき、最長で1分にする
-- 確認は1つのタブだけが行う。操作中のタブがあれば、そのタブが確認する
-- Clar の確認はサイトと同じ1分間隔
+- 提出の直後に一覧のページが開いた時点で最初の確認を行い、以降はサイトが返す `Interval` の間隔で確認します。下限は1秒です。
+- 確認の周期は Web Worker のタイマーで作ります。ブラウザが背景のタブのタイマーを間引いても遅れません。
+- 別のアプリを操作していても確認を止めません。提出から30分で打ち切ります。
+- 確認に失敗すると待ち時間を5秒から倍にしていき、最長で1分にします。
+- 確認は1つのタブだけが行います。操作中のタブがあれば、そのタブが確認します。
+- Clar の確認はサイトと同じ1分間隔です。
 
 ### 通信
 
@@ -139,18 +139,18 @@ YAML の型は `scripts/gen-data-types.ts` が `<name>.d.yaml.ts` として生�
 
 新しいバージョンがあるかは、導入されたスクリプト自身のヘッダーの `@updateURL` を取得して確かめます(`application/update/update-checker.ts`)。URL をコードに持たないので、GitHub から入れても Greasy Fork から入れても、入れた場所を見に行きます。Greasy Fork は配布のときにこの項目を自分の URL へ書き換えます。
 
-- 取得するのはヘッダーだけ(`Range` で先頭の 8KB)。`@version` を今のバージョンと比べる
-- 通信してよい配布元は `data/update.yaml` の `connect` に書く。ここに無い配布元から導入した場合は、確かめない。Tampermonkey が接続の許可を求める画面を出さないようにするため
-- 確認は1日に1回。通信の前に時刻を書き、失敗しても次の間隔まで繰り返さない
-- 知らせるのはバージョンごとに1回。設定画面には、新しいバージョンがある間ずっとリンクを出す
-- 更新は、`@downloadURL` を新しいタブで開くだけ。入れ替えは UserScript の管理ツールが行う
-- ページごとに ON/OFF する機能ではないので、`features` の機能としては登録せず、起動の処理(`app/bootstrap.ts`)と設定画面に組み込む
+- 取得するのはヘッダーだけ(`Range` で先頭の 8KB)。`@version` を今のバージョンと比べます。
+- 通信してよい配布元は `data/update.yaml` の `connect` に書きます。ここに無い配布元から導入した場合は、確かめません。Tampermonkey が接続の許可を求める画面を出さないようにするためです。
+- 確認は1日に1回。通信の前に時刻を書き、失敗しても次の間隔まで繰り返しません。
+- 知らせるのはバージョンごとに1回。設定画面には、新しいバージョンがある間ずっとリンクを出します。
+- 更新は、`@downloadURL` を新しいタブで開くだけ。入れ替えは UserScript の管理ツールが行います。
+- ページごとに ON/OFF する機能ではないので、`features` の機能としては登録せず、起動の処理(`app/bootstrap.ts`)と設定画面に組み込みます。
 
-### ヘッダーとフッター
+### コードのヘッダーとフッター
 
-- Java の変換があるときは、その後に追記する
-- 複数行コメントがない言語や、閉じる記号を含む文字列では単一行コメントで書く
-- シェバンのある言語と PHP の `<?php` では、その行の後ろにヘッダーを置く。PHP の `?>` で終わるコードでは、その前にフッターを置く
+- Java の変換があるときは、その後に追記します。
+- 複数行コメントがない言語や、閉じる記号を含む文字列では単一行コメントで書きます。
+- シェバンのある言語と PHP の `<?php` では、その行の後ろにヘッダーを置きます。PHP の `?>` で終わるコードでは、その前にフッターを置きます。
 
 ### Java の変換
 
@@ -168,28 +168,28 @@ Local Runner の既定の URL は `http://localhost:8080` です。利用者に�
 
 次の機能は AtCoder のページが使う仕組みに合わせています。
 
-| 機能                 | 参照したもの                                                                            |
-|----------------------|-----------------------------------------------------------------------------------------|
-| 言語の切り替えボタン | コンテストのページの言語の処理(`#select-lang select.current`、`defaultLang` の記憶)     |
-| 提出結果の通知       | コンテストのページの判定待ちの処理(`submissions/me/status/json` と応答の `Interval`)    |
-| Clar の通知          | コンテストのページの Clar の処理(`clarifications/count`、1分の間隔、開始直後を避ける)   |
-| 問題の正誤の色分け   | 自分の提出一覧(`/contests/<id>/submissions/me`)                                         |
-| バーチャル参加       | 参加のページの開始時刻(`#main-container time.fixtime-second`)、ページの `getServerTime` |
-| 問題の正誤の色       | AtCoder Problems の表の配色に近い、Bootstrap の `#c3e6cb` と `#f5c6cb`                  |
+| 機能                       | 参照したもの                                                                            |
+|----------------------------|-----------------------------------------------------------------------------------------|
+| 言語の切り替えボタン       | コンテストのページの言語の処理(`#select-lang select.current`、`defaultLang` の記憶)     |
+| 提出結果の通知             | コンテストのページの判定待ちの処理(`submissions/me/status/json` と応答の `Interval`)    |
+| Clar の通知                | コンテストのページの Clar の処理(`clarifications/count`、1分の間隔、開始直後を避ける)   |
+| 提出結果による問題の色分け | 自分の提出一覧(`/contests/<id>/submissions/me`)                                         |
+| バーチャル参加             | 参加のページの開始時刻(`#main-container time.fixtime-second`)、ページの `getServerTime` |
+| 問題の正誤の色             | AtCoder Problems の表の配色に近い、Bootstrap の `#c3e6cb` と `#f5c6cb`                  |
 
 ## 統合しないスクリプト
 
 更新が盛んなもの、サイトやデータの変更への追従が欠かせないものは統合しません。
 
-| スクリプト                                                                     | 理由                                                                        |
-|--------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| [AtCoder Easy Test v2](https://greasyfork.org/scripts/433152)                  | CP Toolkit の Easy Test+ は上流から分かれたもので、上流の更新には追従しない |
-| [ac-predictor](https://greasyfork.org/scripts/369954)                          | 更新が盛んで、サイトの変更への追従が欠かせない                              |
-| [atcoder-difficulty-display](https://greasyfork.org/scripts/397185)            | 更新が盛んで、外部のデータにも依存する                                      |
-| [AtCoderStandingsAnalysis](https://greasyfork.org/scripts/398439)              | 順位表のデータに強く依存し、機能も大きい                                    |
-| [atcoder-standings-difficulty-analyzer](https://greasyfork.org/scripts/419541) | 順位表のデータに強く依存し、機能も大きい                                    |
-| AtCoder History Exporter                                                       | 導入しない                                                                  |
-| AtCoder Problems Advanced Summary Exporter                                     | 導入しない                                                                  |
+| スクリプト                                                                     | 理由                                                                            |
+|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| [AtCoder Easy Test v2](https://greasyfork.org/scripts/433152)                  | CP Toolkit の Easy Test+ は上流から分かれたもので、上流の更新には追従しません。 |
+| [ac-predictor](https://greasyfork.org/scripts/369954)                          | 更新が盛んで、サイトの変更への追従が欠かせません。                              |
+| [atcoder-difficulty-display](https://greasyfork.org/scripts/397185)            | 更新が盛んで、外部のデータにも依存します。                                      |
+| [AtCoderStandingsAnalysis](https://greasyfork.org/scripts/398439)              | 順位表のデータに強く依存し、機能も大きいです。                                  |
+| [atcoder-standings-difficulty-analyzer](https://greasyfork.org/scripts/419541) | 順位表のデータに強く依存し、機能も大きいです。                                  |
+| AtCoder History Exporter                                                       | 導入しません。                                                                  |
+| AtCoder Problems Advanced Summary Exporter                                     | 導入しません。                                                                  |
 
 ## コマンド
 

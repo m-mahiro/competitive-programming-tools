@@ -2,12 +2,12 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](virtual-timer.md)
 
-> Shows the time until the start and the time left of a virtual participation in the corner clock. Open the virtual page once to record the start time.
+> See the time until your virtual contest starts and the time remaining once it begins.
 
 ## How it works
 
-- Shows the time until the start and the time left of a virtual participation in the clock in the lower right corner
-- The start time is recorded when you open the virtual participation page
+- After registering for a virtual contest, open the virtual participation page once to record your start time.
+- The lower-right clock counts down to the start and then to the end. Click it to switch between this timer and the standard clock.
 
 ## Pages
 

@@ -2,12 +2,12 @@
 
 競技プログラミング向けの補助ツールです。
 
-| ツール                                          | 内容                                                                             | 使い始める                                                                       |
-|-------------------------------------------------|----------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| [CP Toolkit](./userscripts/CpToolkit/README.md) | AtCoder などのページに補助機能を足す UserScript。機能ごとに ON/OFF できる        | [Greasy Fork からインストール](https://greasyfork.org/scripts/603262-cp-toolkit) |
-| [Local Runner](./local-runner/README.md)        | 解答を手元で実行、判定、提出する CLI とサーバー。Java のほかは処理系の導入が要る | [導入方法](./local-runner/README.md#導入)                                        |
+| ツール                                          | 内容                                                         | 導入方法                                                                         |
+|-------------------------------------------------|--------------------------------------------------------------|----------------------------------------------------------------------------------|
+| [CP Toolkit](./userscripts/CpToolkit/README.md) | AtCoder を中心に使える26の補助機能を1本にまとめた UserScript | [Greasy Fork からインストール](https://greasyfork.org/scripts/603262-cp-toolkit) |
+| [Local Runner](./local-runner/README.md)        | 解答を手元で実行・判定・提出する CLI とサーバー              | [導入方法](./local-runner/README.md#導入)                                        |
 
-CP Toolkit だけなら、インストールするだけで使えます。Local Runner は Java のライブラリの展開や、問題ページからの手元での実行に使います。
+CP Toolkit は単体で使えます。Java のライブラリを展開したり、問題ページから手元の環境で解答を実行したりする場合は、Local Runner を併用します。Java 以外の言語を実行するには、その言語の処理系も必要です。
 
 不具合や要望は [Issue](https://github.com/nsubaru11/competitive-programming-tools/issues) へお寄せください。
 

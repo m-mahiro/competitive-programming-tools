@@ -2,16 +2,15 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](paiza-language.md)
 
-> Selects the specified language on paiza submission pages. It does nothing until you set a language.
+> Automatically select your preferred language on paiza submission pages.
 
 ## How it works
 
-- Selects the language set in the detailed settings on paiza submission pages
-- Write the language like `c++`, `java` or `python3`. It does nothing until you set a language
+- Enter a language such as `c++`, `java` or `python3` in the detailed settings to select it automatically on submission pages. Leave the field blank to keep the current selection.
 
 ## Detailed settings
 
-Change these under "Detailed settings" of each feature in the settings.
+Open this feature’s “Detailed settings” in CP Toolkit.
 
 | Setting                            | Default |
 |------------------------------------|---------|

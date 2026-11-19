@@ -2,25 +2,28 @@
 
 競技プログラミングの解答を手元で実行、判定、提出するためのツールです。Java の解答は、JDK があればそのまま動きます。C++、C、Python、Go、Rust、Kotlin、C# は定義を用意してあり、処理系を自分で入れると使えます。設定を足せば、ほかの言語も動かせます。次の2つからなります。
 
-- **CLI**: AtCoder のサンプルでのテスト、提出、提出用コードの作成を行う
-- **サーバー**: 解答をコンパイルして実行する。Java を速く動かすために常駐する。[CP Toolkit](../userscripts/CpToolkit/README.md) からも接続できる
+- **CLI**: AtCoder のサンプルでのテスト、提出、提出用コードの作成を行います。
+- **サーバー**: 解答をコンパイルして実行します。Java を速く動かすために常駐します。[CP Toolkit](../userscripts/CpToolkit/README.md) からも接続できます。
 
 [CP Toolkit](../userscripts/CpToolkit/README.md) の Java の提出補助でライブラリの展開や `import` の補完を使うには、Local Runner と[ライブラリの設定](#ライブラリを使う)が必要です。
 
-動作確認は Windows(WSL)で行っています。
+Windows（WSL）で動作を確認しています。
+
+<a id="必須"></a>
 
 ## 必要なもの
 
-### 必須
+解答に使う言語にかかわらず、サーバーの実行には JDK 24 以降が必要です。
 
-- Windows では WSL。サーバーは既定で WSL の中で動く。WSL を使わない動かし方は、[設定](./docs/SETTINGS.md#server)の `backend` を参照
-- サーバーを動かす環境(Windows では WSL)の JDK 24 以降。Java 以外の言語だけを使うときも要る
+Windows では、既定の設定でサーバーが WSL 内で動作します。JDK は WSL 内にインストールしてください。Java の解答だけを実行する場合は、[サーバー設定の `backend`](./docs/SETTINGS.md#server) を変更して Windows の JDK を使うこともできます。
 
-### 任意
+<a id="任意"></a>
 
-- Java 以外の言語を使うなら、その処理系。Local Runner には含まれないので、サーバーを動かす環境(Windows では WSL)に自分で入れる。入っていない言語は使えないだけで、ほかの言語は動く。[言語](#言語)を参照
-- Java の解答から自分のライブラリを import して使うなら、そのソースのフォルダ。[Java のライブラリを使う](#ライブラリを使う)を参照
-- `submit` で AtCoder に提出するなら、AtCoder のログイン情報。[提出の準備](#提出の準備)を参照
+### 使う機能に応じた準備
+
+- **Java 以外の言語**を使う場合は、その言語の[処理系](#言語)をサーバーと同じ環境にインストールします。
+- **自分の Java ライブラリ**を使う場合は、[ソースフォルダを登録します](#ライブラリを使う)。
+- **AtCoder に提出**する場合は、`setsession` で[ログイン情報を保存します](#提出の準備)。
 
 ## 導入
 
@@ -74,10 +77,10 @@ local-runner test abc448_d D.java
 update
 ```
 
-- [Release](https://github.com/nsubaru11/competitive-programming-tools/releases) から配布物をダウンロードし、配布元が示す SHA-256 と照合してから入れ替えます。合わなければ、何も変えずに止まります
-- 設定ファイル(`local-runner.settings.json`)には触れません
-- サーバーが動いていれば止めます。次のコマンドで、新しいバージョンのサーバーが起動します
-- `update --check` は、新しいバージョンがあるかだけを表示します
+- [Release](https://github.com/nsubaru11/competitive-programming-tools/releases) から配布物をダウンロードし、配布元が示す SHA-256 と照合してから入れ替えます。合わなければ、何も変えずに止まります。
+- 設定ファイル(`local-runner.settings.json`)には触れません。
+- サーバーが動いていれば止めます。次のコマンドで、新しいバージョンのサーバーが起動します。
+- `update --check` は、新しいバージョンがあるかだけを表示します。
 
 サーバーは起動のたびに、新しいバージョンがあるかを GitHub へ1回だけ問い合わせます。あれば、起動のログと `status` に表示します。送るのは問い合わせだけで、コードや設定は送りません。設定の `update.check` を `false` にすると、問い合わせません。
 
@@ -85,43 +88,43 @@ update
 
 ## CP Toolkit とつなぐ
 
-1. `serve` でサーバーを起動する。`test` などのコマンドを実行すると自動でも起動する
-2. CP Toolkit の設定で「Local Runner」が有効で、接続先の URL が `http://localhost:8080` であることを確かめる
-3. 問題ページからも実行するなら、「Easy Test+」を有効にする
+1. `serve` でサーバーを起動します。`test` などのコマンドを実行すると自動でも起動します。
+2. CP Toolkit の設定で「Local Runner との連携」が有効で、接続先の URL が `http://localhost:8080` であることを確かめます。
+3. 問題ページからも実行するなら、「Easy Test+」を有効にします。
 
 ## 安全のために
 
 サーバーは受け取ったコードを実行するので、次の点に注意してください。
 
-- サーバーは `127.0.0.1` にだけ接続を許します。同じネットワークのほかの端末からは接続できません
-- ブラウザからの要求は、対応するジャッジサイトからのものだけを受け付けます。設定の `server.extraOrigins` に書いたオリジンは、追加で受け付けます
-- 同じ PC で動くプログラムからの要求は拒否できません
-- Local Runner 自身が外部と通信するのは、AtCoder(`test`、`submit`)と、更新の確認とダウンロードのための GitHub だけです。実行する解答が行う通信は制限しません
-- 実行するコードはサンドボックスに入らず、起動したユーザーの権限で動きます。内容を確認していないコードは実行しないでください
-- `REVEL_SESSION` は AtCoder のログイン情報です。他人に渡さないでください
+- サーバーは `127.0.0.1` にだけ接続を許します。同じネットワークのほかの端末からは接続できません。
+- ブラウザからの要求は、対応するジャッジサイトからのものだけを受け付けます。設定の `server.extraOrigins` に書いたオリジンは、追加で受け付けます。
+- 同じ PC で動くプログラムからの要求は拒否できません。
+- Local Runner 自身が外部と通信するのは、AtCoder(`test`、`submit`)と、更新の確認とダウンロードのための GitHub だけです。実行する解答が行う通信は制限しません。
+- 実行するコードはサンドボックスに入らず、起動したユーザーの権限で動きます。内容を確認していないコードは実行しないでください。
+- `REVEL_SESSION` は AtCoder のログイン情報です。他人に渡さないでください。
 
 ## コマンド
 
-| コマンド                                                       | 説明                                                                                               |
-|----------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
-| `test <taskScreenName> <sourceFile>`                           | AtCoder のサンプルで実行し、AC か WA かを判定する                                                  |
-| `test <sourceFile>`                                            | フォルダとファイル名から問題を推定する(例: `test C_deque.java`)                                    |
-| `submit [-f] <taskScreenName> <sourceFile>`                    | サンプルがすべて AC なら提出する。`-f` で強制的に提出する                                          |
-| `submit [-f] <sourceFile>`                                     | フォルダとファイル名から問題を推定する(例: `submit A_2.java`)                                      |
-| `localtest <sourceFile> [testDir]`                             | `.in` と `.out` を自動で探し、オフラインで実行して判定する                                         |
-| `run <sourceFile> [inputFile]`                                 | 1回だけ実行して出力を表示する。`inputFile` を省くと標準入力は空になる                              |
-| `crosscheck <actualSourceFile> <expectedSourceFile> [testDir]` | `.in` を入力に2つのコードを実行し、標準出力を比べる。`.out` は不要                                 |
-| `tomain <sourceFile> [outFile]`                                | 提出用のソースを `Main.java` など言語ごとの名前で書き出す。`-f` で上書きする                       |
-| `toclip <sourceFile>`                                          | 提出用のソースをクリップボードへコピーする。拡張子は省略可能                                       |
-| `serve`                                                        | サーバーを起動し、準備が終わるまで待つ                                                             |
-| `stop`                                                         | サーバーを停止する                                                                                 |
-| `status`                                                       | サーバーの状態を表示する。稼働中なら終了コード 0、停止中なら 1                                     |
-| `setlib <path>`                                                | Java のライブラリのフォルダを設定する。引数なしで現在の設定を表示し、`--clear` で解除する          |
-| `setheader <language\|name> <file>`                            | 言語の既定のヘッダーか、名前付きのヘッダーを設定する。引数なしで一覧を表示し、`--clear` で解除する |
-| `setsession`                                                   | `submit` に使う AtCoder のログイン情報を保存する                                                   |
-| `settings`                                                     | 全部の設定と今の値を表示する。既定値と違う項目には `*` が付く                                      |
-| `update`、`update --check`                                     | 最新のバージョンへ更新する。`--check` は、新しいバージョンがあるかだけを表示する                   |
-| `cacheclear -a`、`cacheclear -t <taskScreenName>`              | サンプルのキャッシュをすべて、または指定した問題の分だけ削除する                                   |
+| コマンド                                                       | 説明                                                                                                     |
+|----------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `test <taskScreenName> <sourceFile>`                           | AtCoder のサンプルで実行し、AC か WA かを判定します。                                                    |
+| `test <sourceFile>`                                            | フォルダとファイル名から問題を推定します（例：`test C_deque.java`）。                                    |
+| `submit [-f] <taskScreenName> <sourceFile>`                    | サンプルがすべて AC なら提出します。`-f` で強制的に提出します。                                          |
+| `submit [-f] <sourceFile>`                                     | フォルダとファイル名から問題を推定します（例：`submit A_2.java`）。                                      |
+| `localtest <sourceFile> [testDir]`                             | `.in` と `.out` を自動で探し、オフラインで実行して判定します。                                           |
+| `run <sourceFile> [inputFile]`                                 | 1回だけ実行して出力を表示します。`inputFile` を省くと標準入力は空になります。                            |
+| `crosscheck <actualSourceFile> <expectedSourceFile> [testDir]` | `.in` を入力に2つのコードを実行し、標準出力を比べます。`.out` は不要です。                               |
+| `tomain <sourceFile> [outFile]`                                | 提出用のソースを `Main.java` など言語ごとの名前で書き出します。`-f` で上書きします。                     |
+| `toclip <sourceFile>`                                          | 提出用のソースをクリップボードへコピーします。拡張子は省略できます。                                     |
+| `serve`                                                        | サーバーを起動し、準備が終わるまで待ちます。                                                             |
+| `stop`                                                         | サーバーを停止します。                                                                                   |
+| `status`                                                       | サーバーの状態を表示します。稼働中は終了コード 0、停止中は 1 を返します。                                |
+| `setlib <path>`                                                | Java のライブラリのフォルダを設定します。引数なしで現在の設定を表示し、`--clear` で解除します。          |
+| `setheader <language\|name> <file>`                            | 言語の既定のヘッダーか、名前付きのヘッダーを設定します。引数なしで一覧を表示し、`--clear` で解除します。 |
+| `setsession`                                                   | `submit` に使う AtCoder のログイン情報を保存します。                                                     |
+| `settings`                                                     | すべての設定項目と現在値を表示します。既定値と違う項目には `*` が付きます。                              |
+| `update`、`update --check`                                     | 最新のバージョンへ更新します。`--check` は、新しいバージョンがあるかだけを表示します。                   |
+| `cacheclear -a`、`cacheclear -t <taskScreenName>`              | サンプルのキャッシュをすべて、または指定した問題の分だけ削除します。                                     |
 
 `taskScreenName` は URL の `/tasks/` より後ろの部分です(例: `abc448_d`)。`sourceFile` の拡張子は省けます(`D` で `D.java` や `D.cpp` を探す)。
 
@@ -133,29 +136,29 @@ update
 
 `test`・`submit` にソースファイルを1つ渡すと、フォルダからコンテスト、ファイル名から問題を推定します。`abc351/src/java` で `test C_deque.java` を実行すると、C 問題のサンプルで `C_deque.java` を実行します。
 
-- `src` の親のフォルダ名をコンテスト名として使う
-- 問題記号は、拡張子を除いたファイル名の最後の `_` 以降を除き、小文字にしたもの。`C_deque.java` → `c`、`A_2.java` → `a`、`A15_1.java` → `a15`
-- 旧コンテスト・ABC/ARC 同時開催回では、画面に表示される問題記号から実際のタスク ID を復元する。例: ABC001 で `test a` → `abc001_1`、ABC042 で `test c` → `arc058_a`、ARC058 で `test c` → `arc058_a`
-- ARC058〜103 の完全指定は正式なタスク ID として扱う。たとえば `test arc058_c E.java` は E 問題、ARC058 のフォルダで `test c` は C 問題を指す
-- 別実装は `D_1.java` のように `_` で区切る。`D1.java`・`d1` の問題記号は `d1` になる
-- 拡張子は省略できる。`test c_deque` では、現在のフォルダから大小を区別せずに `C_deque.java`・`C_deque.cpp` などを探す。候補が複数あれば拡張子か `--lang` で選ぶ
-- `toclip` も同じソース選択を使う。問題の推定は行わず、どのフォルダでも `toclip C_deque.java`・`toclip c_deque` の形で使える
+- `src` の親のフォルダ名をコンテスト名として使います。
+- ファイル名から拡張子と最後の `_` 以降を取り除き、小文字にしたものを問題記号とします。たとえば `C_deque.java` は `c`、`A_2.java` は `a`、`A15_1.java` は `a15` になります。
+- 旧コンテスト・ABC/ARC 同時開催回では、画面に表示される問題記号から実際のタスク ID を復元します。ABC001 の `test a` は `abc001_1`、ABC042 と ARC058 の `test c` はどちらも `arc058_a` に対応します。
+- ARC058〜103 の完全指定は正式なタスク ID として扱います。たとえば `test arc058_c E.java` は E 問題、ARC058 のフォルダで `test c` は C 問題を指します。
+- 別実装は `D_1.java` のように `_` で区切ります。`D1.java`・`d1` の問題記号は `d1` になります。
+- 拡張子は省略できます。`test c_deque` では、現在のフォルダから大小を区別せずに `C_deque.java`・`C_deque.cpp` などを探します。候補が複数あれば拡張子か `--lang` で選びます。
+- `toclip` も同じソース選択を使います。問題の推定は行わず、どのフォルダでも `toclip C_deque.java`・`toclip c_deque` の形で使えます。
 
 ### オプション
 
 オプションは引数の前後どちらに置いても構いません。
 
-| オプション                    | 対象                                        | 説明                                                                                    |
-|-------------------------------|---------------------------------------------|-----------------------------------------------------------------------------------------|
-| `-f`, `--force`               | `submit`、`tomain`                          | `submit`: サンプルが AC でなくても提出する。`tomain`: 既存のファイルを上書きする        |
-| `-d`, `--debug[=true\|false]` | `test`、`localtest`、`run`                  | デバッグの有効と無効を切り替える(既定は有効)                                            |
-| `--lang=<name>`               | ソースを受け取るコマンド                    | 言語を設定での名前で選ぶ(既定は拡張子から)。`crosscheck` の比較相手は `--expected-lang` |
-| `--no-header`                 | `submit`、`tomain`、`toclip`                | 提出物の先頭にヘッダーを付けない                                                        |
-| `--header=<name>`             | `submit`、`tomain`、`toclip`                | `setheader` で `<name>` に設定したファイルをヘッダーに使う(既定は言語のヘッダー)        |
-| `--full`                      | `test`、`localtest`、`submit`、`crosscheck` | WA の差分を折りたたまず、全行を表示する(`--max-lines` より優先)                         |
-| `--wa-only`                   | `test`、`localtest`、`submit`、`crosscheck` | WA の差分のうち、一致しない行だけを表示する                                             |
-| `--max-lines=N`               | `test`、`localtest`、`submit`、`crosscheck` | WA の差分を折りたたむ行数を変える(既定は 20)                                            |
-| `--time-limit=N`              | `localtest`、`run`、`crosscheck`            | 実行時間の警告に使う制限(ms)。既定は 2000。表示だけで、実行は打ち切らない               |
+| オプション                    | 対象                                        | 説明                                                                                        |
+|-------------------------------|---------------------------------------------|---------------------------------------------------------------------------------------------|
+| `-f`, `--force`               | `submit`、`tomain`                          | `submit`: サンプルが AC でなくても提出します。`tomain`: 既存のファイルを上書きします。      |
+| `-d`, `--debug[=true\|false]` | `test`、`localtest`、`run`                  | デバッグの有効と無効を切り替えます(既定は有効)。                                            |
+| `--lang=<name>`               | ソースを受け取るコマンド                    | 言語を設定での名前で選びます(既定は拡張子から)。`crosscheck` の比較相手は `--expected-lang` |
+| `--no-header`                 | `submit`、`tomain`、`toclip`                | 提出物の先頭にヘッダーを付けません。                                                        |
+| `--header=<name>`             | `submit`、`tomain`、`toclip`                | `setheader` で `<name>` に設定したファイルをヘッダーに使います(既定は言語のヘッダー)。      |
+| `--full`                      | `test`、`localtest`、`submit`、`crosscheck` | WA の差分を折りたたまず、全行を表示します(`--max-lines` より優先)。                         |
+| `--wa-only`                   | `test`、`localtest`、`submit`、`crosscheck` | WA の差分のうち、一致しない行だけを表示します。                                             |
+| `--max-lines=N`               | `test`、`localtest`、`submit`、`crosscheck` | WA の差分を折りたたむ行数を変えます(既定は 20)。                                            |
+| `--time-limit=N`              | `localtest`、`run`、`crosscheck`            | 実行時間の警告に使う制限(ms)。既定は 2000。表示だけで、実行は打ち切りません。               |
 
 ### 実行例
 
@@ -189,25 +192,22 @@ test --lang=pypy abc448_d D.py
 
 ソースの拡張子から言語を選びます。`--lang=<名前>` を付けると、その言語で実行します。
 
-| 拡張子  | 名前      | 言語                                                    | 必要な処理系                 | 動作の確認 |
-|---------|-----------|---------------------------------------------------------|------------------------------|------------|
-| `.java` | `java`    | Java                                                    | JDK 24 以降                  | 済み       |
-| `.cpp`  | `cpp`     | C++23(AtCoder に合わせたオプションの GCC)               | GCC 15(`g++`)                | 済み       |
-| `.c`    | `c`       | C23                                                     | GCC 15(`gcc`)                | 済み       |
-| `.py`   | `cpython` | Python(CPython)。`--lang=pypy`、`--lang=codon` でも動く | `python3`、`pypy3`、`codon`  | 済み       |
-| `.go`   | `go`      | Go                                                      | `go`                         | 未検証     |
-| `.rs`   | `rust`    | Rust。外部のクレートは使えない                          | `rustc`                      | 未検証     |
-| `.kt`   | `kotlin`  | Kotlin(Kotlin/JVM)                                      | `kotlinc` と `java`          | 未検証     |
-| `.cs`   | `csharp`  | C#                                                      | .NET 10 以降の SDK(`dotnet`) | 未検証     |
+| 拡張子  | 名前      | 言語                                                          | 必要な処理系                 | 動作の確認 |
+|---------|-----------|---------------------------------------------------------------|------------------------------|------------|
+| `.java` | `java`    | Java                                                          | JDK 24 以降                  | 済み       |
+| `.cpp`  | `cpp`     | C++23(AtCoder に合わせたオプションの GCC)                     | GCC 15(`g++`)                | 済み       |
+| `.c`    | `c`       | C23                                                           | GCC 15(`gcc`)                | 済み       |
+| `.py`   | `cpython` | Python(CPython)。`--lang=pypy`、`--lang=codon` でも動きます。 | `python3`、`pypy3`、`codon`  | 済み       |
+| `.go`   | `go`      | Go                                                            | `go`                         | 未検証     |
+| `.rs`   | `rust`    | Rust。外部のクレートは使えません。                            | `rustc`                      | 未検証     |
+| `.kt`   | `kotlin`  | Kotlin(Kotlin/JVM)                                            | `kotlinc` と `java`          | 未検証     |
+| `.cs`   | `csharp`  | C#                                                            | .NET 10 以降の SDK(`dotnet`) | 未検証     |
 
-- Java 以外の言語は、定義を用意してあるだけです。処理系は Local Runner に含まれないので、サーバーを動かす環境(Windows では WSL)に自分で入れてください。入れたあと、`stop` と `serve` で起動し直すと使えます
-- 処理系が PATH に無いときは、設定の `languages` に場所を書きます
-- 使える言語と、処理系が見つからなかった言語は、`status` で確かめられます
-- 「未検証」の言語は、定義を書いただけで、動作を確かめていません。動かないときは、設定の `compile` と `run` を直してください
-- `.py` を PyPy で動かすのを既定にしたいときは、設定の `extensions` を変えます
-- コンパイルと実行のコマンドを設定に書けば、ほかの言語も足せます
+Java 以外の処理系は、サーバーと同じ環境（Windows の既定は WSL）にインストールしてください。PATH にない処理系は `languages` にパスを指定します。`stop`、`serve` の順に実行して再起動すると、`status` で使用可能な言語と、処理系が見つからなかった言語を確認できます。
 
-設定の書き方は [docs/SETTINGS.md](./docs/SETTINGS.md) の `languages` と `extensions` を参照してください。
+「未検証」の言語には定義を用意していますが、動作は未確認です。実行できない場合は `compile` と `run` を環境に合わせてください。ほかの言語も、コンパイルと実行のコマンドを定義すれば追加できます。
+
+`.py` の既定の実行環境を PyPy にするなど、拡張子と言語の対応は `extensions` で変更できます。言語の追加や切り替えの書き方は[設定リファレンス](./docs/SETTINGS.md)を参照してください。
 
 サンプルの結果には、実行時間とメモリを表示します。Java 以外は `mem=`(プロセスが使ったメモリの最大値)、Java は `alloc=`(実行中に確保したメモリの合計)で、意味が違います。
 
@@ -225,15 +225,11 @@ Java の解答では、自分のライブラリを import して使えます。�
 setlib C:\path\to\library\src
 ```
 
-- フォルダの名前は自由です。指定したフォルダの中の `.java` を、下の階層も含めてすべてライブラリとして扱います
-- パッケージは、各ファイルの `package` 宣言から決めます。型の名前は、ファイルの名前から決めます
-- 一部だけを使いたいときは、そのフォルダを指定します。`src` の下に `lib` と `patterns` があって `lib` だけを展開したいなら、`src/lib` を指定します
-- 指定したフォルダの `.java` は、すべてまとめてコンパイルします。テストのコードなど、単独でコンパイルできないものを含むフォルダは指定しないでください
-- 名前が `.` で始まるフォルダの中は読みません
-- 相対パスは、コマンドを実行したフォルダを基準にします。保存するのは絶対パスです
-- 設定は `local-runner.settings.json` の `languages.java.library` に保存します。Windows で設定したパスは、WSL のサーバーでも使えます
-- 設定したら `stop` のあと `serve` で読み込み直してください
-- `setlib` だけで現在の設定を表示し、`setlib --clear` で解除します
+`setlib` には任意の名前のフォルダを指定できます。配下の `.java` をまとめてコンパイルするので、単独でコンパイルできないテストコードなどは含めないでください。`src` の下に `lib` と `patterns` があり、`lib` だけを使いたい場合は `src/lib` を指定します。名前が `.` で始まるフォルダは読み飛ばします。
+
+パッケージ名には各ファイルの `package` 宣言を、型名にはファイル名を使います。相対パスはコマンドを実行したフォルダを基準に解決し、絶対パスを `local-runner.settings.json` の `languages.java.library` に保存します。Windows で登録したパスは WSL のサーバーでも使えます。
+
+`setlib` で現在の設定を表示し、`setlib --clear` で解除できます。設定を変更したら、`stop`、`serve` の順に実行して読み込み直してください。
 
 設定していなくても、サーバーはライブラリなしで起動します。ライブラリを使うコードは、設定を促すエラーになります。
 
@@ -243,12 +239,12 @@ setlib C:\path\to\library\src
 
 `run`、`localtest`、`test`、`crosscheck`、`tomain`、`toclip`、`submit` が、実行の前にライブラリの import を検出し、必要なクラスと依存するクラスを1つのソースへ展開します。
 
-- 展開したクラスは `Bundled library classes: ...` と表示する
-- `import lib.io.*;` のようなワイルドカードでも、実際に使っている型だけを展開する
-- 提出コードの元の import はコメントアウトして残す
-- import を書かなくても、単純名がライブラリの中で一意なら補完する。標準 API と同名のときは標準 API を優先する
-- ライブラリの `import static`、本文中の `lib.ds.unionfind.UnionFind` のような完全修飾の参照、展開すると単純名が衝突する型はエラーになる
-- 入出力のように大きくて毎回同じクラスは、設定の `languages.java.libraryLast` にパッケージを書くと、提出物の末尾へ回せる
+- 展開したクラスは `Bundled library classes: ...` と表示します。
+- `import lib.io.*;` のようなワイルドカードでも、実際に使っている型だけを展開します。
+- 提出コードの元の import はコメントアウトして残します。
+- import を書かなくても、単純名がライブラリの中で一意なら補完します。標準 API と同名のときは標準 API を優先します。
+- ライブラリの `import static`、本文中の `lib.ds.unionfind.UnionFind` のような完全修飾の参照、展開すると単純名が衝突する型はエラーになります。
+- 入出力のように大きくて毎回同じクラスは、設定の `languages.java.libraryLast` にパッケージを書くと、提出物の末尾へ回せます。
 
 提出用の `Main` にするのは、`public static void main(String[])` を持つトップレベルの型です。複数あるときは `Main` という名前の型を選びます。それも無いときや候補が無いときはエラーで止まります。
 
@@ -256,11 +252,11 @@ setlib C:\path\to\library\src
 
 手元の実行(`test`、`localtest`、`run`)では既定でデバッグを有効にし、`--debug=false` で無効にできます。提出物(`submit`、`tomain`、`toclip`)では常に無効にします。
 
-| 言語   | デバッグが有効なとき                   | 無効なとき、提出物           |
-|--------|----------------------------------------|------------------------------|
-| Java   | ソースの `DEBUG = true` のまま実行する | `DEBUG = false` に書き換える |
-| C++、C | `-DLOCAL` を付けてコンパイルする       | `-DLOCAL` を付けない         |
-| Python | ソースの `DEBUG = True` のまま実行する | `DEBUG = False` に書き換える |
+| 言語   | デバッグが有効なとき                       | 無効なとき、提出物               |
+|--------|--------------------------------------------|----------------------------------|
+| Java   | ソースの `DEBUG = true` のまま実行します。 | `DEBUG = false` に書き換えます。 |
+| C++、C | `-DLOCAL` を付けてコンパイルします。       | `-DLOCAL` を付けません。         |
+| Python | ソースの `DEBUG = True` のまま実行します。 | `DEBUG = False` に書き換えます。 |
 
 Go、Rust、Kotlin、C# の定義には、デバッグの切り替えはありません。設定の `debugArgs` と `debugRewrite` で足せます。
 
@@ -278,21 +274,21 @@ setheader java C:\path\to\header.txt
 setheader short C:\path\to\short.txt
 ```
 
-- 設定は `local-runner.settings.json` の `headers` に保存します。サーバーの再起動はいりません
-- 相対パスは、コマンドを実行したフォルダを基準にします。保存するのは絶対パスです
-- `setheader` だけで一覧を表示し、`setheader java --clear` で解除します
-- 設定が無ければヘッダーは付けません。設定したファイルが見つからないときはエラーで止まります
-- 名前付きのヘッダーは `--header=<name>` や CP Toolkit の「ヘッダーの名前」で選べます。設定が無い名前はエラーになります
-- `--no-header` で、ヘッダーを付けずに出力します
-- ソースがヘッダーの1行目で始まるときは、重ねて付けません
-- `run`、`test`、`localtest`、`crosscheck` と Easy Test+ の実行には付けません。行番号が元のソースと揃います
+- 設定は `local-runner.settings.json` の `headers` に保存します。サーバーの再起動はいりません。
+- 相対パスは、コマンドを実行したフォルダを基準にします。保存するのは絶対パスです。
+- `setheader` だけで一覧を表示し、`setheader java --clear` で解除します。
+- 設定が無ければヘッダーは付けません。設定したファイルが見つからないときはエラーで止まります。
+- 名前付きのヘッダーは `--header=<name>` や CP Toolkit の「ヘッダーの名前」で選べます。設定が無い名前はエラーになります。
+- `--no-header` で、ヘッダーを付けずに出力します。
+- ソースがヘッダーの1行目で始まるときは、重ねて付けません。
+- `run`、`test`、`localtest`、`crosscheck` と Easy Test+ の実行には付けません。行番号が元のソースと揃います。
 
 ## 実行時間の警告
 
 実行時間は、制限の 80% を超えると黄色、制限以上で赤で表示します。
 
-- `test`、`submit`: 問題ページの実行時間制限を使う
-- `localtest`、`run`、`crosscheck`: 制限が分からないので 2000ms を使う。`--time-limit=3000` のように指定できる
+- `test`、`submit`: 問題ページの実行時間制限を使います。
+- `localtest`、`run`、`crosscheck`: 制限が分からないので 2000ms を使います。`--time-limit=3000` のように指定できます。
 
 どちらも表示だけで、実行は設定の `run.timeoutMs`(既定は10秒)まで続きます。手元の実行は本番より速く出やすいので、目安として見てください。
 
@@ -304,9 +300,7 @@ setheader short C:\path\to\short.txt
 setsession
 ```
 
-- 貼り付けた値は、画面に表示しません
-- 保存先は、設定の `atcoder.sessionFile` です。既定では、ホームの `.atcoder/session.txt` です
-- ログインが切れたら、同じコマンドで保存し直します
+入力した値は画面に表示されません。保存先は設定項目 `atcoder.sessionFile` で指定できます。既定の保存先はホームディレクトリの `.atcoder/session.txt` です。ログインの有効期限が切れたら、もう一度 `setsession` で保存してください。
 
 ## 設定
 

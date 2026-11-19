@@ -2,21 +2,20 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](wide-layout.md)
 
-> Widens the central column of the page to the specified width.
+> Set the width of the main content column.
 
 ## How it works
 
-- Widens the central column to the width set in the detailed settings, such as `75%` or `1200px`. **`75%` is recommended by the author**
-- The width is empty by default, so nothing changes until you set one
+- Enter a width such as `75%` or `1200px`. Leave it blank to use AtCoder’s default width.
 
 ## Detailed settings
 
-Change these under "Detailed settings" of each feature in the settings.
+Open this feature’s “Detailed settings” in CP Toolkit.
 
-| Setting                                                                 | Default |
-|-------------------------------------------------------------------------|---------|
-| Width (e.g. 75%, 1200px; empty for the original width; 75% recommended) | (empty) |
+| Setting                                                   | Default |
+|-----------------------------------------------------------|---------|
+| Content width (e.g. 75% or 1200px, blank for the default) | (empty) |
 
 ## Pages
 
-- Every AtCoder page
+- AtCoder pages other than the site root (/)

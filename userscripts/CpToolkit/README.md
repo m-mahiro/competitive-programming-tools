@@ -1,7 +1,7 @@
 <div align="center">
 <h1>CP Toolkit</h1>
-<p><strong>競技プログラミングの補助機能を1本にまとめた UserScript</strong></p>
-<p>AtCoder を中心に、問題文、提出、コンテスト、成績のページを使いやすくします。機能ごとに ON/OFF できます。</p>
+<p><strong>26の機能を1本にまとめた競技プログラミング用 UserScript</strong></p>
+<p>AtCoder の入出力例を横に並べる、提出結果を通知する、「問題」タブから各問題へ移動するなど、使いたい機能だけを有効にできます。</p>
 <p><a href="https://greasyfork.org/scripts/603262-cp-toolkit"><img src="https://img.shields.io/greasyfork/v/603262?label=Greasy%20Fork&color=670000" alt="Greasy Fork の版"></a>
 <a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/THIRD_PARTY_NOTICES.md"><img src="https://img.shields.io/greasyfork/l/603262" alt="ライセンス"></a></p>
 <p><a href="https://greasyfork.org/scripts/603262-cp-toolkit"><strong>インストール</strong></a> ・ <a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/COMPATIBILITY.md">他のスクリプトとの併用</a> ・ <a href="https://github.com/nsubaru11/competitive-programming-tools/issues">不具合と要望</a> ・ <a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/README.en.md">English</a></p>
@@ -9,19 +9,19 @@
 
 ## 1. インストール
 
-1. ブラウザに [Tampermonkey](https://www.tampermonkey.net/) を入れる
-2. Chrome などの Chromium 系のブラウザでは、Tampermonkey の拡張機能の詳細で「ユーザー スクリプトを許可する」をオンにする
-3. [Greasy Fork のページ](https://greasyfork.org/scripts/603262-cp-toolkit)からインストールする
+1. ブラウザに [Tampermonkey](https://www.tampermonkey.net/) を入れます。
+2. Chrome などの Chromium 系のブラウザでは、Tampermonkey の拡張機能の詳細で「ユーザー スクリプトを許可する」をオンにします。
+3. [Greasy Fork のページ](https://greasyfork.org/scripts/603262-cp-toolkit)からインストールします。
 
 ## 2. 使い方
 
-Tampermonkey のメニューの「設定を開く」、または AtCoder のヘッダーの「CP Toolkit」から設定画面を開きます。各機能はここで ON/OFF できます。機能によっては、「詳細設定」で動作を変えられます。
+Tampermonkey の「設定を開く」、または AtCoder のヘッダーにある「CP Toolkit」から設定画面を開きます。各機能の ON/OFF や詳細設定を変更できます。「再読み込みで反映」と表示されたら、ページを再読み込みしてください。
 
-<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit の設定画面" width="420"></p>
+<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit の設定画面" width="640"></p>
 
-画面の文言は、サイトの言語に合わせて日本語と英語を切り替えます。
+「設定を書き出す」で、機能の ON/OFF と詳細設定を保存できます。設定画面は日本語と英語に対応しています。
 
-新しいバージョンがあると、画面の隅に1回だけ知らせ、設定画面の右下に「更新する」のリンクを出します。リンクを開くと、Tampermonkey の更新の画面になります。設定画面の「更新を確認」で、すぐに確かめることもできます。
+新しいバージョンがあると通知が届きます。設定画面の「更新する」から更新できます。手動で確認するには「更新を確認」を押します。
 
 ## 3. 対象サイト
 
@@ -34,7 +34,7 @@ Tampermonkey のメニューの「設定を開く」、または AtCoder のヘ�
 </thead>
 <tbody><tr>
 <td>AtCoder&emsp;</td>
-<td>paiza の言語選択以外のすべての機能</td>
+<td>paiza の言語選択を除く25機能</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td>yukicoder&emsp;</td>
@@ -69,11 +69,11 @@ Tampermonkey のメニューの「設定を開く」、または AtCoder のヘ�
 </thead>
 <tbody><tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/wide-layout.md"><strong>ページ幅の拡張</strong></a>&emsp;</td>
-<td>ページ中央の幅を、指定した幅に広げます(おすすめは 75%)</td>
+<td>ページ本文の表示幅を指定できます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/hover-menu.md"><strong>メニューのホバー表示</strong></a>&emsp;</td>
-<td>マウスを重ねるだけでメニューを開きます</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/hover-menu.md"><strong>ドロップダウンをホバーで開く</strong></a>&emsp;</td>
+<td>ユーザー名や表示言語、「提出結果」にマウスカーソルを重ねると、選択肢が開きます。</td>
 </tr>
 </tbody></table>
 
@@ -87,20 +87,20 @@ Tampermonkey のメニューの「設定を開く」、または AtCoder のヘ�
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-highlight.md"><strong>問題文の強調表示</strong></a>&emsp;</td>
-<td>数字、変数、実行時間とメモリの制限を強調します</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/efficient-layout.md"><strong>サンプルの横並び</strong></a> <sub>既定で OFF</sub>&emsp;</td>
+<td>入出力例を組ごとに横に並べ、内容に合わせて各組の幅を自動調整します。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/variable-hover.md"><strong>ホバーした変数と数値の強調</strong></a>&emsp;</td>
-<td>変数や数値に重ねると、同じ変数や数値をすべて強調します</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-highlight.md"><strong>問題文の強調表示</strong></a>&emsp;</td>
+<td>問題文の数値や変数、実行時間制限とメモリ制限を強調します。</td>
 </tr>
 <tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-copy.md"><strong>問題文のコピー</strong></a>&emsp;</td>
-<td>各項目と全体を Markdown またはプレーンテキストでコピーします</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/variable-hover.md"><strong>ホバーした変数と数値の強調</strong></a>&emsp;</td>
+<td>数式の変数や数値にマウスカーソルを重ねると、同じ問題内の同じ変数・数値を強調します。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/efficient-layout.md"><strong>サンプルの横並び</strong></a> <sub>既定で OFF</sub>&emsp;</td>
-<td>入出力の形式とサンプルを横に並べます</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-copy.md"><strong>問題文のコピー</strong></a>&emsp;</td>
+<td>問題文や制約などを項目ごとに、またはまとめてコピーできます。</td>
 </tr>
 </tbody></table>
 
@@ -114,32 +114,32 @@ Tampermonkey のメニューの「設定を開く」、または AtCoder のヘ�
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-query.md"><strong>提出一覧の検索条件の保持</strong></a>&emsp;</td>
-<td>「すべての提出」と「自分の提出」を切り替えても、検索条件を保ちます</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/result-notifier.md"><strong>提出結果の通知</strong></a>&emsp;</td>
+<td>判定が終わると、提出結果を通知します。</td>
+</tr>
+<tr style="background-color: rgba(128, 128, 128, 0.1)">
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/language-buttons.md"><strong>言語の切り替えボタン</strong></a>&emsp;</td>
+<td>よく使う提出言語を登録し、ボタンひとつで切り替えられます。</td>
+</tr>
+<tr>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/source-comments.md"><strong>コードのヘッダーとフッター</strong></a>&emsp;</td>
+<td>コード全体を貼り付けると、登録した文を先頭と末尾に追加します。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-shortcuts.md"><strong>AC 提出へのボタン</strong></a>&emsp;</td>
-<td>この問題の AC 提出を、実行時間、コード長、提出時間、メモリの順で開きます</td>
+<td>問題ページから、実行時間順やコード長順などで AC 提出の一覧を開けます。</td>
 </tr>
 <tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/language-buttons.md"><strong>言語の切り替えボタン</strong></a>&emsp;</td>
-<td>よく使う言語をボタンとして並べて保存し、1回の操作で切り替えます</td>
-</tr>
-<tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/source-comments.md"><strong>ヘッダーとフッター</strong></a>&emsp;</td>
-<td>貼り付けたコードの先頭と末尾に、参照元の URL などのコメントを追記します</td>
-</tr>
-<tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/result-notifier.md"><strong>提出結果の通知</strong></a>&emsp;</td>
-<td>判定が終わると、どのページにいてもすぐに通知します</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-query.md"><strong>提出一覧の検索条件の保持</strong></a>&emsp;</td>
+<td>「すべての提出」と「自分の提出」を切り替えても、検索条件を引き継ぎます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/average-result.md"><strong>テストケースの平均</strong></a>&emsp;</td>
-<td>提出の詳細に、実行時間とメモリの平均を表示します</td>
+<td>提出の詳細に、テストケースの平均実行時間と平均メモリ使用量を表示します。</td>
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-timer.md"><strong>提出の予約</strong></a> <sub>既定で OFF</sub>&emsp;</td>
-<td>指定した時間が経ったら提出します</td>
+<td>指定した時間後に、エディタにあるコードを提出します。</td>
 </tr>
 </tbody></table>
 
@@ -153,40 +153,40 @@ Tampermonkey のメニューの「設定を開く」、または AtCoder のヘ�
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/clar-notifier.md"><strong>Clar の通知</strong></a>&emsp;</td>
-<td>コンテスト中に運営からの回答や訂正が届くと通知します</td>
-</tr>
-<tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/task-dropdown.md"><strong>問題のドロップダウン</strong></a>&emsp;</td>
-<td>「問題」タブから各問題へ移動でき、複数の問題をまとめて開けます</td>
-</tr>
-<tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/task-status.md"><strong>問題の正誤の色分け</strong></a>&emsp;</td>
-<td>問題一覧とドロップダウンを、コンテスト後を含む自分の提出で色分けします</td>
+<td>「問題」タブから各問題へ移動したり、複数の問題をまとめて開いたりできます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/task-status.md"><strong>提出結果による問題の色分け</strong></a>&emsp;</td>
+<td>自分の提出結果に応じて、問題一覧と「問題」メニューを色分けします。</td>
+</tr>
+<tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/editorial-list.md"><strong>解説の一覧表示</strong></a>&emsp;</td>
-<td>すべての問題の解説をまとめて表示します</td>
-</tr>
-<tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/top-links.md"><strong>トップページのコンテスト一覧</strong></a>&emsp;</td>
-<td>種類ごとの過去問へのリンクに置き換えます</td>
+<td>解説一覧で、各解説の本文をリンクの下に展開します。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/latest-contests.md"><strong>次のコンテスト</strong></a>&emsp;</td>
-<td>ホームの「次のコンテスト」の一覧を、ヘッダーのメニューから開けます</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/tessoku-difficulty.md"><strong>鉄則本の難易度表示</strong></a>&emsp;</td>
+<td>『競技プログラミングの鉄則』の問題一覧に、書籍の難易度を表示します。</td>
+</tr>
+<tr>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/virtual-timer.md"><strong>バーチャル参加のタイマー</strong></a>&emsp;</td>
+<td>バーチャル参加の開始までの時間と、競技中の残り時間を表示します。</td>
+</tr>
+<tr style="background-color: rgba(128, 128, 128, 0.1)">
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/clar-notifier.md"><strong>Clar の通知</strong></a>&emsp;</td>
+<td>コンテスト中に運営からの回答や訂正が届くと通知します。</td>
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/contest-calendar.md"><strong>カレンダーへの登録</strong></a>&emsp;</td>
-<td>コンテストのページに、Google カレンダーへのリンクを置きます</td>
+<td>コンテスト名と開催日時を入力した Google カレンダーの予定作成画面を開けます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/virtual-timer.md"><strong>バーチャル参加のタイマー</strong></a>&emsp;</td>
-<td>開始までの時間と残り時間を、右下の時計に表示します</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/top-links.md"><strong>トップページのコンテスト一覧</strong></a>&emsp;</td>
+<td>トップページから、ABC・ARC・AGC・AHC の過去のコンテスト一覧を開けます。</td>
 </tr>
 <tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/tessoku-difficulty.md"><strong>鉄則本の難易度表示</strong></a>&emsp;</td>
-<td>「競技プログラミングの鉄則」の問題一覧に、書籍の難易度を表示します</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/latest-contests.md"><strong>次のコンテスト</strong></a>&emsp;</td>
+<td>ヘッダーから今後のコンテストを確認できます。</td>
 </tr>
 </tbody></table>
 
@@ -200,12 +200,12 @@ Tampermonkey のメニューの「設定を開く」、または AtCoder のヘ�
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/rating-graph.md"><strong>ユーザーページのグラフへのパフォーマンス表示</strong></a>&emsp;</td>
-<td>ユーザーページのレーティンググラフにパフォーマンスを重ね、最近の範囲を回数か割合で指定できます</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/rating-graph.md"><strong>レーティンググラフにパフォーマンスを表示</strong></a>&emsp;</td>
+<td>ユーザーページのレーティンググラフに、Rated 参加時のパフォーマンスを重ねて表示します。</td>
 </tr>
 </tbody></table>
 
-### 4.6 実行環境
+### 4.6 実行・提出の補助
 
 <table>
 <thead>
@@ -215,28 +215,24 @@ Tampermonkey のメニューの「設定を開く」、または AtCoder のヘ�
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.md"><strong>Java の提出補助</strong></a>&emsp;</td>
-<td>貼り付けたコードを提出用に変換し、ショートカットで提出できます</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/easy-test.md"><strong>Easy Test+</strong></a> <sub>既定で OFF</sub>&emsp;</td>
+<td>問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/local-runner.md"><strong>Local Runner</strong></a>&emsp;</td>
-<td>コードの変換と実行に使う、手元のサーバーへ接続します。同じ API を持つ自作のサーバーも使えます</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.md"><strong>Java の提出補助</strong></a>&emsp;</td>
+<td>貼り付けた Java コードを提出用に変換し、ショートカットで提出できます。</td>
 </tr>
 <tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/easy-test.md"><strong>Easy Test+</strong></a> <sub>既定で OFF</sub>&emsp;</td>
-<td>問題ページからサンプルを実行し、結果を確かめます</td>
-</tr>
-<tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/paiza-language.md"><strong>paiza の言語選択</strong></a>&emsp;</td>
-<td>paiza の提出ページで、指定した言語を自動で選びます。言語を設定するまでは動きません</td>
+<td>paiza の提出ページで、あらかじめ指定した言語を自動選択します。</td>
 </tr>
 </tbody></table>
 
 ## 5. 他のスクリプトとの併用
 
-CP Toolkit と同じ機能を持つスクリプトとの併用は推奨しません。ボタンや通知が二重になることがあるので、機能ごとにどちらか片方だけを使ってください。そのスクリプトを使い続ける場合は、CP Toolkit の設定で同じ機能をオフにしてください。
+同じ機能を持つスクリプトを使う場合は、重なる機能だけ片方を OFF にしてください。両方を有効にすると、ボタンや通知が重複することがあります。
 
-機能が重ならないスクリプトは、そのまま併用できます。たとえば ac-predictor、AtCoderStandingsAnalysis、atcoder-difficulty-display です。
+[ac-predictor](https://greasyfork.org/scripts/369954)、[AtCoderStandingsAnalysis](https://greasyfork.org/scripts/398439)、[atcoder-difficulty-display](https://greasyfork.org/scripts/397185) はそのまま併用できます。
 
 一覧は [他のスクリプトとの併用](https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/COMPATIBILITY.md) を参照してください。
 
@@ -244,26 +240,25 @@ CP Toolkit と同じ機能を持つスクリプトとの併用は推奨しませ
 
 このスクリプトは、作者のサーバーへ情報を送りません。AtCoder などの表示中のサイトのほかに、次の場合だけ外部と通信します。
 
-- **手元の Local Runner**(既定は `http://localhost:8080`): コードの変換と実行のために、コードを手元の PC へ送ります
-- **PaizaIO、Wandbox**: Easy Test+ でこれらを実行環境に選んだときだけ、コードと入力を送ります。ほかの実行環境から自動で切り替わることはありません
-- **jsDelivr**: 解説の数式とコードの表示に使う KaTeX と Prettify、ブラウザでの Python の実行に使う Pyodide、Wandbox の C++ で使う AtCoder Library を、必要なときだけ取得します
-- **このスクリプトの配布元**(GitHub か Greasy Fork。導入した方): 新しいバージョンがあるかを確かめるために、1日に1回、配布物のヘッダーだけを取得します。こちらからは何も送りません
+- **Local Runner** は、コードの変換・実行に使う接続先です。Easy Test+ で事前コンパイルが有効な場合は、編集中のコードも送ります。
+- **PaizaIO・Wandbox** で実行すると、そのサービスにコードと入力を送ります。内部エラー時にこれらのサービスへ自動で切り替えることはありません。Wandbox のコンパイラ一覧は、実行環境の候補を表示するときに取得し、24時間保存します。
+- **jsDelivr** から、解説の数式とコードの表示に使う KaTeX と Prettify、ブラウザでの Python の実行に使う Pyodide、Wandbox の C++ で使う AtCoder Library を、必要なときだけ取得します。
+- **更新確認**では、導入元の GitHub または Greasy Fork からバージョン情報を取得します。自動確認は1日1回です。解答コードや設定は送信しません。
 
 KaTeX、Prettify、Pyodide、AtCoder Library は、版を固定して読み込みます。「カレンダーへの登録」はリンクを置くだけで、開いたときにコンテストの情報が Google へ渡ります。
 
 <details>
 <summary><b>AtCoder への通信の頻度</b></summary>
 <ul>
-<li><strong>提出結果の通知</strong>: 判定中の提出があるときだけ確認します。間隔はサイトの指定に従い、下限は1秒、最長30分で打ち切ります</li>
-<li><strong>Clar の通知</strong>: コンテスト中に1分に1回確認します。開始から5分は確認しません</li>
-<li><strong>問題の正誤の色分け</strong>: 問題一覧を開いたときと、ドロップダウンを初めて開いたときに、自分の提出一覧を全ページ順に取得します。開始から5分は取得しません</li>
-<li><strong>問題のドロップダウン</strong>: コンテストごとに1回取得し、10日間記憶します</li>
-<li><strong>解説の一覧表示</strong>: 画面に表示された解説だけを、0.5秒間隔で取得します</li>
-<li><strong>次のコンテスト</strong>: メニューを開いたときだけ取得し、1時間記憶します</li>
-<li><strong>ユーザーページのグラフへのパフォーマンス表示</strong>: ユーザーのページを開いたときに1回取得します</li>
-<li><strong>Easy Test+</strong>: 実行したときだけ通信します。AtCoder のコードテストは、タブをまたいでも1件ずつ順番に実行します</li>
+<li><strong>提出結果の通知</strong>: 判定中の提出があるときだけ確認します。間隔はサイトの指定に従い、下限は1秒、最長30分で打ち切ります。通信に失敗すると確認間隔を延ばします。</li>
+<li><strong>Clar の通知</strong>: コンテスト中に1分に1回確認します。開始から5分は確認しません。</li>
+<li><strong>提出結果による問題の色分け</strong>: 問題一覧を開いたときと、ドロップダウンを初めて開いたときに、自分の提出一覧を全ページ順に取得します。開始から5分は取得しません。</li>
+<li><strong>問題のドロップダウン</strong>: コンテストごとに1回取得し、10日間記憶します。</li>
+<li><strong>解説の一覧表示</strong>: 画面に表示された解説だけを、0.5秒間隔で取得します。</li>
+<li><strong>次のコンテスト</strong>: メニューを開いたときだけ取得し、1時間記憶します。</li>
+<li><strong>レーティンググラフにパフォーマンスを表示</strong>: ユーザーのページを開いたときに1回取得します。</li>
+<li><strong>Easy Test+</strong> は、提出ページで入出力例を取得します。AtCoder のコードテストで実行するときはコードと入力を送ります。</li>
 </ul>
-<p>通信に失敗したときは、確認の間隔を広げます。</p>
 </details>
 
 ## 7. 旧スクリプトからの移行
@@ -276,10 +271,10 @@ AtCoder Custom Default Submissions、AtCoder Easy Test for Java、AtCoder Highli
 <summary><b>移行の手順</b></summary>
 <ol>
 <li>旧スクリプトを最終版へ更新し、CP Toolkit も入れる</li>
-<li>旧スクリプトが動くサイトを1つ開き、もう一度読み込む。設定は自動で引き継がれ、すでに CP Toolkit で設定した項目は上書きしません</li>
+<li>移行する旧スクリプトが動作するサイトを開き、ページを再読み込みする。paiza の設定を引き継ぐ場合は、paiza でも行う</li>
 <li>設定の反映を確認したら、旧スクリプトを削除する</li>
 </ol>
-<p>両方が入っている間は、旧スクリプトは本体を実行しません。設定はサイトをまたいで共有するので、サイトごとに繰り返す必要はありません。</p>
+<p>移行後は設定をサイト間で共有します。CP Toolkit で設定済みの項目は引き継ぎ時に上書きしません。</p>
 <p>引き継ぐ設定は次のとおりです。</p>
 <ul>
 <li><strong>AtCoder Easy Test for Java</strong>: 編集中のコードの事前コンパイルなどの設定、Local Runner の URL</li>
@@ -292,15 +287,15 @@ AtCoder Custom Default Submissions、AtCoder Easy Test for Java、AtCoder Highli
 <details>
 <summary><b>旧スクリプトとの違い</b></summary>
 <ul>
-<li>提出タブの既定の絞り込みは廃止しました。AC 提出は問題ページの「AC提出」のボタンから開きます</li>
-<li>Easy Test+ は既定で OFF です。旧版から移行すると ON になります</li>
-<li>デスクトップ通知は、別のタブを見ているときだけでなく、ブラウザから離れているときにも出します</li>
-<li>Java Code Submitter の設定と、Easy Test+ に保存したコードは引き継ぎません</li>
-<li>色の設定は <code>#rrggbb</code> の形式だけを受け付けます</li>
-<li>レーティンググラフの recent は、指定した範囲を表示します。既定は直近20回です</li>
-<li>ショートカットは、修飾キーまで完全に一致したときだけ動きます</li>
-<li>Easy Test+ の下部のパネルの設定ボタンは、CP Toolkit の設定画面を開きます</li>
-<li>Codeforces では、Easy Test+ のボタンは飾りのない表示になります</li>
+<li>提出タブの既定の絞り込みは廃止しました。AC 提出は問題ページの「AC提出」のボタンから開きます。</li>
+<li>Easy Test+ は既定で OFF です。AtCoder Easy Test for Java から移行すると ON になります。</li>
+<li>デスクトップ通知は、別のタブを見ているときだけでなく、ブラウザから離れているときにも出します。</li>
+<li>Java Code Submitter の設定と、旧スクリプトで保存したコードは引き継ぎません。</li>
+<li>色の設定は <code>#rrggbb</code> の形式だけを受け付けます。</li>
+<li>レーティンググラフの recent は、指定した範囲を表示します。既定は直近20回です。</li>
+<li>ショートカットは、修飾キーまで完全に一致したときだけ動きます。</li>
+<li>Easy Test+ の下部のパネルの設定ボタンは、CP Toolkit の設定画面を開きます。</li>
+<li>Codeforces では、Easy Test+ のボタンは飾りのない表示になります。</li>
 </ul>
 </details>
 

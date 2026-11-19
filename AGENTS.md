@@ -3,7 +3,7 @@
 ## リポジトリの概要
 
 - 解答を手元で実行・判定・提出する Local Runner と、ジャッジサイトの補助機能を足す UserScript（CP Toolkit）のソースを管理する。
-- Bun のワークスペース。`shared/`（共通コード）、`local-runner/`（CLI とサーバー）、`userscripts/`（UserScript）に分かれる。
+- Bun のワークスペースは `shared/`（共通コード）、`local-runner/`（CLI とサーバー）、`userscripts/`（UserScript）に分かれる。
 - 開発の入口は [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。CP Toolkit は [userscripts/CpToolkit/DEVELOPMENT.md](userscripts/CpToolkit/DEVELOPMENT.md)、Local Runner は [local-runner/docs/DEVELOPMENT.md](local-runner/docs/DEVELOPMENT.md) を読む。
 - このリポジトリ単独でビルドとテストができる。
 
@@ -13,7 +13,12 @@
 - 配布物が変わる変更では、`userscripts/CpToolkit/meta.json` の `version` を上げる。上げる位置は [DEVELOPMENT.md](userscripts/CpToolkit/DEVELOPMENT.md) の「版の付け方」に従う。文書、テスト、画像だけの変更では上げない。
 - パッケージの導入・更新は、利用者と合意してから行う。
 - `SCRIPT_NAMESPACE`（`userscripts/build.ts`）は旧名の `atcoder-java-tools` のまま変えない。変えると、インストール済みの UserScript が別物として扱われる。
-- 文書は既存の文体にそろえる。リンクはリポジトリ内の相対パスにする。
+
+## 文書の書き方
+
+- 利用者向けの説明と操作手順は「です・ます」で書き、AI 向けの指示は「〜する」「〜しない」で書く。見出しや項目名には名詞を使える。
+- 同じ箇条書きでは項目の形をそろえる。文には句点を付け、短い名称には付けない。理由や条件が続く説明は段落にまとめ、操作の順番には番号を付ける。
+- 概要には要点を書き、設定や例外の詳細は該当ページへ相対リンクで案内する。
 
 ## 検証
 
@@ -31,6 +36,6 @@
 
 ## Git
 
-- 公開リポジトリ。コミットの前に、差分にセッション、パスワード、トークン、メールアドレスがないか確かめる。
+- 公開リポジトリなので、コミットの前に、差分にセッション、パスワード、トークン、メールアドレスがないか確かめる。
 - コミットメッセージは日本語で `feat:`・`fix:`・`perf:`・`refactor:`・`docs:`・`chore:` を付ける。CP Toolkit や Local Runner のバージョンを上げたときは、「1.2.0 にする」のように書く。
 - push は頼まれたときだけ行う。force push はせず、push 済みの履歴は書き換えない。

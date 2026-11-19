@@ -6,10 +6,10 @@ CP Toolkit を使うだけなら、[CpToolkit/README.md](./CpToolkit/README.md) 
 
 ## 開発の流れ
 
-1. `userscripts/<ScriptName>/src/main.ts` を編集する(必要なら `@atcoder-tools/shared` を import する)
-2. `meta.json` で UserScript のヘッダー(`@match` など)を定義する
-3. `bun run build` で `dist/<ScriptName>.user.js` を生成する
-4. Tampermonkey に `dist/*.user.js` の URL を登録する
+1. `userscripts/<ScriptName>/src/main.ts` を編集します。必要に応じて `@atcoder-tools/shared` を import します。
+2. `meta.json` で UserScript のヘッダー(`@match` など)を定義します。
+3. `bun run build` で `dist/<ScriptName>.user.js` を生成します。
+4. Tampermonkey に `dist/*.user.js` の URL を登録します。
 
 ソースは複数のモジュールに分け、`shared` を使っても構いません。配布物だけが1ファイルの `.user.js` になります。
 
@@ -45,7 +45,7 @@ bun run --cwd userscripts ./build.ts CpToolkit
 ## 型定義
 
 - `types/userscript.d.ts`: `GM_*`、`unsafeWindow`、AtCoder のページ向けの Window の拡張
-- `tsconfig.json`: `build.ts`、`scripts/`、`types/` を型チェックする(`CpToolkit` は層ごとの `tsconfig.json` で検査する)
+- `tsconfig.json`: `build.ts`、`scripts/`、`types/` を型チェックします(`CpToolkit` は層ごとの `tsconfig.json` で検査する)。
 
 ## shared との関係
 
@@ -58,11 +58,11 @@ CP Toolkit は `@atcoder-tools/shared` の Local Runner API、ジャッジ、提
 | スクリプト                         | CP Toolkit の機能                     |
 |------------------------------------|---------------------------------------|
 | AtCoder Custom Default Submissions | AC 提出へのボタン(既定の絞り込みは廃止) |
-| AtCoder Easy Test for Java         | Easy Test+、Local Runner              |
+| AtCoder Easy Test for Java         | Easy Test+、Local Runner との連携              |
 | AtCoder Highlighter                | 問題文の強調表示                      |
 | AtCoder Listing Tasks              | 問題のドロップダウン                  |
 | AtCoder Markdown Copier            | 問題文のコピー                        |
-| AtCoder Performance Overlay        | ユーザーページのグラフへのパフォーマンス表示 |
+| AtCoder Performance Overlay        | レーティンググラフにパフォーマンスを表示 |
 | AtCoder Widen Container            | ページ幅の拡張                        |
 | Java Code Submitter                | Java の提出補助                       |
 
@@ -70,7 +70,7 @@ CP Toolkit は `@atcoder-tools/shared` の Local Runner API、ジャッジ、提
 
 最終版は次のように動きます。
 
-- ページの `data-cp-toolkit` の印で CP Toolkit の動作を判定し、動いていれば本体を実行しない
-- 動いていなければ本体を今までどおり実行し、CP Toolkit への移行を1回だけ案内する
-- 引き継ぐ設定をサイトの `localStorage` の `cp-toolkit:legacy:<スクリプト名>` へ書き出す。スクリプトごとの保存領域は CP Toolkit から読めないため
-- CP Toolkit は起動時にこれを読み、設定へ取り込んで受け渡し場所を空にする
+- ページの `data-cp-toolkit` の印で CP Toolkit の動作を判定し、動いていれば本体を実行しません。
+- 動いていなければ本体を今までどおり実行し、CP Toolkit への移行を1回だけ案内します。
+- 引き継ぐ設定をサイトの `localStorage` の `cp-toolkit:legacy:<スクリプト名>` へ書き出します。スクリプトごとの保存領域は CP Toolkit から読めないためです。
+- CP Toolkit は起動時にこれを読み、設定へ取り込んで受け渡し場所を空にします。

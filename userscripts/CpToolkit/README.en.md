@@ -1,7 +1,7 @@
 <div align="center">
 <h1>CP Toolkit</h1>
-<p><strong>A userscript that combines competitive programming helpers into one script</strong></p>
-<p>It focuses on AtCoder and improves the statement, submission, contest and results pages. Every feature can be switched on and off individually.</p>
+<p><strong>26 competitive programming features in one userscript</strong></p>
+<p>View samples side by side, get verdict notifications and jump between tasks on AtCoder. Turn on just the features you want.</p>
 <p><a href="https://greasyfork.org/scripts/603262-cp-toolkit"><img src="https://img.shields.io/greasyfork/v/603262?label=Greasy%20Fork&color=670000" alt="Greasy Fork version"></a>
 <a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/THIRD_PARTY_NOTICES.md"><img src="https://img.shields.io/greasyfork/l/603262" alt="License"></a></p>
 <p><a href="https://greasyfork.org/scripts/603262-cp-toolkit"><strong>Install</strong></a> ・ <a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/COMPATIBILITY.md">Using other scripts</a> ・ <a href="https://github.com/nsubaru11/competitive-programming-tools/issues">Bugs and requests</a> ・ <a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/README.md">日本語</a></p>
@@ -15,11 +15,11 @@
 
 ## 2. Usage
 
-Open the settings from "Open settings" in the Tampermonkey menu, or from "CP Toolkit" in the AtCoder header. Each feature can be switched on and off there. Some features can be adjusted further in their detailed settings.
+Choose "Open settings" in Tampermonkey or "CP Toolkit" in the AtCoder header. Toggle individual features or open their detailed settings. If a feature shows "Reload to apply", reload the page.
 
-<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit settings" width="420"></p>
+<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit settings" width="640"></p>
 
-The interface follows the language of the site and is available in Japanese and English.
+Use "Export settings" to save feature toggles and detailed settings. The interface is available in Japanese and English.
 
 When a newer version exists, a notice appears once in the corner of the page, and an "Update to" link appears at the bottom right of the settings. Opening the link shows the update page of Tampermonkey. "Check for updates" in the settings checks right away.
 
@@ -34,7 +34,7 @@ When a newer version exists, a notice appears once in the corner of the page, an
 </thead>
 <tbody><tr>
 <td>AtCoder&emsp;</td>
-<td>Every feature except paiza language selection</td>
+<td>25 features (all except paiza language selection)</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td>yukicoder&emsp;</td>
@@ -69,11 +69,11 @@ All features are enabled from the start, except those marked <sub>off by default
 </thead>
 <tbody><tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/wide-layout.en.md"><strong>Wider page</strong></a>&emsp;</td>
-<td>Widens the central column to the specified width (75% recommended)</td>
+<td>Set the width of the main content column.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/hover-menu.en.md"><strong>Open menus on hover</strong></a>&emsp;</td>
-<td>Opens menus when the pointer moves over them</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/hover-menu.en.md"><strong>Open dropdowns on hover</strong></a>&emsp;</td>
+<td>Hover over your username, the language selector or the Results tab to open its dropdown.</td>
 </tr>
 </tbody></table>
 
@@ -87,20 +87,20 @@ All features are enabled from the start, except those marked <sub>off by default
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-highlight.en.md"><strong>Statement highlighting</strong></a>&emsp;</td>
-<td>Highlights numbers, variables, and the time and memory limits</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/efficient-layout.en.md"><strong>Side-by-side samples</strong></a> <sub>off by default</sub>&emsp;</td>
+<td>View sample pairs side by side, with each pair sized to fit its contents.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/variable-hover.en.md"><strong>Highlight hovered variables and numbers</strong></a>&emsp;</td>
-<td>Hovering a variable or a number highlights every occurrence of it</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-highlight.en.md"><strong>Statement highlighting</strong></a>&emsp;</td>
+<td>Highlight numbers, variables, and the time and memory limits in a task statement.</td>
 </tr>
 <tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-copy.en.md"><strong>Copy statement</strong></a>&emsp;</td>
-<td>Copies each section or the whole statement as Markdown or plain text</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/variable-hover.en.md"><strong>Highlight hovered variables and numbers</strong></a>&emsp;</td>
+<td>Hover over a variable or number in a formula to highlight matching occurrences in the same task.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/efficient-layout.en.md"><strong>Side-by-side samples</strong></a> <sub>off by default</sub>&emsp;</td>
-<td>Places the input and output formats and samples side by side</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/statement-copy.en.md"><strong>Copy statement</strong></a>&emsp;</td>
+<td>Copy sections such as the statement and constraints individually or together.</td>
 </tr>
 </tbody></table>
 
@@ -114,32 +114,32 @@ All features are enabled from the start, except those marked <sub>off by default
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-query.en.md"><strong>Keep submission filters</strong></a>&emsp;</td>
-<td>Keeps search filters when switching between All and My submissions</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/result-notifier.en.md"><strong>Submission notifications</strong></a>&emsp;</td>
+<td>Receive a notification when judging finishes.</td>
+</tr>
+<tr style="background-color: rgba(128, 128, 128, 0.1)">
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/language-buttons.en.md"><strong>Language switch buttons</strong></a>&emsp;</td>
+<td>Pin frequently used submission languages and switch between them with one click.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/source-comments.en.md"><strong>Code header and footer</strong></a>&emsp;</td>
+<td>Add a saved header and footer when you paste a complete solution.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-shortcuts.en.md"><strong>AC submission buttons</strong></a>&emsp;</td>
-<td>Opens the AC submissions for the task, sorted by time, code size, submission time or memory</td>
+<td>Open accepted submissions for a task sorted by runtime, code length, submission time or memory usage.</td>
 </tr>
 <tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/language-buttons.en.md"><strong>Language switch buttons</strong></a>&emsp;</td>
-<td>Saves your frequently used languages as buttons and switches in one click</td>
-</tr>
-<tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/source-comments.en.md"><strong>Header and footer</strong></a>&emsp;</td>
-<td>Adds comments such as reference URLs to the top and bottom of pasted code</td>
-</tr>
-<tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/result-notifier.en.md"><strong>Submission notifications</strong></a>&emsp;</td>
-<td>Shows the verdict right after judging finishes, on any page</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-query.en.md"><strong>Keep submission filters</strong></a>&emsp;</td>
+<td>Keep search filters when switching between All Submissions and My Submissions.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/average-result.en.md"><strong>Test case averages</strong></a>&emsp;</td>
-<td>Shows average time and memory on the submission page</td>
+<td>Show average runtime and memory usage across test cases on the submission details page.</td>
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-timer.en.md"><strong>Delayed submission</strong></a> <sub>off by default</sub>&emsp;</td>
-<td>Submits your code after the specified time</td>
+<td>Submit the code in the editor after a delay you specify.</td>
 </tr>
 </tbody></table>
 
@@ -153,40 +153,40 @@ All features are enabled from the start, except those marked <sub>off by default
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/clar-notifier.en.md"><strong>Clarification notifications</strong></a>&emsp;</td>
-<td>Notifies you when the organizers post an answer or a correction during a contest</td>
-</tr>
-<tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/task-dropdown.en.md"><strong>Task dropdown</strong></a>&emsp;</td>
-<td>Opens tasks from the Tasks tab and opens several tasks at once</td>
+<td>Open a task from the Tasks tab, or open several tasks at once.</td>
 </tr>
-<tr>
+<tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/task-status.en.md"><strong>Task status colors</strong></a>&emsp;</td>
-<td>Colors the task list and the dropdown by all your submissions, including those after the contest</td>
-</tr>
-<tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/editorial-list.en.md"><strong>All editorials</strong></a>&emsp;</td>
-<td>Shows the editorials of every task on one page</td>
+<td>Color tasks in the task list and the Tasks dropdown according to your submission results.</td>
 </tr>
 <tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/top-links.en.md"><strong>Contest links on the top page</strong></a>&emsp;</td>
-<td>Replaces the top page list with links to past contests by type</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/editorial-list.en.md"><strong>All editorials</strong></a>&emsp;</td>
+<td>Read editorials directly below their links on the editorials page.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/latest-contests.en.md"><strong>Next contests</strong></a>&emsp;</td>
-<td>Adds a header menu with the upcoming contests listed on the home page</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/tessoku-difficulty.en.md"><strong>Tessoku difficulty</strong></a>&emsp;</td>
+<td>Show the difficulty ratings from the book on the Tessoku task list.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/virtual-timer.en.md"><strong>Virtual contest timer</strong></a>&emsp;</td>
+<td>See the time until your virtual contest starts and the time remaining once it begins.</td>
+</tr>
+<tr style="background-color: rgba(128, 128, 128, 0.1)">
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/clar-notifier.en.md"><strong>Clarification notifications</strong></a>&emsp;</td>
+<td>Receive a notification when the organizers post a clarification during a contest.</td>
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/contest-calendar.en.md"><strong>Add to calendar</strong></a>&emsp;</td>
-<td>Adds a link to contest pages that registers the contest in Google Calendar</td>
+<td>Open a Google Calendar event form with the contest name and times filled in.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/virtual-timer.en.md"><strong>Virtual contest timer</strong></a>&emsp;</td>
-<td>Shows the time until the start and the time left in the corner clock</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/top-links.en.md"><strong>Contest links on the top page</strong></a>&emsp;</td>
+<td>Open the ABC, ARC, AGC and AHC contest archives from the home page.</td>
 </tr>
 <tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/tessoku-difficulty.en.md"><strong>Tessoku difficulty</strong></a>&emsp;</td>
-<td>Shows the difficulty from the book on the Tessoku task list</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/latest-contests.en.md"><strong>Next contests</strong></a>&emsp;</td>
+<td>View upcoming contests from the header.</td>
 </tr>
 </tbody></table>
 
@@ -200,12 +200,12 @@ All features are enabled from the start, except those marked <sub>off by default
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/rating-graph.en.md"><strong>Performance on the user page graph</strong></a>&emsp;</td>
-<td>Overlays performance on the rating graph of user pages, with a recent range set by count or percentage</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/rating-graph.en.md"><strong>Performance on the rating graph</strong></a>&emsp;</td>
+<td>Overlay performance from rated contests on a user's rating graph.</td>
 </tr>
 </tbody></table>
 
-### 4.6 Execution
+### 4.6 Testing and submission tools
 
 <table>
 <thead>
@@ -215,28 +215,24 @@ All features are enabled from the start, except those marked <sub>off by default
 </tr>
 </thead>
 <tbody><tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.en.md"><strong>Java submission helper</strong></a>&emsp;</td>
-<td>Transforms pasted code for submission and adds submit shortcuts</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/easy-test.en.md"><strong>Easy Test+</strong></a> <sub>off by default</sub>&emsp;</td>
+<td>Run sample tests from the task page and submit when they all pass.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/local-runner.en.md"><strong>Local Runner</strong></a>&emsp;</td>
-<td>Connects to the local server used to transform and run code. A server of your own with the same API also works</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.en.md"><strong>Java submission helper</strong></a>&emsp;</td>
+<td>Prepare pasted Java code for submission and submit with a keyboard shortcut.</td>
 </tr>
 <tr>
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/easy-test.en.md"><strong>Easy Test+</strong></a> <sub>off by default</sub>&emsp;</td>
-<td>Runs samples from the task page and checks the results</td>
-</tr>
-<tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/paiza-language.en.md"><strong>paiza language selection</strong></a>&emsp;</td>
-<td>Selects the specified language on paiza submission pages. It does nothing until you set a language</td>
+<td>Automatically select your preferred language on paiza submission pages.</td>
 </tr>
 </tbody></table>
 
 ## 5. Using other scripts
 
-Using scripts that duplicate a CP Toolkit feature is not recommended, because buttons and notifications can appear twice. Use only one of the two for each feature. If you keep the other script, turn off the matching feature in the CP Toolkit settings.
+If two scripts offer the same feature, turn it off in one of them to avoid duplicate buttons or notifications.
 
-Scripts that do not overlap work alongside CP Toolkit as they are, for example ac-predictor, AtCoderStandingsAnalysis and atcoder-difficulty-display.
+[ac-predictor](https://greasyfork.org/scripts/369954), [AtCoderStandingsAnalysis](https://greasyfork.org/scripts/398439) and [atcoder-difficulty-display](https://greasyfork.org/scripts/397185) can run alongside CP Toolkit.
 
 The full list is in [COMPATIBILITY.md](https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/COMPATIBILITY.md) (Japanese).
 
@@ -244,26 +240,25 @@ The full list is in [COMPATIBILITY.md](https://github.com/nsubaru11/competitive-
 
 This script sends nothing to the author's servers. Besides the site you are viewing, it connects to other services only in these cases:
 
-- **Your Local Runner** (`http://localhost:8080` by default): Your code is sent to your own PC to transform and run it
-- **PaizaIO and Wandbox**: Your code and input are sent only when you choose them as the Easy Test+ environment. The script never switches to them automatically
+- **Local Runner** receives code for transformation or execution. With precompilation enabled, Easy Test+ also sends code as you edit.
+- **PaizaIO and Wandbox** receive code and input when you run code with that service selected. Easy Test+ never switches to either service after an internal error. When loading available environments, it fetches the Wandbox compiler list and caches it for 24 hours.
 - **jsDelivr**: KaTeX and Prettify for editorial math and code, Pyodide for running Python in the browser, and AtCoder Library for C++ on Wandbox are fetched only when needed
-- **Where this script was installed from** (GitHub or Greasy Fork): once a day, only the header of the script is fetched to see whether a newer version exists. Nothing is sent
+- **Update checks** fetch version information from GitHub or Greasy Fork, depending on where you installed the script. Automatic checks run once a day. They send no solution code or settings.
 
 KaTeX, Prettify, Pyodide and AtCoder Library are loaded at pinned versions. "Add to calendar" only places a link; the contest details reach Google when you open it.
 
 <details>
 <summary><b>How often the script accesses AtCoder</b></summary>
 <ul>
-<li><strong>Submission notifications</strong>: Checks only while you have submissions being judged. The interval follows the site, at least 1 second, and checking stops after 30 minutes</li>
+<li><strong>Submission notifications</strong>: Checks only while you have submissions being judged. The interval follows the site, at least 1 second, and checking stops after 30 minutes. Failed requests increase the polling interval.</li>
 <li><strong>Clarification notifications</strong>: Checks once a minute during a contest, but not in the first 5 minutes</li>
 <li><strong>Task status colors</strong>: Fetches every page of your submissions in order when you open the task list or open the dropdown for the first time, but not in the first 5 minutes of a contest</li>
 <li><strong>Task dropdown</strong>: Fetches once per contest and remembers it for 10 days</li>
 <li><strong>All editorials</strong>: Fetches only the editorials shown on screen, every 0.5 seconds</li>
 <li><strong>Next contests</strong>: Fetches only when you open the menu and remembers it for 1 hour</li>
-<li><strong>Performance on the user page graph</strong>: Fetches once when you open a user page</li>
-<li><strong>Easy Test+</strong>: Accesses the site only when you run code. AtCoder custom tests run one at a time, even across tabs</li>
+<li><strong>Performance on the rating graph</strong>: Fetches once when you open a user page</li>
+<li><strong>Easy Test+</strong> fetches samples on the submission page and sends code and input when you run an AtCoder custom test.</li>
 </ul>
-<p>When a request fails, the script waits longer before trying again.</p>
 </details>
 
 ## 7. Migrating from the old scripts
@@ -276,10 +271,10 @@ AtCoder Custom Default Submissions, AtCoder Easy Test for Java, AtCoder Highligh
 <summary><b>Migration steps</b></summary>
 <ol>
 <li>Update the old scripts to their final versions and install CP Toolkit</li>
-<li>Open one site where an old script runs and reload it. Settings are carried over automatically, and items you have already set in CP Toolkit are not overwritten</li>
+<li>Open and reload a site where each old script runs. To import paiza settings, do this on paiza as well.</li>
 <li>After checking that the settings were carried over, delete the old scripts</li>
 </ol>
-<p>While both are installed, the old scripts do not run their main code. Settings are shared across sites, so you do not need to repeat this on each site.</p>
+<p>Imported settings are shared across sites. Settings you already chose in CP Toolkit are preserved.</p>
 <p>These settings are carried over:</p>
 <ul>
 <li><strong>AtCoder Easy Test for Java</strong>: Settings such as precompiling the code being edited, and the Local Runner URL</li>
@@ -293,9 +288,9 @@ AtCoder Custom Default Submissions, AtCoder Easy Test for Java, AtCoder Highligh
 <summary><b>Differences from the old scripts</b></summary>
 <ul>
 <li>The default filter on the submissions tab has been dropped. Open AC submissions from the AC submission buttons on the task page</li>
-<li>Easy Test+ is off by default. It is turned on when you migrate from the old version</li>
+<li>Easy Test+ is off by default. It is turned on when you migrate from AtCoder Easy Test for Java</li>
 <li>Desktop notifications are shown not only while you view another tab but also while you are away from the browser</li>
-<li>Java Code Submitter settings and code saved in Easy Test+ are not carried over</li>
+<li>Java Code Submitter settings and code saved by the old script are not carried over</li>
 <li>Color settings accept only the <code>#rrggbb</code> format</li>
 <li>&quot;recent&quot; on the rating graph shows the specified range. The default is the last 20 contests</li>
 <li>Shortcuts work only when the modifier keys match exactly</li>
@@ -311,6 +306,8 @@ The distributed code is the TypeScript source bundled into one file, neither obf
 Claude is used in development. The design and specifications were decided by the author.
 
 The bundle includes third-party code and turndown, so its license is `MIT AND Apache-2.0 AND 0BSD`. See [SOURCES.md](https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/SOURCES.md) for the origin of each feature and [THIRD_PARTY_NOTICES.md](https://github.com/nsubaru11/competitive-programming-tools/blob/main/THIRD_PARTY_NOTICES.md) for third-party licenses.
+
+For development information, see the [development guide (Japanese)](https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/DEVELOPMENT.md).
 
 ## 9. Bugs and requests
 
