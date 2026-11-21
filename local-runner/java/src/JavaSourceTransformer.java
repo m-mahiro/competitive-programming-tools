@@ -48,7 +48,7 @@ final class JavaSourceTransformer {
 		return Arrays.stream(raw.split(",")).map(String::strip).filter(name -> !name.isEmpty()).toList();
 	}
 
-	SourceTransformResult transform(final String rawSource, final Path librarySourceRoot, final boolean debug, final boolean validate) {
+	SourceTransformResult transform(final String rawSource, final Path librarySourceRoot, final boolean debug, final String debugFlag, final boolean validate) {
 		try {
 			final Path root = librarySourceRoot.toAbsolutePath().normalize();
 			if (!Files.isDirectory(root)) {
@@ -59,7 +59,7 @@ final class JavaSourceTransformer {
 			final Analysis analysis = analyze(source, index.classPath());
 			if (analysis.hasErrors()) return failure(source, analysis);
 			final List<Path> dependencies = collectDependencies(analysis, index);
-			final BundleOutput bundled = bundle(source, analysis, dependencies, index, debug);
+			final BundleOutput bundled = bundle(source, analysis, dependencies, index, debug, debugFlag);
 			if (validate) {
 				final Analysis validation = analyze(bundled.source(), null);
 				if (validation.hasErrors()) return failure(bundled.source(), validation);
@@ -229,7 +229,7 @@ final class JavaSourceTransformer {
 		return result;
 	}
 
-	private BundleOutput bundle(final String source, final Analysis analysis, final List<Path> dependencies, final LibraryIndex index, final boolean debug) throws IOException {
+	private BundleOutput bundle(final String source, final Analysis analysis, final List<Path> dependencies, final LibraryIndex index, final boolean debug, final String debugFlag) throws IOException {
 		final LinkedHashSet<String> hoisted = new LinkedHashSet<>();
 		final List<String> parts = new ArrayList<>();
 		final List<String> inlined = new ArrayList<>();
@@ -254,13 +254,13 @@ final class JavaSourceTransformer {
 		}
 		hoisted.removeIf(candidate -> isCoveredBySolutionImport(candidate, analysis.solution().getImports()));
 
-		String transformedSolution = transformSolution(source, analysis, index, debug, hoisted);
+		String transformedSolution = transformSolution(source, analysis, index, debug, debugFlag, hoisted);
 		if (!parts.isEmpty())
 			transformedSolution = transformedSolution.stripTrailing() + "\n\n" + String.join("\n\n", parts) + "\n";
 		return new BundleOutput(transformedSolution, List.copyOf(inlined));
 	}
 
-	private String transformSolution(final String source, final Analysis analysis, final LibraryIndex index, final boolean debug, final Set<String> hoisted) {
+	private String transformSolution(final String source, final Analysis analysis, final LibraryIndex index, final boolean debug, final String debugFlag, final Set<String> hoisted) {
 		final List<Edit> edits = new ArrayList<>();
 		if (analysis.solution().getPackageName() != null) {
 			final Span span = packageSpan(source, analysis);
@@ -278,7 +278,7 @@ final class JavaSourceTransformer {
 			edits.add(new Edit(span.start(), span.end(), prefix + "// " + original.stripLeading() + "\n"));
 			firstLibraryImport = false;
 		}
-		addMainAndDebugEdits(source, analysis, debug, edits);
+		addMainAndDebugEdits(source, analysis, debug, debugFlag, edits);
 		return LEADING_BLANK_LINES.matcher(applyEdits(source, edits)).replaceFirst("");
 	}
 
@@ -298,7 +298,7 @@ final class JavaSourceTransformer {
 		return false;
 	}
 
-	private void addMainAndDebugEdits(final String source, final Analysis analysis, final boolean debug, final List<Edit> edits) {
+	private void addMainAndDebugEdits(final String source, final Analysis analysis, final boolean debug, final String debugFlag, final List<Edit> edits) {
 		final MainClass main = findMainClass(analysis);
 		final String oldName = main.tree().getSimpleName().toString();
 		if (!"Main".equals(oldName)) {
@@ -326,8 +326,9 @@ final class JavaSourceTransformer {
 			for (final Span span : spans) edits.add(new Edit(span.start(), span.end(), "Main"));
 		}
 
+		if (debugFlag.isEmpty()) return;
 		for (final Tree member : main.tree().getMembers()) {
-			if (!(member instanceof VariableTree variable) || !variable.getName().contentEquals("DEBUG")) continue;
+			if (!(member instanceof VariableTree variable) || !variable.getName().contentEquals(debugFlag)) continue;
 			if (!(variable.getInitializer() instanceof LiteralTree literal) || !(literal.getValue() instanceof Boolean value))
 				continue;
 			if (value == debug) continue;

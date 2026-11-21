@@ -4,7 +4,7 @@ import type {LocalRunnerClient} from "@application/execution/local-runner";
 export type JavaTransformOptions = {
 	readonly removePackage: boolean;
 	readonly renameClass: boolean;
-	readonly fixDebug: boolean;
+	readonly debugFlag: string;
 	readonly header: LocalRunnerHeaderOption;
 };
 

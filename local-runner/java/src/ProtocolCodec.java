@@ -35,7 +35,7 @@ final class ProtocolCodec {
 
 	private static final int RUN_PARTS_MIN_SIZE = 5;
 	private static final int COMPILE_PARTS_MIN_SIZE = 4;
-	private static final int TRANSFORM_PARTS_MIN_SIZE = 6;
+	private static final int TRANSFORM_PARTS_MIN_SIZE = 7;
 
 	private ProtocolCodec() {}
 
@@ -61,7 +61,7 @@ final class ProtocolCodec {
 			return new ProtocolError("Malformed TRANSFORM command.");
 		}
 		try {
-			return new ValidRequest(new Transform(parts[1], decode(parts[2]), Paths.get(decode(parts[3])), "1".equals(parts[4]), "1".equals(parts[5])));
+			return new ValidRequest(new Transform(parts[1], decode(parts[2]), Paths.get(decode(parts[3])), "1".equals(parts[4]), decode(parts[5]), "1".equals(parts[6])));
 		} catch (final RuntimeException exception) {
 			return new ProtocolError("Malformed TRANSFORM command.");
 		}

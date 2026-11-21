@@ -22,22 +22,25 @@ describe("expandArguments", () => {
 
 describe("rewriteDebugFlag", () => {
 	test("Python の DEBUG を、大文字で始まる値のまま書き換える", () => {
-		expect(rewriteDebugFlag("import sys\nDEBUG: bool = True\nx = 1\n", false)).toBe("import sys\nDEBUG: bool = False\nx = 1\n");
-		expect(rewriteDebugFlag("DEBUG = False\n", true)).toBe("DEBUG = True\n");
+		expect(rewriteDebugFlag("import sys\nDEBUG: bool = True\nx = 1\n", "DEBUG", false)).toBe("import sys\nDEBUG: bool = False\nx = 1\n");
+		expect(rewriteDebugFlag("DEBUG = False\n", "DEBUG", true)).toBe("DEBUG = True\n");
 	});
 
 	test("修飾子の付いた宣言も書き換える", () => {
-		expect(rewriteDebugFlag("\tprivate static final boolean DEBUG = true;\n", false)).toBe("\tprivate static final boolean DEBUG = false;\n");
-		expect(rewriteDebugFlag("const bool DEBUG = false;\n", true)).toBe("const bool DEBUG = true;\n");
+		expect(rewriteDebugFlag("\tprivate static final boolean DEBUG = true;\n", "DEBUG", false)).toBe("\tprivate static final boolean DEBUG = false;\n");
+		expect(rewriteDebugFlag("const bool DEBUG = false;\n", "DEBUG", true)).toBe("const bool DEBUG = true;\n");
 	});
 
-	test("最初の1か所だけを書き換え、DEBUG を使うだけの行は変えない", () => {
-		const source = "if DEBUG:\n\tpass\nDEBUG = True\nDEBUG = True\n";
-		expect(rewriteDebugFlag(source, false)).toBe("if DEBUG:\n\tpass\nDEBUG = False\nDEBUG = True\n");
+	test("設定した名前だけを書き換え、使うだけの行は変えない", () => {
+		expect(rewriteDebugFlag("if LOCAL:\n\tpass\nLOCAL = True\nDEBUG = True\n", "LOCAL", false)).toBe("if LOCAL:\n\tpass\nLOCAL = False\nDEBUG = True\n");
 	});
 
-	test("DEBUG が無ければそのまま返す", () => {
-		expect(rewriteDebugFlag("print(1)\n", false)).toBe("print(1)\n");
+	test("代入が2行以上あれば、どれが本物か決められないので null を返す", () => {
+		expect(rewriteDebugFlag("\"\"\"\nDEBUG = True\n\"\"\"\nDEBUG = True\n", "DEBUG", false)).toBeNull();
+	});
+
+	test("名前が無ければそのまま返す", () => {
+		expect(rewriteDebugFlag("print(1)\n", "DEBUG", false)).toBe("print(1)\n");
 	});
 });
 
@@ -58,7 +61,7 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 		compile: ["{command}", "-m", "py_compile", "{source}"],
 		run: ["{command}", "{source}"],
 		debugArgs: [],
-		debugRewrite: true,
+		debugFlag: "DEBUG",
 		stackBytes: 256 * 1024 * 1024,
 		headerUnit: false,
 		bundle: null,
@@ -70,7 +73,7 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 		compile: ["{command}", "-O0", "{source}", "-o", "{output}"],
 		run: ["{output}"],
 		debugArgs: ["-DLOCAL"],
-		debugRewrite: false,
+		debugFlag: null,
 		stackBytes: 512 * 1024 * 1024,
 		headerUnit: false,
 		bundle: null,

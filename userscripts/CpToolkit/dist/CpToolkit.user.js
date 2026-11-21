@@ -2,7 +2,7 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        2.1.7
+// @version        2.2.0
 // @description    入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全26機能をまとめた UserScript です。機能ごとに ON/OFF できます。
 // @description:en 26 individually configurable features for competitive programming, primarily on AtCoder, including side-by-side samples, verdict notifications and a Tasks dropdown.
 // @description:ja 入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全26機能をまとめた UserScript です。機能ごとに ON/OFF できます。
@@ -688,8 +688,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		);
 	}
 
-	function findMainType(maskedText) {
-		const depths = braceDepths(maskedText);
+	function findMainType(maskedText, depths) {
 		const mains = [...maskedText.matchAll(MAIN_METHOD_REGEX)];
 		const declaring = findTypes(maskedText, depths).filter(
 			(type) => type.depth === 0 && declaresMain(type, mains, depths),
@@ -720,7 +719,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	}
 
 	function renameClassToMain(maskedCode, currentCode) {
-		const type = findMainType(maskedCode);
+		const type = findMainType(maskedCode, braceDepths(maskedCode));
 		if (!type || type.name === "Main" || unqualifiedOccurrences(maskedCode, "Main").length > 0) {
 			return {code: currentCode, modified: false};
 		}
@@ -731,21 +730,23 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return {code, modified: true};
 	}
 
-	function disableDebugStatements(maskedCode, currentCode) {
-		const debugRegex = /\bDEBUG\b\s*=\s*true\b/g;
-		const replacements = [];
-		let dm;
-		while ((dm = debugRegex.exec(maskedCode)) !== null) {
-			const trueIdx = dm.index + dm[0].lastIndexOf("true");
-			replacements.push({start: trueIdx, end: trueIdx + 4});
-		}
-		if (!replacements.length) return {code: currentCode, modified: false};
-		replacements.sort((a, b) => b.start - a.start);
+	var IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+	function disableDebugFlag(maskedCode, currentCode, flag) {
+		const unchanged = {code: currentCode, modified: false};
+		if (!IDENTIFIER.test(flag)) return unchanged;
+		const depths = braceDepths(maskedCode);
+		const type = findMainType(maskedCode, depths);
+		if (!type) return unchanged;
+		const starts = [...maskedCode.matchAll(new RegExp(String.raw`\bboolean\s+${flag}\s*=\s*true\b`, "g"))]
+			.filter(
+				(m) =>
+					m.index > type.openBraceIdx && m.index < type.closeBraceIdx && depths[m.index] === type.depth + 1,
+			)
+			.map((m) => m.index + m[0].length - "true".length);
 		let code = currentCode;
-		for (const {start, end} of replacements) {
-			code = code.slice(0, start) + "false" + code.slice(end);
-		}
-		return {code, modified: true};
+		for (const start of starts.reverse()) code = code.slice(0, start) + "false" + code.slice(start + "true".length);
+		return {code, modified: starts.length > 0};
 	}
 
 	function modifyJavaCode(originalCode, options) {
@@ -763,8 +764,8 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			currentCode = result.code;
 			classReplaced = result.modified;
 		}
-		if (options.fixDebug) {
-			const result = disableDebugStatements(createMaskedCode(currentCode), currentCode);
+		if (options.debugFlag) {
+			const result = disableDebugFlag(createMaskedCode(currentCode), currentCode, options.debugFlag);
 			currentCode = result.code;
 			debugReplaced = result.modified;
 		}
@@ -3505,7 +3506,8 @@ a:focus > .cp-settings-entry {
 		"javaSubmit.transformFailed": "Local Runner could not transform the code",
 		"javaSubmit.removePackage": "Remove package declarations when Local Runner is unavailable",
 		"javaSubmit.renameClass": "Rename the class to Main when Local Runner is unavailable",
-		"javaSubmit.fixDebug": "Set DEBUG to false when Local Runner is unavailable",
+		"javaSubmit.debugFlag":
+			"Variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)",
 		"javaSubmit.libraryPackage":
 			"Package of the library that Local Runner expands (e.g. lib; empty to skip the check)",
 		"javaSubmit.addHeader": "Add the submission header",
@@ -3723,7 +3725,7 @@ a:focus > .cp-settings-entry {
 		"javaSubmit.transformFailed": "Local Runner で変換できませんでした",
 		"javaSubmit.removePackage": "Local Runner がないときにパッケージ宣言を削除する",
 		"javaSubmit.renameClass": "Local Runner がないときにクラス名を Main にする",
-		"javaSubmit.fixDebug": "Local Runner がないときに DEBUG を false にする",
+		"javaSubmit.debugFlag": "Local Runner がないときに false にする変数の名前（例：DEBUG。空欄なら変えない）",
 		"javaSubmit.libraryPackage": "Local Runner で展開するライブラリのパッケージ（例：lib。空欄なら確かめない）",
 		"javaSubmit.addHeader": "提出用のヘッダーを付ける",
 		"javaSubmit.headerName": "ヘッダーの名前（空欄なら既定）",
@@ -8924,7 +8926,7 @@ ${efficient_layout_default}`);
 		options: {
 			removePackage: option.boolean(true, "javaSubmit.removePackage"),
 			renameClass: option.boolean(true, "javaSubmit.renameClass"),
-			fixDebug: option.boolean(true, "javaSubmit.fixDebug"),
+			debugFlag: option.text("", "javaSubmit.debugFlag"),
 			libraryPackage: option.text("", "javaSubmit.libraryPackage"),
 			addHeader: option.boolean(true, "javaSubmit.addHeader"),
 			headerName: option.text("", "javaSubmit.headerName"),
@@ -8957,7 +8959,11 @@ ${efficient_layout_default}`);
 				async transform(code, {editor, pasted, original}) {
 					if (!editor.isJava() || code.length < MIN_SOURCE_LENGTH || !isWholeCode(original, pasted))
 						return code;
-					const result = await transformJava(code, localRunner, {...options, header});
+					const result = await transformJava(code, localRunner, {
+						...options,
+						debugFlag: options.debugFlag.trim(),
+						header,
+					});
 					notifyTransformProblem(code, result, options.libraryPackage.trim(), translate);
 					return result.sourceCode;
 				},

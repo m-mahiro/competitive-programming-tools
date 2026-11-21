@@ -127,7 +127,7 @@ COMPILED \t <id> \t <exitCode> \t <requiresIsolation> \t b64(diagnostics) \t b64
 要求:
 
 ```text
-TRANSFORM \t <id> \t b64(sourceCode) \t b64(librarySourceRoot) \t <debug> \t <validate>
+TRANSFORM \t <id> \t b64(sourceCode) \t b64(librarySourceRoot) \t <debug> \t b64(debugFlag) \t <validate>
 ```
 
 応答:
@@ -136,7 +136,7 @@ TRANSFORM \t <id> \t b64(sourceCode) \t b64(librarySourceRoot) \t <debug> \t <va
 TRANSFORMED \t <id> \t <exitCode> \t b64(sourceCode) \t b64(diagnostics) \t b64(inlinedClasses) \t b64(diagnosticItemsJson)
 ```
 
-`inlinedClasses`はLF区切りです。javacの構文木・シンボル解決で実依存を確定し、Main/DEBUG/package/import変換と単一ソース化を行います。importを書いていない型は補いません。`validate=1`では変換後ソースも再解析します。
+`inlinedClasses`はLF区切りです。javacの構文木・シンボル解決で実依存を確定し、Main/DEBUG/package/import変換と単一ソース化を行います。importを書いていない型は補いません。`debugFlag`が空でなければ、起動クラスのその名前のフィールドで、初期値が`true`か`false`のものを`<debug>`の値にします。空なら書き換えません。`validate=1`では変換後ソースも再解析します。
 
 ### 3.6 `ERROR`：エラー応答
 

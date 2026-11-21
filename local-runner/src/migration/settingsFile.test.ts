@@ -36,6 +36,13 @@ describe("以前の形式の設定ファイル", () => {
 		});
 	});
 
+	test("言語ごとの debugRewrite を debugFlag にする", () => {
+		writeRaw({languages: {cpython: {debugRewrite: true}, pypy: {debugRewrite: false, stackMb: 64}}});
+		migrateLegacySettingsFile(file);
+		expect(JSON.parse(fs.readFileSync(file, "utf8"))).toEqual({languages: {cpython: {debugFlag: "DEBUG"}, pypy: {stackMb: 64}}});
+		expect(loadSettings(file).languages.cpython).toMatchObject({debugFlag: "DEBUG"});
+	});
+
 	test("今の形式のファイルは書き換えない", () => {
 		writeRaw({server: {port: 9000}});
 		migrateLegacySettingsFile(file);

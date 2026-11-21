@@ -192,10 +192,10 @@
 							"type": "string"
 						}
 					},
-					"debugRewrite": {
-						"description": "true にすると、ソースの DEBUG = true をデバッグの有無に合わせて書き換える。提出物では false にする。",
-						"type": "boolean",
-						"default": false
+					"debugFlag": {
+						"description": "デバッグの有無に合わせて値を書き換える変数の名前(例: DEBUG)。行の初めの「名前 = True」を書き換え、提出物では偽にする。書かなければ書き換えない。",
+						"type": "string",
+						"pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
 					},
 					"stackMb": {
 						"description": "スタックの上限(MB)。",
@@ -316,6 +316,11 @@
 								"pattern": "^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$"
 							},
 							"default": []
+						},
+						"debugFlag": {
+							"description": "デバッグの有無に合わせて値を書き換える、起動クラスのフィールドの名前(例: DEBUG)。初期値が true か false のものだけを書き換え、提出物では false にする。書かなければ書き換えない。",
+							"type": "string",
+							"pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
 						},
 						"stackMb": {
 							"description": "解答を実行するスレッドのスタック(MB)。",

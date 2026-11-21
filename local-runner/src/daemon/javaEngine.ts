@@ -17,7 +17,7 @@ import {compileErrorResponse, notRunResponse} from "./runResponse";
 // Java 以外の言語は commandEngine.ts が受け持つ。
 
 export async function transformJavaCode(sourceCode: string, debug: boolean, validate = true): Promise<LocalRunnerTransformResponse> {
-	const result = await dispatcher.queueDispatcherTransform(sourceCode, resolveLibrarySourceRoot(), debug, validate);
+	const result = await dispatcher.queueDispatcherTransform(sourceCode, resolveLibrarySourceRoot(), debug, config.SETTINGS.languages.java.debugFlag ?? "", validate);
 	return {
 		status: result.exitCode === 0 ? "success" : "compileError",
 		sourceCode: result.sourceCode,

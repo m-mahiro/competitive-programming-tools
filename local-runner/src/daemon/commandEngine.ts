@@ -18,7 +18,8 @@ export type CommandLanguage = {
 	readonly compile: readonly string[] | null;
 	readonly run: readonly string[];
 	readonly debugArgs: readonly string[];
-	readonly debugRewrite: boolean;
+	/** デバッグの有無に合わせて値を書き換える変数の名前。null なら書き換えない。 */
+	readonly debugFlag: string | null;
 	readonly stackBytes: number;
 	readonly headerUnit: boolean;
 	/** ソースを標準入力で受け、変換したソースを標準出力へ返すコマンド。 */
@@ -72,11 +73,22 @@ export function expandArguments(template: readonly string[], values: Placeholder
 	});
 }
 
-const DEBUG_ASSIGNMENT = /^([ \t]*[\w \t]*\bDEBUG\b[ \t]*(?::[ \t]*\w+[ \t]*)?=[ \t]*)(true|false|True|False)\b/m;
+const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-/** ソースの最初の `DEBUG = true` を、指定の値に書き換える。Python の `DEBUG: bool = True` にも合う。 */
-export function rewriteDebugFlag(sourceCode: string, debug: boolean): string {
-	return sourceCode.replace(DEBUG_ASSIGNMENT, (_match, head: string, literal: string) => {
+function debugAssignment(flag: string): RegExp {
+	return new RegExp(String.raw`^([ \t]*[\w \t]*\b${flag}\b[ \t]*(?::[ \t]*\w+[ \t]*)?=[ \t]*)(true|false|True|False)\b`, "gm");
+}
+
+/**
+ * 行の初めにある `flag = true` を、指定の値に書き換える。Python の `DEBUG: bool = True` にも合う。
+ * 文字列の中かどうかは見分けないので、そうした行が2つ以上あれば、どれが本物か決められないとして null を返す。
+ */
+export function rewriteDebugFlag(sourceCode: string, flag: string, debug: boolean): string | null {
+	if (!IDENTIFIER.test(flag)) return sourceCode;
+	const pattern = debugAssignment(flag);
+	const count = [...sourceCode.matchAll(pattern)].length;
+	if (count > 1) return null;
+	return sourceCode.replace(pattern, (_match, head: string, literal: string) => {
 		const capitalized = literal === "True" || literal === "False";
 		return head + (capitalized ? (debug ? "True" : "False") : String(debug));
 	});
@@ -135,7 +147,11 @@ export class CommandEngine {
 				fs.rmSync(dir, {recursive: true, force: true});
 			}
 		}
-		return {ok: true, sourceCode: language.debugRewrite ? rewriteDebugFlag(transformed, debug) : transformed};
+		if (language.debugFlag === null) return {ok: true, sourceCode: transformed};
+		const rewritten = rewriteDebugFlag(transformed, language.debugFlag, debug);
+		return rewritten === null
+			? {ok: false, diagnostics: `${language.debugFlag} is assigned on more than one line, so it was not rewritten. Assign it on one line.`}
+			: {ok: true, sourceCode: rewritten};
 	}
 
 	/** ソースを変換してコンパイルし、実行に使う programId を返す。中断されたら CanceledError を投げる。 */

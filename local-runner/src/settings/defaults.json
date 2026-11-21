@@ -107,7 +107,6 @@
 				"int_max_str_digits=0",
 				"{source}"
 			],
-			"debugRewrite": true,
 			"stackMb": 1024
 		},
 		"pypy": {
@@ -131,7 +130,6 @@
 				"int_max_str_digits=0",
 				"{source}"
 			],
-			"debugRewrite": true,
 			"stackMb": 1024
 		},
 		"codon": {
@@ -154,7 +152,6 @@
 			"run": [
 				"{output}"
 			],
-			"debugRewrite": true,
 			"stackMb": 1024
 		},
 		"go": {

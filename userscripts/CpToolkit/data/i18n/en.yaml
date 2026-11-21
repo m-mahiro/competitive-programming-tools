@@ -194,7 +194,7 @@ javaSubmit.unresolvedImports: Some imports could not be found
 javaSubmit.transformFailed: Local Runner could not transform the code
 javaSubmit.removePackage: Remove package declarations when Local Runner is unavailable
 javaSubmit.renameClass: Rename the class to Main when Local Runner is unavailable
-javaSubmit.fixDebug: Set DEBUG to false when Local Runner is unavailable
+javaSubmit.debugFlag: Variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)
 javaSubmit.libraryPackage: Package of the library that Local Runner expands (e.g. lib; empty to skip the check)
 javaSubmit.addHeader: Add the submission header
 javaSubmit.headerName: Header name (empty for the default)

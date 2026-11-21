@@ -285,7 +285,7 @@ export async function warmUpDispatcher(librarySourceRoot: string) {
 		`Warm up dispatcher and common I/O... repeat=${RUNNER_CONFIG.warmUpRepeatCount} timeout=${RUNNER_CONFIG.warmUpRunTimeoutMs}ms`,
 	);
 	const warmupSourceCode = await buildWarmUpSourceCode();
-	const transformed = await queueDispatcherTransform(warmupSourceCode, librarySourceRoot, false, false);
+	const transformed = await queueDispatcherTransform(warmupSourceCode, librarySourceRoot, false, "", false);
 	if (transformed.exitCode !== 0) {
 		throw new Error(`[WarmUp] transform failed: ${firstLine(transformed.diagnostics) || "unknown error"}`);
 	}
@@ -413,11 +413,13 @@ export function queueDispatcherTransform(
 	sourceCode: string,
 	librarySourceRoot: string,
 	debug: boolean,
+	/** デバッグの有無に合わせて書き換えるフィールドの名前。空なら書き換えない。 */
+	debugFlag: string,
 	validate = true,
 	timeoutMs = RUNNER_CONFIG.compileTimeoutMs,
 ): Promise<DispatcherTransformResult> {
 	const flag = (value: boolean) => (value ? "1" : "0");
-	const fields = [encodeField(sourceCode), encodeField(librarySourceRoot), flag(debug), flag(validate)];
+	const fields = [encodeField(sourceCode), encodeField(librarySourceRoot), flag(debug), encodeField(debugFlag), flag(validate)];
 	return queueDispatcherRequest("transform", fields, timeoutMs, () => ({
 		kind: "transform",
 		exitCode: 1,

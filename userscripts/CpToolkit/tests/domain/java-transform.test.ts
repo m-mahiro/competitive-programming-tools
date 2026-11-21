@@ -85,10 +85,26 @@ describe("modifyJavaCode の Main への改名", () => {
 	});
 });
 
+describe("modifyJavaCode のデバッグ用の変数", () => {
+	const code = "public class A {\n\tprivate static final boolean DEBUG = true;\n\tstatic class Inner { static boolean DEBUG = true; }\n"
+		+ "\tpublic static void main(String[] args) {\n\t\tboolean DEBUG = true;\n\t}\n}\n";
+
+	test("起動クラスの直下の宣言だけを false にする", () => {
+		const result = modifyJavaCode(code, {debugFlag: "DEBUG"});
+		expect(result.modified).toBe(code.replace("private static final boolean DEBUG = true;", "private static final boolean DEBUG = false;"));
+		expect(result.debugReplaced).toBe(true);
+	});
+
+	test("名前を設定しなければ変えない", () => {
+		expect(modifyJavaCode(code, {debugFlag: ""}).modified).toBe(code);
+		expect(modifyJavaCode(code.replaceAll("DEBUG", "LOCAL"), {debugFlag: "DEBUG"}).debugReplaced).toBe(false);
+	});
+});
+
 describe("createMaskedCode", () => {
 	test("テキストブロックの中を書き換えない", () => {
 		const code = "public class A {\n\tpublic static void main(String[] args) {\n\t\tString s = \"\"\"\n\t\t\tsay \"DEBUG = true\" and A\n\t\t\t\"\"\";\n\t}\n}\n";
-		const result = modifyJavaCode(code, {renameClass: true, fixDebug: true});
+		const result = modifyJavaCode(code, {renameClass: true, debugFlag: "DEBUG"});
 		expect(result.modified).toContain("say \"DEBUG = true\" and A");
 		expect(result.debugReplaced).toBe(false);
 		expect(result.modified).toContain("public class Main {");

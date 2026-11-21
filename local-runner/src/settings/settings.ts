@@ -15,6 +15,8 @@ export type JavaLanguageSettings = {
 	library?: string;
 	/** 展開するときに末尾へ回すパッケージ。 */
 	libraryLast: string[];
+	/** デバッグの有無に合わせて値を書き換える、起動クラスのフィールドの名前。 */
+	debugFlag?: string;
 	stackMb: number;
 };
 
@@ -31,7 +33,7 @@ export type CommandLanguageSettings = {
 	compile?: string[];
 	run: string[];
 	debugArgs?: string[];
-	debugRewrite?: boolean;
+	debugFlag?: string;
 	stackMb?: number;
 	setup?: "builtin:gcc-header-unit";
 	bundle?: string[];

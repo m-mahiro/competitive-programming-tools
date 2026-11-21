@@ -3,7 +3,8 @@ import {normalizeNewlines} from "./utils";
 export type TransformOptions = {
 	removePackage?: boolean;
 	renameClass?: boolean;
-	fixDebug?: boolean;
+	/** 起動クラスのフィールドで、false にする boolean の名前。空なら変えない。 */
+	debugFlag?: string;
 };
 
 export type TransformResult = {
@@ -168,8 +169,7 @@ function declaresMain(type: TypeInfo, mains: readonly RegExpExecArray[], depths:
 }
 
 /** 起動するトップレベルの型。Compiler API の変換と同じく、複数あれば Main という名前の型を選び、決まらなければ null を返す。 */
-function findMainType(maskedText: string): TypeInfo | null {
-	const depths = braceDepths(maskedText);
+function findMainType(maskedText: string, depths: Int32Array): TypeInfo | null {
 	const mains = [...maskedText.matchAll(MAIN_METHOD_REGEX)];
 	const declaring = findTypes(maskedText, depths).filter((type) => type.depth === 0 && declaresMain(type, mains, depths));
 	return declaring.length === 1 ? declaring[0] : declaring.find((type) => type.name === "Main") ?? null;
@@ -198,7 +198,7 @@ function unqualifiedOccurrences(maskedText: string, name: string): number[] {
  * Main という名前がすでにあると重なるので、そのときは変えない。
  */
 function renameClassToMain(maskedCode: string, currentCode: string): ModifyResult {
-	const type = findMainType(maskedCode);
+	const type = findMainType(maskedCode, braceDepths(maskedCode));
 	if (!type || type.name === "Main" || unqualifiedOccurrences(maskedCode, "Main").length > 0) {
 		return {code: currentCode, modified: false};
 	}
@@ -209,21 +209,21 @@ function renameClassToMain(maskedCode: string, currentCode: string): ModifyResul
 	return {code, modified: true};
 }
 
-function disableDebugStatements(maskedCode: string, currentCode: string): ModifyResult {
-	const debugRegex = /\bDEBUG\b\s*=\s*true\b/g;
-	const replacements: Array<{start: number; end: number}> = [];
-	let dm: RegExpExecArray | null;
-	while ((dm = debugRegex.exec(maskedCode)) !== null) {
-		const trueIdx = dm.index + dm[0].lastIndexOf("true");
-		replacements.push({start: trueIdx, end: trueIdx + 4});
-	}
-	if (!replacements.length) return {code: currentCode, modified: false};
-	replacements.sort((a, b) => b.start - a.start);
+const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/** 起動クラスの直下にある `boolean flag = true` の宣言だけを false にする。メソッドの中の変数や代入は変えない。 */
+function disableDebugFlag(maskedCode: string, currentCode: string, flag: string): ModifyResult {
+	const unchanged = {code: currentCode, modified: false};
+	if (!IDENTIFIER.test(flag)) return unchanged;
+	const depths = braceDepths(maskedCode);
+	const type = findMainType(maskedCode, depths);
+	if (!type) return unchanged;
+	const starts = [...maskedCode.matchAll(new RegExp(String.raw`\bboolean\s+${flag}\s*=\s*true\b`, "g"))]
+		.filter((m) => m.index > type.openBraceIdx && m.index < type.closeBraceIdx && depths[m.index] === type.depth + 1)
+		.map((m) => m.index + m[0].length - "true".length);
 	let code = currentCode;
-	for (const {start, end} of replacements) {
-		code = code.slice(0, start) + "false" + code.slice(end);
-	}
-	return {code, modified: true};
+	for (const start of starts.reverse()) code = code.slice(0, start) + "false" + code.slice(start + "true".length);
+	return {code, modified: starts.length > 0};
 }
 
 /**
@@ -247,8 +247,8 @@ export function modifyJavaCode(originalCode: string, options: TransformOptions):
 		classReplaced = result.modified;
 	}
 
-	if (options.fixDebug) {
-		const result = disableDebugStatements(createMaskedCode(currentCode), currentCode);
+	if (options.debugFlag) {
+		const result = disableDebugFlag(createMaskedCode(currentCode), currentCode, options.debugFlag);
 		currentCode = result.code;
 		debugReplaced = result.modified;
 	}

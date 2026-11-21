@@ -73,7 +73,7 @@ export const javaSubmit = defineFeature({
 	options: {
 		removePackage: option.boolean(true, "javaSubmit.removePackage"),
 		renameClass: option.boolean(true, "javaSubmit.renameClass"),
-		fixDebug: option.boolean(true, "javaSubmit.fixDebug"),
+		debugFlag: option.text("", "javaSubmit.debugFlag"),
 		libraryPackage: option.text("", "javaSubmit.libraryPackage"),
 		addHeader: option.boolean(true, "javaSubmit.addHeader"),
 		headerName: option.text("", "javaSubmit.headerName"),
@@ -106,7 +106,7 @@ export const javaSubmit = defineFeature({
 			async transform(code, {editor, pasted, original}) {
 				// 編集中のコードへ一部を貼り付けたときは、全体を書き換えない
 				if (!editor.isJava() || code.length < MIN_SOURCE_LENGTH || !isWholeCode(original, pasted)) return code;
-				const result = await transformJava(code, localRunner, {...options, header});
+				const result = await transformJava(code, localRunner, {...options, debugFlag: options.debugFlag.trim(), header});
 				notifyTransformProblem(code, result, options.libraryPackage.trim(), translate);
 				return result.sourceCode;
 			},

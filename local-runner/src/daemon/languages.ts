@@ -41,7 +41,7 @@ function toCommandLanguage(name: string, settings: CommandLanguageSettings, comm
 		compile: compile.length > 0 ? compile : null,
 		run: settings.run,
 		debugArgs: settings.debugArgs ?? [],
-		debugRewrite: settings.debugRewrite === true,
+		debugFlag: settings.debugFlag ?? null,
 		stackBytes: (settings.stackMb ?? DEFAULT_STACK_MB) * MEBIBYTE,
 		headerUnit: settings.setup === "builtin:gcc-header-unit",
 		bundle: settings.bundle && settings.bundle.length > 0 ? settings.bundle : null,
