@@ -123,6 +123,24 @@ public final class JavaSourceTransformerTest {
 			check(renamed.sourceCode().contains("new Main()"), "class reference was not renamed");
 			check(renamed.sourceCode().contains("String Solver ="), "unrelated identifier was renamed");
 
+			final SourceTransformResult annotated = transformer.transform("""
+					@SuppressWarnings({"unused", "rawtypes"})
+					public final class Solver {
+						@SuppressWarnings("Solver") Solver() {}
+						public static void main(String[] args) { new Solver(); }
+					}
+					""", root, false, "DEBUG", true);
+			check(annotated.exitCode() == 0, annotated.diagnostics());
+			check(annotated.sourceCode().contains("@SuppressWarnings(\"Solver\") Main() {}"), "annotation text was renamed instead of the constructor");
+
+			for (final String clash : java.util.List.of(
+					"final class Main {}\npublic final class Solver { public static void main(String[] args) {} }",
+					"public final class Solver { public static void main(String[] args) { int Main = 1; } }")) {
+				final SourceTransformResult clashed = transformer.transform(clash, root, false, "DEBUG", true);
+				check(clashed.exitCode() != 0, "renaming to Main unexpectedly succeeded although Main is used: " + clash);
+				check(clashed.diagnostics().contains("Main is already used"), clashed.diagnostics());
+			}
+
 			final SourceTransformResult overloaded = transformer.transform("""
 					final class Helper {
 						public static int main(int[] values) { return values.length; }

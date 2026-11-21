@@ -234,6 +234,8 @@ final class JavaSourceTransformer {
 		final List<String> parts = new ArrayList<>();
 		final List<String> inlined = new ArrayList<>();
 		final Set<String> typeNames = analysis.solution().getTypeDecls().stream().filter(ClassTree.class::isInstance).map(ClassTree.class::cast).map(type -> type.getSimpleName().toString()).collect(Collectors.toCollection(HashSet::new));
+		// 起動クラスは Main になるので、ライブラリの Main という型とも重なる
+		typeNames.add("Main");
 
 		for (final Path dependency : dependencies) {
 			final String code = normalize(Files.readString(dependency, UTF_8));
@@ -302,13 +304,16 @@ final class JavaSourceTransformer {
 		final MainClass main = findMainClass(analysis);
 		final String oldName = main.tree().getSimpleName().toString();
 		if (!"Main".equals(oldName)) {
+			if (declaresName(analysis.solution(), "Main"))
+				throw new IllegalStateException("cannot rename " + oldName + " to Main: the name Main is already used in the source");
 			final Set<Span> spans = new LinkedHashSet<>();
-			final int classStart = (int) analysis.positions().getStartPosition(analysis.solution(), main.tree());
+			// 注釈の中の文字列や { を名前と取り違えないよう、修飾子の後ろから探す
+			final int classStart = afterModifiers(analysis, main.tree(), main.tree().getModifiers());
 			final int classBrace = source.indexOf('{', classStart);
 			findToken(source, oldName, classStart, classBrace < 0 ? source.length() : classBrace).ifPresent(spans::add);
 			for (final Tree member : main.tree().getMembers()) {
 				if (member instanceof MethodTree method && method.getReturnType() == null) {
-					final int start = (int) analysis.positions().getStartPosition(analysis.solution(), method);
+					final int start = afterModifiers(analysis, method, method.getModifiers());
 					final int open = source.indexOf('(', start);
 					findToken(source, oldName, start, open < 0 ? start : open).ifPresent(spans::add);
 				}
@@ -336,6 +341,32 @@ final class JavaSourceTransformer {
 			final int end = (int) analysis.positions().getEndPosition(analysis.solution(), variable.getInitializer());
 			edits.add(new Edit(start, end, Boolean.toString(debug)));
 		}
+	}
+
+	/** 修飾子(注釈を含む)の終わりの位置。修飾子が無ければ宣言の始まり。 */
+	private int afterModifiers(final Analysis analysis, final Tree declaration, final ModifiersTree modifiers) {
+		final long start = analysis.positions().getStartPosition(analysis.solution(), declaration);
+		final long end = analysis.positions().getEndPosition(analysis.solution(), modifiers);
+		return (int) Math.max(start, end);
+	}
+
+	/** name という型か変数を宣言しているか。あれば、起動クラスをその名前に変えると重なる。 */
+	private boolean declaresName(final CompilationUnitTree unit, final String name) {
+		final boolean[] found = {false};
+		new TreeScanner<Void, Void>() {
+			@Override
+			public Void visitClass(final ClassTree node, final Void unused) {
+				if (node.getSimpleName().contentEquals(name)) found[0] = true;
+				return super.visitClass(node, unused);
+			}
+
+			@Override
+			public Void visitVariable(final VariableTree node, final Void unused) {
+				if (node.getName().contentEquals(name)) found[0] = true;
+				return super.visitVariable(node, unused);
+			}
+		}.scan(unit, null);
+		return found[0];
 	}
 
 	/**
