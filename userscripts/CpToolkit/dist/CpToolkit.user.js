@@ -2,7 +2,7 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        2.1.6
+// @version        2.1.7
 // @description    入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全26機能をまとめた UserScript です。機能ごとに ON/OFF できます。
 // @description:en 26 individually configurable features for competitive programming, primarily on AtCoder, including side-by-side samples, verdict notifications and a Tasks dropdown.
 // @description:ja 入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全26機能をまとめた UserScript です。機能ごとに ON/OFF できます。
@@ -533,7 +533,8 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	}
 
 	// ../shared/src/java-transform.ts
-	var State = {Normal: 0, LineComment: 1, BlockComment: 2, String: 3, Char: 4};
+	var State = {Normal: 0, LineComment: 1, BlockComment: 2, String: 3, Char: 4, TextBlock: 5};
+	var TEXT_BLOCK_QUOTE = '"""';
 
 	function createMaskedCode(text) {
 		const out = [];
@@ -549,7 +550,21 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		for (let i = 0, len = text.length; i < len; i++) {
 			const c = text[i],
 				n = i + 1 < len ? text[i + 1] : "";
-			if (state === State.LineComment) {
+			if (state === State.TextBlock) {
+				if (isEscape) {
+					isEscape = false;
+					out.push(mask(c));
+				} else if (c === "\\") {
+					isEscape = true;
+					out.push(" ");
+				} else if (text.startsWith(TEXT_BLOCK_QUOTE, i)) {
+					out.push("   ");
+					i += 2;
+					state = State.Normal;
+				} else {
+					out.push(mask(c));
+				}
+			} else if (state === State.LineComment) {
 				out.push(mask(c));
 				if (
 					c ===
@@ -588,6 +603,10 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 					out.push(" ", " ");
 					i++;
 					state = State.BlockComment;
+				} else if (text.startsWith(TEXT_BLOCK_QUOTE, i)) {
+					out.push("   ");
+					i += 2;
+					state = State.TextBlock;
 				} else if (c === '"') {
 					state = State.String;
 					out.push(" ");
@@ -617,31 +636,44 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return -1;
 	}
 
-	function isPublicClass(maskedText, classKeywordIndex) {
-		const lineStart =
-			maskedText.lastIndexOf(
-				`
-`,
-				classKeywordIndex,
-			) + 1;
-		return /\bpublic\b/.test(maskedText.slice(lineStart, classKeywordIndex));
+	function braceDepths(maskedText) {
+		const depths = new Int32Array(maskedText.length + 1);
+		let depth = 0;
+		for (let i = 0; i < maskedText.length; i++) {
+			depths[i] = depth;
+			if (maskedText[i] === "{") depth++;
+			else if (maskedText[i] === "}") depth--;
+		}
+		depths[maskedText.length] = depth;
+		return depths;
 	}
 
-	function buildClassInfo(maskedText, m) {
-		const name = m[1];
-		const classStart = m.index;
-		const nameStart = classStart + m[0].length - name.length;
-		const nameEnd = nameStart + name.length;
-		const openBraceIdx = maskedText.indexOf("{", nameEnd);
-		if (openBraceIdx === -1) return null;
-		return {
-			name,
-			nameStart,
-			nameEnd,
-			classStart,
-			closeBraceIdx: findMatchingBrace(maskedText, openBraceIdx),
-			isPublic: isPublicClass(maskedText, classStart),
-		};
+	function isQualified(maskedText, index) {
+		let i = index - 1;
+		while (i >= 0 && /\s/.test(maskedText[i])) i--;
+		return maskedText[i] === "." && maskedText[i - 1] !== ".";
+	}
+
+	var TYPE_DECLARATION_REGEX = /\b(class|interface|enum|record)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+
+	function findTypes(maskedText, depths) {
+		const types = [];
+		for (const m of maskedText.matchAll(TYPE_DECLARATION_REGEX)) {
+			if (isQualified(maskedText, m.index)) continue;
+			const openBraceIdx = maskedText.indexOf("{", m.index + m[0].length);
+			if (openBraceIdx === -1) continue;
+			const closeBraceIdx = findMatchingBrace(maskedText, openBraceIdx);
+			if (closeBraceIdx === -1) continue;
+			types.push({
+				keyword: m[1],
+				name: m[2],
+				start: m.index,
+				depth: depths[m.index],
+				openBraceIdx,
+				closeBraceIdx,
+			});
+		}
+		return types;
 	}
 
 	var ANNOTATION = String.raw`@[\w.]+(?:\s*\([^)]*\))?`;
@@ -651,32 +683,24 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		"g",
 	);
 
-	function findMainMethodIndices(maskedText) {
-		return [...maskedText.matchAll(MAIN_METHOD_REGEX)]
-			.filter((m) => /\bpublic\b/.test(m[1]) && /\bstatic\b/.test(m[1]))
-			.map((m) => m.index);
+	function declaresMain(type, mains, depths) {
+		return mains.some(
+			(m) =>
+				m.index > type.openBraceIdx &&
+				m.index < type.closeBraceIdx &&
+				depths[m.index] === type.depth + 1 &&
+				/\bstatic\b/.test(m[1]) &&
+				(type.keyword === "interface" || /\bpublic\b/.test(m[1])),
+		);
 	}
 
-	function findMainClassInfo(maskedText) {
-		const mainIndices = findMainMethodIndices(maskedText);
-		const classRegex = /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\b/g;
-		const candidates = [];
-		let m;
-		while ((m = classRegex.exec(maskedText)) !== null) {
-			const info = buildClassInfo(maskedText, m);
-			if (info) candidates.push(info);
-		}
-		const declaring = candidates.filter(
-			(c) =>
-				c.closeBraceIdx !== -1 && mainIndices.some((index) => index > c.classStart && index < c.closeBraceIdx),
+	function findMainType(maskedText) {
+		const depths = braceDepths(maskedText);
+		const mains = [...maskedText.matchAll(MAIN_METHOD_REGEX)];
+		const declaring = findTypes(maskedText, depths).filter(
+			(type) => type.depth === 0 && declaresMain(type, mains, depths),
 		);
-		return (
-			declaring.find((c) => c.name === "Main") ??
-			declaring[0] ??
-			candidates.find((c) => c.isPublic) ??
-			candidates[0] ??
-			null
-		);
+		return declaring.length === 1 ? declaring[0] : (declaring.find((type) => type.name === "Main") ?? null);
 	}
 
 	function removePackageDeclaration(maskedCode, currentCode) {
@@ -695,20 +719,20 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		};
 	}
 
+	function unqualifiedOccurrences(maskedText, name) {
+		return [...maskedText.matchAll(new RegExp(String.raw`\b${name}\b`, "g"))]
+			.map((m) => m.index)
+			.filter((index) => !isQualified(maskedText, index));
+	}
+
 	function renameClassToMain(maskedCode, currentCode) {
-		const info = findMainClassInfo(maskedCode);
-		if (!info || info.name === "Main") return {code: currentCode, modified: false};
-		const escapedName = info.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-		const refRegex = new RegExp(`\\b${escapedName}\\b`, "g");
-		const replacements = [];
-		let rm;
-		while ((rm = refRegex.exec(maskedCode)) !== null) {
-			replacements.push({start: rm.index, end: rm.index + info.name.length});
+		const type = findMainType(maskedCode);
+		if (!type || type.name === "Main" || unqualifiedOccurrences(maskedCode, "Main").length > 0) {
+			return {code: currentCode, modified: false};
 		}
-		replacements.sort((a, b) => b.start - a.start);
 		let code = currentCode;
-		for (const {start, end} of replacements) {
-			code = code.slice(0, start) + "Main" + code.slice(end);
+		for (const start of unqualifiedOccurrences(maskedCode, type.name).reverse()) {
+			code = code.slice(0, start) + "Main" + code.slice(start + type.name.length);
 		}
 		return {code, modified: true};
 	}
@@ -4784,8 +4808,7 @@ a:focus > .cp-settings-entry {
 		}
 
 		isJava() {
-			const mode = this.editor.getSession().getMode().$id ?? "";
-			return mode === "" || JAVA_MODE_PATTERN.test(mode);
+			return JAVA_MODE_PATTERN.test(this.editor.getSession().getMode().$id ?? "");
 		}
 
 		isReadOnly() {
@@ -8694,6 +8717,68 @@ ${efficient_layout_default}`);
 		},
 	});
 
+	// CpToolkit/src/domain/source/comment.ts
+	var SHEBANG_PATTERN = /^#![^\n]*\n/;
+	var VARIABLE_PATTERN = /\{(\w+)\}/g;
+	var LINE_BREAK_PATTERN = /\r\n?/g;
+
+	function fillVariables(text, values) {
+		return text.replace(VARIABLE_PATTERN, (match, name) =>
+			Object.hasOwn(values, name) ? (values[name] ?? match) : match,
+		);
+	}
+
+	function toComment(text, {line, open, close}, style) {
+		const lines = text.split(`
+`);
+		const canUseBlock = open !== undefined && close !== undefined && !text.includes(close);
+		if (canUseBlock && style === "block")
+			return [open, ...lines, close].join(`
+`);
+		if (line !== undefined)
+			return lines.map((item) => (item ? `${line} ${item}` : line)).join(`
+`);
+		return canUseBlock
+			? lines.map((item) => `${open} ${item} ${close}`).join(`
+`)
+			: null;
+	}
+
+	function isWholeCode(code, pasted) {
+		return (
+			code.trim() ===
+			pasted
+				.replace(
+					LINE_BREAK_PATTERN,
+					`
+`,
+				)
+				.trim()
+		);
+	}
+
+	function insertHeader(code, block, {preamble}) {
+		const head = SHEBANG_PATTERN.exec(code) ?? (preamble === undefined ? null : new RegExp(preamble).exec(code));
+		const offset = head?.[0].length ?? 0;
+		return `${code.slice(0, offset)}${block}${code.slice(offset)}`;
+	}
+
+	function insertFooter(code, block, {trailer}) {
+		const end = (trailer === undefined ? null : new RegExp(trailer).exec(code))?.index ?? code.length;
+		const body = code.slice(0, end).trimEnd();
+		return `${body}${
+			body
+				? `
+`
+				: ""
+		}${block}${code.slice(end)}`;
+	}
+
+	function replaceBlock(code, current, next, fromEnd) {
+		const index = fromEnd ? code.lastIndexOf(current) : code.indexOf(current);
+		return index < 0 ? null : `${code.slice(0, index)}${next}${code.slice(index + current.length)}`;
+	}
+
 	// CpToolkit/src/domain/source/fold-lines.ts
 	var FOLDABLE_TYPE_PATTERN =
 		/^\s*(?:(?:public|protected|private|abstract|final|static|sealed|non-sealed|strictfp)\s+)*(?:class|interface|enum|record|@interface)\b/;
@@ -8808,8 +8893,9 @@ ${efficient_layout_default}`);
 			});
 			paste.add(target, lookup, {
 				order: PASTE_ORDER,
-				async transform(code, {editor}) {
-					if (!editor.isJava() || code.length < MIN_SOURCE_LENGTH) return code;
+				async transform(code, {editor, pasted, original}) {
+					if (!editor.isJava() || code.length < MIN_SOURCE_LENGTH || !isWholeCode(original, pasted))
+						return code;
 					const {sourceCode, connected, libraryMissing} = await transformJava(code, localRunner, {
 						...options,
 						header,
@@ -9533,68 +9619,6 @@ ${efficient_layout_default}`);
 			};
 		},
 	});
-
-	// CpToolkit/src/domain/source/comment.ts
-	var SHEBANG_PATTERN = /^#![^\n]*\n/;
-	var VARIABLE_PATTERN = /\{(\w+)\}/g;
-	var LINE_BREAK_PATTERN = /\r\n?/g;
-
-	function fillVariables(text, values) {
-		return text.replace(VARIABLE_PATTERN, (match, name) =>
-			Object.hasOwn(values, name) ? (values[name] ?? match) : match,
-		);
-	}
-
-	function toComment(text, {line, open, close}, style) {
-		const lines = text.split(`
-`);
-		const canUseBlock = open !== undefined && close !== undefined && !text.includes(close);
-		if (canUseBlock && style === "block")
-			return [open, ...lines, close].join(`
-`);
-		if (line !== undefined)
-			return lines.map((item) => (item ? `${line} ${item}` : line)).join(`
-`);
-		return canUseBlock
-			? lines.map((item) => `${open} ${item} ${close}`).join(`
-`)
-			: null;
-	}
-
-	function isWholeCode(code, pasted) {
-		return (
-			code.trim() ===
-			pasted
-				.replace(
-					LINE_BREAK_PATTERN,
-					`
-`,
-				)
-				.trim()
-		);
-	}
-
-	function insertHeader(code, block, {preamble}) {
-		const head = SHEBANG_PATTERN.exec(code) ?? (preamble === undefined ? null : new RegExp(preamble).exec(code));
-		const offset = head?.[0].length ?? 0;
-		return `${code.slice(0, offset)}${block}${code.slice(offset)}`;
-	}
-
-	function insertFooter(code, block, {trailer}) {
-		const end = (trailer === undefined ? null : new RegExp(trailer).exec(code))?.index ?? code.length;
-		const body = code.slice(0, end).trimEnd();
-		return `${body}${
-			body
-				? `
-`
-				: ""
-		}${block}${code.slice(end)}`;
-	}
-
-	function replaceBlock(code, current, next, fromEnd) {
-		const index = fromEnd ? code.lastIndexOf(current) : code.indexOf(current);
-		return index < 0 ? null : `${code.slice(0, index)}${next}${code.slice(index + current.length)}`;
-	}
 
 	// CpToolkit/src/application/source/source-comments.ts
 	var HISTORY_LIMIT = 20;

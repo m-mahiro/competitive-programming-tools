@@ -18,19 +18,22 @@ type ModifyResult = {
 	modified: boolean;
 };
 
-type ClassInfo = {
+type TypeInfo = {
+	keyword: string;
 	name: string;
-	nameStart: number;
-	nameEnd: number;
-	classStart: number;
+	start: number;
+	depth: number;
+	openBraceIdx: number;
 	closeBraceIdx: number;
-	isPublic: boolean;
 }
 
 // enum は型を消すだけでは JS にならないので、定数のオブジェクトで表す
-const State = {Normal: 0, LineComment: 1, BlockComment: 2, String: 3, Char: 4} as const;
+const State = {Normal: 0, LineComment: 1, BlockComment: 2, String: 3, Char: 4, TextBlock: 5} as const;
 type State = (typeof State)[keyof typeof State];
 
+const TEXT_BLOCK_QUOTE = "\"\"\"";
+
+/** コメントと文字列(テキストブロックを含む)を空白に置き換える。改行と文字の位置は保つ。 */
 export function createMaskedCode(text: string): string {
 	const out: string[] = [];
 	let state: State = State.Normal;
@@ -39,7 +42,21 @@ export function createMaskedCode(text: string): string {
 
 	for (let i = 0, len = text.length; i < len; i++) {
 		const c = text[i], n = i + 1 < len ? text[i + 1] : "";
-		if (state === State.LineComment) {
+		if (state === State.TextBlock) {
+			if (isEscape) {
+				isEscape = false;
+				out.push(mask(c));
+			} else if (c === "\\") {
+				isEscape = true;
+				out.push(" ");
+			} else if (text.startsWith(TEXT_BLOCK_QUOTE, i)) {
+				out.push("   ");
+				i += 2;
+				state = State.Normal;
+			} else {
+				out.push(mask(c));
+			}
+		} else if (state === State.LineComment) {
 			out.push(mask(c));
 			if (c === "\n") state = State.Normal;
 		} else if (state === State.BlockComment) {
@@ -73,6 +90,10 @@ export function createMaskedCode(text: string): string {
 				out.push(" ", " ");
 				i++;
 				state = State.BlockComment;
+			} else if (text.startsWith(TEXT_BLOCK_QUOTE, i)) {
+				out.push("   ");
+				i += 2;
+				state = State.TextBlock;
 			} else if (c === "\"") {
 				state = State.String;
 				out.push(" ");
@@ -103,23 +124,40 @@ function findMatchingBrace(maskedText: string, openBraceIdx: number): number {
 	return -1;
 }
 
-function isPublicClass(maskedText: string, classKeywordIndex: number): boolean {
-	const lineStart = maskedText.lastIndexOf("\n", classKeywordIndex) + 1;
-	return /\bpublic\b/.test(maskedText.slice(lineStart, classKeywordIndex));
+/** 各位置より前に開いている波括弧の数。 */
+function braceDepths(maskedText: string): Int32Array {
+	const depths = new Int32Array(maskedText.length + 1);
+	let depth = 0;
+	for (let i = 0; i < maskedText.length; i++) {
+		depths[i] = depth;
+		if (maskedText[i] === "{") depth++;
+		else if (maskedText[i] === "}") depth--;
+	}
+	depths[maskedText.length] = depth;
+	return depths;
 }
 
-function buildClassInfo(maskedText: string, m: RegExpExecArray): ClassInfo | null {
-	const name = m[1];
-	const classStart = m.index;
-	const nameStart = classStart + m[0].length - name.length;
-	const nameEnd = nameStart + name.length;
-	const openBraceIdx = maskedText.indexOf("{", nameEnd);
-	if (openBraceIdx === -1) return null;
-	return {
-		name, nameStart, nameEnd, classStart,
-		closeBraceIdx: findMatchingBrace(maskedText, openBraceIdx),
-		isPublic: isPublicClass(maskedText, classStart),
-	};
+/** 名前の直前が `.` なら、ほかの型や値のメンバーを指している。可変長引数の `...` は除く。 */
+function isQualified(maskedText: string, index: number): boolean {
+	let i = index - 1;
+	while (i >= 0 && /\s/.test(maskedText[i])) i--;
+	return maskedText[i] === "." && maskedText[i - 1] !== ".";
+}
+
+const TYPE_DECLARATION_REGEX = /\b(class|interface|enum|record)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+
+function findTypes(maskedText: string, depths: Int32Array): TypeInfo[] {
+	const types: TypeInfo[] = [];
+	for (const m of maskedText.matchAll(TYPE_DECLARATION_REGEX)) {
+		// Foo.class のようなクラスリテラルは宣言ではない
+		if (isQualified(maskedText, m.index)) continue;
+		const openBraceIdx = maskedText.indexOf("{", m.index + m[0].length);
+		if (openBraceIdx === -1) continue;
+		const closeBraceIdx = findMatchingBrace(maskedText, openBraceIdx);
+		if (closeBraceIdx === -1) continue;
+		types.push({keyword: m[1], name: m[2], start: m.index, depth: depths[m.index], openBraceIdx, closeBraceIdx});
+	}
+	return types;
 }
 
 const ANNOTATION = String.raw`@[\w.]+(?:\s*\([^)]*\))?`;
@@ -129,29 +167,19 @@ const MAIN_METHOD_REGEX = new RegExp(
 	"g",
 );
 
-function findMainMethodIndices(maskedText: string): number[] {
-	return [...maskedText.matchAll(MAIN_METHOD_REGEX)]
-		.filter((m) => /\bpublic\b/.test(m[1]) && /\bstatic\b/.test(m[1]))
-		.map((m) => m.index);
+/** 型の直下に public static void main(String[]) があるか。interface のメソッドは public を書かなくても public になる。 */
+function declaresMain(type: TypeInfo, mains: readonly RegExpExecArray[], depths: Int32Array): boolean {
+	return mains.some((m) => m.index > type.openBraceIdx && m.index < type.closeBraceIdx
+		&& depths[m.index] === type.depth + 1
+		&& /\bstatic\b/.test(m[1]) && (type.keyword === "interface" || /\bpublic\b/.test(m[1])));
 }
 
-function findMainClassInfo(maskedText: string): ClassInfo | null {
-	const mainIndices = findMainMethodIndices(maskedText);
-
-	const classRegex = /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\b/g;
-	const candidates: ClassInfo[] = [];
-	let m: RegExpExecArray | null;
-
-	while ((m = classRegex.exec(maskedText)) !== null) {
-		const info = buildClassInfo(maskedText, m);
-		if (info) candidates.push(info);
-	}
-
-	const declaring = candidates.filter((c) => c.closeBraceIdx !== -1
-		&& mainIndices.some((index) => index > c.classStart && index < c.closeBraceIdx));
-	// Compiler API の変換と同じく、main を持つ型が複数あれば Main という名前の型を選ぶ
-	return declaring.find((c) => c.name === "Main") ?? declaring[0]
-		?? candidates.find((c) => c.isPublic) ?? candidates[0] ?? null;
+/** 起動するトップレベルの型。Compiler API の変換と同じく、複数あれば Main という名前の型を選び、決まらなければ null を返す。 */
+function findMainType(maskedText: string): TypeInfo | null {
+	const depths = braceDepths(maskedText);
+	const mains = [...maskedText.matchAll(MAIN_METHOD_REGEX)];
+	const declaring = findTypes(maskedText, depths).filter((type) => type.depth === 0 && declaresMain(type, mains, depths));
+	return declaring.length === 1 ? declaring[0] : declaring.find((type) => type.name === "Main") ?? null;
 }
 
 function removePackageDeclaration(maskedCode: string, currentCode: string): ModifyResult {
@@ -165,23 +193,25 @@ function removePackageDeclaration(maskedCode: string, currentCode: string): Modi
 	};
 }
 
+/** `.` の付かない name の位置。name は英数字と _ だけなので、正規表現の記号を含まない。 */
+function unqualifiedOccurrences(maskedText: string, name: string): number[] {
+	return [...maskedText.matchAll(new RegExp(String.raw`\b${name}\b`, "g"))]
+		.map((m) => m.index)
+		.filter((index) => !isQualified(maskedText, index));
+}
+
+/**
+ * 起動する型の名前を Main に変える。字句の置き換えなので、同じ名前の変数もそろえて変える。
+ * Main という名前がすでにあると重なるので、そのときは変えない。
+ */
 function renameClassToMain(maskedCode: string, currentCode: string): ModifyResult {
-	const info = findMainClassInfo(maskedCode);
-	if (!info || info.name === "Main") return {code: currentCode, modified: false};
-
-	const escapedName = info.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	const refRegex = new RegExp(`\\b${escapedName}\\b`, "g");
-
-	const replacements: Array<{start: number; end: number}> = [];
-	let rm: RegExpExecArray | null;
-	while ((rm = refRegex.exec(maskedCode)) !== null) {
-		replacements.push({start: rm.index, end: rm.index + info.name.length});
+	const type = findMainType(maskedCode);
+	if (!type || type.name === "Main" || unqualifiedOccurrences(maskedCode, "Main").length > 0) {
+		return {code: currentCode, modified: false};
 	}
-
-	replacements.sort((a, b) => b.start - a.start);
 	let code = currentCode;
-	for (const {start, end} of replacements) {
-		code = code.slice(0, start) + "Main" + code.slice(end);
+	for (const start of unqualifiedOccurrences(maskedCode, type.name).reverse()) {
+		code = code.slice(0, start) + "Main" + code.slice(start + type.name.length);
 	}
 	return {code, modified: true};
 }

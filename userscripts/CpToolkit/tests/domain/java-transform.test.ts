@@ -48,16 +48,49 @@ describe("modifyJavaCode の Main への改名", () => {
 		expect(result).toContain("class Main {");
 	});
 
-	test("入れ子の型の main では外側の型を選ぶ", () => {
-		const result = rename("class Helper {}\nclass Outer {\n\tstatic class Inner {\n\t\tpublic static void main(String[] args) {}\n\t}\n}\n");
-		expect(result).toContain("class Helper {}");
-		expect(result).toContain("class Main {");
-		expect(result).toContain("static class Inner");
+	test("main を持つ型が複数あり Main も無ければ改名しない", () => {
+		const code = "class First {\n\tpublic static void main(String[] args) {}\n}\nclass Second {\n\tpublic static void main(String[] args) {}\n}\n";
+		expect(modifyJavaCode(code, {renameClass: true}).classReplaced).toBe(false);
 	});
 
-	test("main が無ければ public な型を選ぶ", () => {
-		const result = rename("class Helper {}\npublic class Solver {}\n");
-		expect(result).toContain("class Helper {}");
-		expect(result).toContain("public class Main {}");
+	test("入れ子の型にしか main が無ければ改名しない", () => {
+		const code = "class Outer {\n\tstatic class Inner {\n\t\tpublic static void main(String[] args) {}\n\t}\n}\n";
+		expect(modifyJavaCode(code, {renameClass: true}).classReplaced).toBe(false);
+	});
+
+	test("main が無ければ改名しない", () => {
+		expect(modifyJavaCode("class Helper {}\npublic class Solver {}\n", {renameClass: true}).classReplaced).toBe(false);
+	});
+
+	test("record と interface の main も見つける", () => {
+		expect(rename("record A(int x) {\n\tpublic static void main(String[] args) {}\n}\nclass Helper {}\n"))
+			.toBe("record Main(int x) {\n\tpublic static void main(String[] args) {}\n}\nclass Helper {}\n");
+		expect(rename("interface A {\n\tstatic void main(String[] args) {}\n}\n")).toBe("interface Main {\n\tstatic void main(String[] args) {}\n}\n");
+	});
+
+	test("同じ名前の変数もそろえて変え、. の付く名前は変えない", () => {
+		const code = "import java.util.*;\npublic final class A {\n\tpublic static void main(String... args) {\n\t\tint[] A = new int[3];\n\t\tSystem.out.println(A.length);\n"
+			+ "\t\tMap.A x = null;\n\t\tA.class.getName();\n\t}\n\tstatic void f(int... A) {}\n}\n";
+		expect(rename(code)).toBe("import java.util.*;\npublic final class Main {\n\tpublic static void main(String... args) {\n\t\tint[] Main = new int[3];\n\t\tSystem.out.println(Main.length);\n"
+			+ "\t\tMap.A x = null;\n\t\tMain.class.getName();\n\t}\n\tstatic void f(int... Main) {}\n}\n");
+	});
+
+	test("Main という名前がすでにあれば改名しない", () => {
+		expect(modifyJavaCode("public class A {\n\tstatic class Main {}\n\tpublic static void main(String[] args) {}\n}\n", {renameClass: true}).classReplaced).toBe(false);
+		expect(modifyJavaCode("public class A {\n\tpublic static void main(String[] args) { int Main = 1; }\n}\n", {renameClass: true}).classReplaced).toBe(false);
+	});
+
+	test(". の付く Main はほかの型のものなので、改名を妨げない", () => {
+		expect(rename("public class A {\n\tpublic static void main(String[] args) { other.Main.run(); }\n}\n")).toContain("public class Main {");
+	});
+});
+
+describe("createMaskedCode", () => {
+	test("テキストブロックの中を書き換えない", () => {
+		const code = "public class A {\n\tpublic static void main(String[] args) {\n\t\tString s = \"\"\"\n\t\t\tsay \"DEBUG = true\" and A\n\t\t\t\"\"\";\n\t}\n}\n";
+		const result = modifyJavaCode(code, {renameClass: true, fixDebug: true});
+		expect(result.modified).toContain("say \"DEBUG = true\" and A");
+		expect(result.debugReplaced).toBe(false);
+		expect(result.modified).toContain("public class Main {");
 	});
 });

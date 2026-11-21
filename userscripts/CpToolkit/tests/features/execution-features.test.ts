@@ -504,7 +504,7 @@ describe("javaSubmit", () => {
 			onChange: () => undefined,
 			foldLines: mock(() => undefined),
 		};
-		return {editor, paste: () => paste(value)};
+		return {editor, paste: (pasted = value) => paste(pasted)};
 	}
 
 	const editorServices = (editor: CodeEditor | null) => {
@@ -556,6 +556,19 @@ describe("javaSubmit", () => {
 		paste();
 		await wait();
 		expect(editor.getValue()).toBe("short");
+	});
+
+	test("コードの一部を貼り付けたときは変換しない", async () => {
+		const {editor, paste} = createEditor(source);
+		await javaSubmit.run({foldOnPaste: false}, createFakeServices({
+			judge,
+			localRunner: offline,
+			...editorServices(editor),
+		}));
+		await wait();
+		paste("\tpublic static void main(String[] args) {}\n");
+		await wait();
+		expect(editor.getValue()).toBe(source);
 	});
 
 	test("Local Runner に接続できず lib を使うコードなら、導入方法を案内する", async () => {

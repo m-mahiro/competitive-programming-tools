@@ -23,8 +23,8 @@ class AceCodeEditor implements CodeEditor {
 	}
 
 	isJava(): boolean {
-		const mode = this.editor.getSession().getMode().$id ?? "";
-		return mode === "" || JAVA_MODE_PATTERN.test(mode);
+		// 言語を選んでいないなどでモードが分からないときは、Java として扱わない
+		return JAVA_MODE_PATTERN.test(this.editor.getSession().getMode().$id ?? "");
 	}
 
 	isReadOnly(): boolean {

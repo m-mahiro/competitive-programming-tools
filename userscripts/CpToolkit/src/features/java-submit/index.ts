@@ -1,5 +1,6 @@
 import {usesJavaLibrary} from "@atcoder-tools/shared";
 import type {SubmissionTarget} from "@domain/page/route";
+import {isWholeCode} from "@domain/source/comment";
 import {findFoldStartLines} from "@domain/source/fold-lines";
 import {option} from "@domain/settings/option";
 import {defineFeature} from "@application/feature/definition";
@@ -75,8 +76,9 @@ export const javaSubmit = defineFeature({
 		});
 		paste.add(target, lookup, {
 			order: PASTE_ORDER,
-			async transform(code, {editor}) {
-				if (!editor.isJava() || code.length < MIN_SOURCE_LENGTH) return code;
+			async transform(code, {editor, pasted, original}) {
+				// 編集中のコードへ一部を貼り付けたときは、全体を書き換えない
+				if (!editor.isJava() || code.length < MIN_SOURCE_LENGTH || !isWholeCode(original, pasted)) return code;
 				const {sourceCode, connected, libraryMissing} = await transformJava(code, localRunner, {
 					...options,
 					header
