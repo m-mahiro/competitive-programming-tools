@@ -8,7 +8,7 @@ import type {JudgeSite, SampleCase} from "@application/ports/judge-site";
 import type {Translate} from "@catalog/messages";
 import {easyTest} from "@features/easy-test/index";
 import {createResultView} from "@features/easy-test/views";
-import {javaSubmit} from "@features/java-submit/index";
+import {submissionHelper} from "@features/java-submit/index";
 import {paizaLanguage} from "@features/paiza-language/index";
 import {taskDropdown} from "@features/task-dropdown/index";
 import {createFakePage, createFakeServices, FakeHttpClient, MemoryStore} from "../support/fakes";
@@ -477,7 +477,7 @@ describe("easyTest", () => {
 	});
 });
 
-describe("javaSubmit", () => {
+describe("submissionHelper", () => {
 	const target = {
 		editor: "ace",
 		editorElements: ["#editor"],
@@ -515,7 +515,7 @@ describe("javaSubmit", () => {
 
 	test("Local Runner がなくても、貼り付けたコードを提出用に変換する", async () => {
 		const {editor, paste} = createEditor(source);
-		await javaSubmit.run({foldOnPaste: false}, createFakeServices({
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({
 			judge,
 			localRunner: offline,
 			...editorServices(editor),
@@ -533,7 +533,7 @@ describe("javaSubmit", () => {
 			status: 200,
 			text: JSON.stringify({status: "success", sourceCode: "// transformed\n"}),
 		}));
-		await javaSubmit.run({foldOnPaste: false}, createFakeServices({
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({
 			judge,
 			localRunner: new LocalRunnerClient(http, () => "http://localhost:8080"),
 			...editorServices(editor),
@@ -558,7 +558,7 @@ describe("javaSubmit", () => {
 			return {status: 200, text: JSON.stringify(response)};
 		});
 		const pypy = {id: "5078", label: "Python (PyPy 3.11-v7.3.20)", family: "python3"};
-		await javaSubmit.run({foldOnPaste: false}, createFakeServices({
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({
 			judge,
 			localRunner: new LocalRunnerClient(http, () => "http://localhost:8080"),
 			...editorServices(editor),
@@ -570,22 +570,9 @@ describe("javaSubmit", () => {
 		expect(editor.getValue()).toBe("# pypy\n");
 	});
 
-	test("短いコードは変換しない", async () => {
-		const {editor, paste} = createEditor("short");
-		await javaSubmit.run(undefined, createFakeServices({
-			judge,
-			localRunner: offline,
-			...editorServices(editor),
-		}));
-		await wait();
-		paste();
-		await wait();
-		expect(editor.getValue()).toBe("short");
-	});
-
 	test("コードの一部を貼り付けたときは変換しない", async () => {
 		const {editor, paste} = createEditor(source);
-		await javaSubmit.run({foldOnPaste: false}, createFakeServices({
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({
 			judge,
 			localRunner: offline,
 			...editorServices(editor),
@@ -599,7 +586,7 @@ describe("javaSubmit", () => {
 	test("Local Runner に接続できず、設定したライブラリを使うコードなら、導入方法を案内する", async () => {
 		const code = "import lib.ds.UnionFind;\npublic class Solution {\n\tpublic static void main(String[] args) {}\n}\n";
 		const {editor, paste} = createEditor(code);
-		await javaSubmit.run({foldOnPaste: false, libraryPackage: "lib"}, createFakeServices({
+		await submissionHelper.run({foldOnPaste: false, libraryPackage: "lib"}, createFakeServices({
 			judge,
 			localRunner: offline, ...editorServices(editor)
 		}));
@@ -626,7 +613,7 @@ describe("javaSubmit", () => {
 			diagnostics: "ERROR 1:15 compiler.err.doesnt.exist package lib.ds does not exist",
 			diagnosticItems: [{kind: "ERROR", line: 1, column: 15, code: "compiler.err.doesnt.exist", message: "package lib.ds does not exist"}],
 		});
-		await javaSubmit.run({foldOnPaste: false}, createFakeServices({judge, localRunner, ...editorServices(editor)}));
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({judge, localRunner, ...editorServices(editor)}));
 		await wait();
 		paste();
 		await wait();
@@ -646,7 +633,7 @@ describe("javaSubmit", () => {
 			diagnostics: "ERROR 3:40 compiler.err.cant.resolve cannot find symbol",
 			diagnosticItems: [{kind: "ERROR", line: 3, column: 40, code: "compiler.err.cant.resolve", message: "cannot find symbol"}],
 		});
-		await javaSubmit.run({foldOnPaste: false}, createFakeServices({judge, localRunner, ...editorServices(editor)}));
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({judge, localRunner, ...editorServices(editor)}));
 		await wait();
 		paste();
 		await wait();
@@ -660,7 +647,7 @@ describe("javaSubmit", () => {
 	test("ライブラリのパッケージを設定していなければ、接続できなくても案内しない", async () => {
 		const code = "import lib.ds.UnionFind;\npublic class Solution {\n\tpublic static void main(String[] args) {}\n}\n";
 		const {editor, paste} = createEditor(code);
-		await javaSubmit.run({foldOnPaste: false}, createFakeServices({judge, localRunner: offline, ...editorServices(editor)}));
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({judge, localRunner: offline, ...editorServices(editor)}));
 		await wait();
 		paste();
 		await wait();
@@ -670,7 +657,7 @@ describe("javaSubmit", () => {
 
 	test("lib を使わないコードなら Local Runner がなくても案内しない", async () => {
 		const {editor, paste} = createEditor(source);
-		await javaSubmit.run({foldOnPaste: false}, createFakeServices({
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({
 			judge,
 			localRunner: offline, ...editorServices(editor)
 		}));
@@ -685,7 +672,7 @@ describe("javaSubmit", () => {
 		document.body.innerHTML = '<button id="submit"></button>';
 		const click = mock(() => undefined);
 		document.querySelector("#submit")?.addEventListener("click", click);
-		await javaSubmit.run(undefined, createFakeServices({
+		await submissionHelper.run(undefined, createFakeServices({
 			judge,
 			localRunner: offline,
 			...editorServices(null),
@@ -698,7 +685,7 @@ describe("javaSubmit", () => {
 	});
 
 	test("提出ボタンにカーソルを乗せるとショートカットを表示する", async () => {
-		await javaSubmit.run(undefined, createFakeServices({judge, localRunner: offline, ...editorServices(null)}));
+		await submissionHelper.run(undefined, createFakeServices({judge, localRunner: offline, ...editorServices(null)}));
 		// 起動の後にサイトが作ったボタンでも表示する
 		document.body.innerHTML = '<button id="submit"></button>';
 		hover(document.querySelector("#submit"));

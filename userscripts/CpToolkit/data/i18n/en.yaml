@@ -192,16 +192,16 @@ localRunner.title: Local Runner integration
 localRunner.description: Set the server used by Easy Test+ and the Java submission helper.
 localRunner.url: Server URL
 
-javaSubmit.title: Submission helper
-javaSubmit.description: Prepare pasted code for submission and submit with a keyboard shortcut.
-javaSubmit.localRunnerRequired: "Expanding {package}.* needs Local Runner"
-javaSubmit.localRunnerGuide: Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.
-javaSubmit.unresolvedImports: Some imports could not be found
-javaSubmit.transformFailed: Local Runner could not transform the code
-javaSubmit.diagnostics: Full diagnostics
-javaSubmit.debugFlag: Java variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)
-javaSubmit.libraryPackage: Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)
-javaSubmit.foldOnPaste: Fold Java classes and comments after pasting
+submissionHelper.title: Submission helper
+submissionHelper.description: Prepare pasted code for submission and submit with a keyboard shortcut.
+submissionHelper.localRunnerRequired: "Expanding {package}.* needs Local Runner"
+submissionHelper.localRunnerGuide: Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.
+submissionHelper.unresolvedImports: Some imports could not be found
+submissionHelper.transformFailed: Local Runner could not transform the code
+submissionHelper.diagnostics: Full diagnostics
+submissionHelper.debugFlag: Java variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)
+submissionHelper.libraryPackage: Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)
+submissionHelper.foldOnPaste: Fold Java classes and comments after pasting
 
 easyTest.title: Easy Test+
 easyTest.description: Run sample tests from the task page and submit when they all pass.

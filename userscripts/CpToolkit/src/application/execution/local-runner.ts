@@ -26,6 +26,11 @@ export class LocalRunnerError extends Error {
 export class LocalRunnerClient {
 	private readonly http: HttpClient;
 	private readonly endpoint: () => string | null;
+	/**
+	 * 言語の一覧。提出補助、ヘッダー、Easy Test+ が同じページで何度も使うので、接続先ごとに覚えておく。
+	 * 通信に失敗したら捨て、Local Runner を起動し直したあとは取り直す。
+	 */
+	private compilers: {readonly url: string; readonly list: Promise<LocalRunnerCompilerInfo[]>} | null = null;
 
 	constructor(http: HttpClient, endpoint: () => string | null) {
 		this.http = http;
@@ -37,7 +42,11 @@ export class LocalRunnerClient {
 	}
 
 	list(): Promise<LocalRunnerCompilerInfo[]> {
-		return this.post({mode: "list"});
+		const url = this.endpoint();
+		if (this.compilers && this.compilers.url === url) return this.compilers.list;
+		const list = this.post<LocalRunnerCompilerInfo[]>({mode: "list"});
+		if (url !== null) this.compilers = {url, list};
+		return list;
 	}
 
 	/** ページの言語に使う Local Runner の言語の識別子。同じ種類の言語が無ければ null。 */
@@ -81,14 +90,21 @@ export class LocalRunnerClient {
 	private async post<T>(request: LocalRunnerRequest, timeoutMs?: number): Promise<T> {
 		const url = this.endpoint();
 		if (url === null) throw new LocalRunnerError("Local Runner is not configured.", 0);
-		const response = await this.http.send({
-			url,
-			method: "POST",
-			headers: {"Content-Type": "application/json"},
-			body: JSON.stringify(request),
-			timeoutMs,
-		});
+		let response;
+		try {
+			response = await this.http.send({
+				url,
+				method: "POST",
+				headers: {"Content-Type": "application/json"},
+				body: JSON.stringify(request),
+				timeoutMs,
+			});
+		} catch (error) {
+			this.compilers = null;
+			throw error;
+		}
 		if (response.status < 200 || response.status >= 300) {
+			this.compilers = null;
 			// 誤りの理由は応答の stderr にある(名前を指定したヘッダーが無いなど)
 			const reason = safeJsonParse<{stderr?: unknown}>(response.text, {}).stderr;
 			const detail = typeof reason === "string" && reason ? `\n${reason}` : "";

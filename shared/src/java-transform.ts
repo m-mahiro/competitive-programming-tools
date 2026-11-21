@@ -1,26 +1,13 @@
-import {normalizeNewlines} from "./utils";
+import {isIdentifier, normalizeNewlines} from "./utils";
 
 export type TransformOptions = {
 	/** 起動クラスのフィールドで、false にする boolean の名前。空なら変えない。 */
 	debugFlag?: string;
 };
 
-export type TransformResult = {
-	modified: string;
-	packageRemoved: boolean;
-	classReplaced: boolean;
-	debugReplaced: boolean;
-};
-
-type ModifyResult = {
-	code: string;
-	modified: boolean;
-};
-
 type TypeInfo = {
 	keyword: string;
 	name: string;
-	start: number;
 	depth: number;
 	openBraceIdx: number;
 	closeBraceIdx: number;
@@ -147,7 +134,7 @@ function findTypes(maskedText: string, depths: Int32Array): TypeInfo[] {
 		if (openBraceIdx === -1) continue;
 		const closeBraceIdx = findMatchingBrace(maskedText, openBraceIdx);
 		if (closeBraceIdx === -1) continue;
-		types.push({keyword: m[1], name: m[2], start: m.index, depth: depths[m.index], openBraceIdx, closeBraceIdx});
+		types.push({keyword: m[1], name: m[2], depth: depths[m.index], openBraceIdx, closeBraceIdx});
 	}
 	return types;
 }
@@ -173,15 +160,12 @@ function findMainType(maskedText: string, depths: Int32Array): TypeInfo | null {
 	return declaring.length === 1 ? declaring[0] : declaring.find((type) => type.name === "Main") ?? null;
 }
 
-function removePackageDeclaration(maskedCode: string, currentCode: string): ModifyResult {
+function removePackageDeclaration(maskedCode: string, currentCode: string): string {
 	const m = /\bpackage\s+[A-Za-z_][A-Za-z0-9_.]*\s*;/.exec(maskedCode);
-	if (!m) return {code: currentCode, modified: false};
+	if (!m) return currentCode;
 	let end = m.index + m[0].length;
 	if (currentCode[end] === "\n") end++;
-	return {
-		code: currentCode.slice(0, m.index) + currentCode.slice(end),
-		modified: true,
-	};
+	return currentCode.slice(0, m.index) + currentCode.slice(end);
 }
 
 /** `.` の付かない name の位置。name は英数字と _ だけなので、正規表現の記号を含まない。 */
@@ -195,58 +179,38 @@ function unqualifiedOccurrences(maskedText: string, name: string): number[] {
  * 起動する型の名前を Main に変える。字句の置き換えなので、同じ名前の変数もそろえて変える。
  * Main という名前がすでにあると重なるので、そのときは変えない。
  */
-function renameClassToMain(maskedCode: string, currentCode: string): ModifyResult {
+function renameClassToMain(maskedCode: string, currentCode: string): string {
 	const type = findMainType(maskedCode, braceDepths(maskedCode));
-	if (!type || type.name === "Main" || unqualifiedOccurrences(maskedCode, "Main").length > 0) {
-		return {code: currentCode, modified: false};
-	}
+	if (!type || type.name === "Main" || unqualifiedOccurrences(maskedCode, "Main").length > 0) return currentCode;
 	let code = currentCode;
 	for (const start of unqualifiedOccurrences(maskedCode, type.name).reverse()) {
 		code = code.slice(0, start) + "Main" + code.slice(start + type.name.length);
 	}
-	return {code, modified: true};
+	return code;
 }
 
-const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
 /** 起動クラスの直下にある `boolean flag = true` の宣言だけを false にする。メソッドの中の変数や代入は変えない。 */
-function disableDebugFlag(maskedCode: string, currentCode: string, flag: string): ModifyResult {
-	const unchanged = {code: currentCode, modified: false};
-	if (!IDENTIFIER.test(flag)) return unchanged;
+function disableDebugFlag(maskedCode: string, currentCode: string, flag: string): string {
+	if (!isIdentifier(flag)) return currentCode;
 	const depths = braceDepths(maskedCode);
 	const type = findMainType(maskedCode, depths);
-	if (!type) return unchanged;
+	if (!type) return currentCode;
 	const starts = [...maskedCode.matchAll(new RegExp(String.raw`\bboolean\s+${flag}\s*=\s*true\b`, "g"))]
 		.filter((m) => m.index > type.openBraceIdx && m.index < type.closeBraceIdx && depths[m.index] === type.depth + 1)
 		.map((m) => m.index + m[0].length - "true".length);
 	let code = currentCode;
 	for (const start of starts.reverse()) code = code.slice(0, start) + "false" + code.slice(start + "true".length);
-	return {code, modified: starts.length > 0};
+	return code;
 }
 
 /**
- * Java ソースコードに対して指定された変換を順に適用する。
+ * Local Runner がないときの、Java の提出用の字句の変換。パッケージ宣言を消し、起動する型を Main にし、
+ * 名前を指定したデバッグ用の変数を false にする。
  */
-export function modifyJavaCode(originalCode: string, options: TransformOptions = {}): TransformResult {
-	let currentCode = normalizeNewlines(originalCode);
-	let packageRemoved: boolean;
-	let classReplaced: boolean;
-	let debugReplaced = false;
-
-	const withoutPackage = removePackageDeclaration(createMaskedCode(currentCode), currentCode);
-	currentCode = withoutPackage.code;
-	packageRemoved = withoutPackage.modified;
-
-	const renamed = renameClassToMain(createMaskedCode(currentCode), currentCode);
-	currentCode = renamed.code;
-	classReplaced = renamed.modified;
-
-	if (options.debugFlag) {
-		const result = disableDebugFlag(createMaskedCode(currentCode), currentCode, options.debugFlag);
-		currentCode = result.code;
-		debugReplaced = result.modified;
-	}
-	currentCode = currentCode.replace(/^(?:[\t ]*\n)+/, "");
-
-	return {modified: currentCode, packageRemoved, classReplaced, debugReplaced};
+export function modifyJavaCode(originalCode: string, options: TransformOptions = {}): string {
+	let code = normalizeNewlines(originalCode);
+	code = removePackageDeclaration(createMaskedCode(code), code);
+	code = renameClassToMain(createMaskedCode(code), code);
+	if (options.debugFlag) code = disableDebugFlag(createMaskedCode(code), code, options.debugFlag);
+	return code.replace(/^(?:[\t ]*\n)+/, "");
 }

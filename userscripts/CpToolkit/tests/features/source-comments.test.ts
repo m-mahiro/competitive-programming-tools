@@ -314,7 +314,19 @@ describe("sourceComments", () => {
 		setText(0, "header");
 		context.setCode("typed\n");
 		panelRoot().querySelector<HTMLButtonElement>(".modal-footer .primary")?.click();
+		await flush();
 		expect(context.code()).toBe("// header\ntyped\n");
+	});
+
+	test("ボタンで反映するときも Local Runner のヘッダーを付け、2回押しても重ねない", async () => {
+		const context = await open({runnerHeader: "below"}, runnerWithHeader("// server").client);
+		setText(0, "task");
+		context.setCode("typed\n");
+		for (let i = 0; i < 2; i++) {
+			panelRoot().querySelector<HTMLButtonElement>(".modal-footer .primary")?.click();
+			await flush();
+		}
+		expect(context.code()).toBe("// task\n// server\n\ntyped\n");
 	});
 
 	test("前回の内容を次の問題でも使い、ヘッダーとフッターは別々に記憶する", async () => {

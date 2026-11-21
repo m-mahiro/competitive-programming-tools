@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import {isIdentifier} from "@atcoder-tools/shared";
 import {stripAnsi} from "../utils/color";
 import {formatCompileSummary} from "../utils/formatter";
 import {ensureHeaderUnit} from "./headerUnit";
@@ -73,8 +74,6 @@ export function expandArguments(template: readonly string[], values: Placeholder
 	});
 }
 
-const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
 function debugAssignment(flag: string): RegExp {
 	return new RegExp(String.raw`^([ \t]*[\w \t]*\b${flag}\b[ \t]*(?::[ \t]*\w+[ \t]*)?=[ \t]*)(true|false|True|False)\b`, "gm");
 }
@@ -84,7 +83,7 @@ function debugAssignment(flag: string): RegExp {
  * 文字列の中かどうかは見分けないので、そうした行が2つ以上あれば、どれが本物か決められないとして null を返す。
  */
 export function rewriteDebugFlag(sourceCode: string, flag: string, debug: boolean): string | null {
-	if (!IDENTIFIER.test(flag)) return sourceCode;
+	if (!isIdentifier(flag)) return sourceCode;
 	const pattern = debugAssignment(flag);
 	const count = [...sourceCode.matchAll(pattern)].length;
 	if (count > 1) return null;

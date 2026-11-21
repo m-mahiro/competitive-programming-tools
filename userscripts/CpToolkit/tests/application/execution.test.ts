@@ -53,6 +53,20 @@ describe("LocalRunnerClient", () => {
 		expect(http.requests).toHaveLength(1);
 	});
 
+	test("言語の一覧は覚えておき、通信に失敗したら取り直す", async () => {
+		let fail = false;
+		const http = new FakeHttpClient(() => (fail ? {status: 500, text: ""} : JSON_OK([])));
+		const client = new LocalRunnerClient(http, () => "http://localhost:8080");
+		await client.list();
+		await client.list();
+		expect(http.requests).toHaveLength(1);
+		fail = true;
+		await expect(client.run("code", "")).rejects.toThrow("Local Runner returned 500.");
+		fail = false;
+		await client.list();
+		expect(http.requests).toHaveLength(3);
+	});
+
 	test("ヘッダーを先に返すサーバーの、先頭に改行の付いた応答を読める", async () => {
 		const http = new FakeHttpClient(() => ({status: 200, text: `\n${JSON.stringify(output)}`}));
 		const client = new LocalRunnerClient(http, () => "http://localhost:8080");

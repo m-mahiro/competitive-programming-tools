@@ -193,16 +193,16 @@ localRunner.title: Local Runner との連携
 localRunner.description: Easy Test+ と Java の提出補助で使うサーバーの接続先を設定します。
 localRunner.url: 接続先の URL
 
-javaSubmit.title: 提出補助
-javaSubmit.description: 貼り付けたコードを提出用に変換し、ショートカットで提出できます。
-javaSubmit.localRunnerRequired: "{package}.* の展開には Local Runner が必要です"
-javaSubmit.localRunnerGuide: Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。
-javaSubmit.unresolvedImports: 見つからない import があります
-javaSubmit.transformFailed: Local Runner で変換できませんでした
-javaSubmit.diagnostics: 診断の全文
-javaSubmit.debugFlag: Local Runner がないときに false にする Java の変数の名前（例：DEBUG。空欄なら変えない）
-javaSubmit.libraryPackage: Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）
-javaSubmit.foldOnPaste: 貼り付け後に Java のクラスとコメントを折りたたむ
+submissionHelper.title: 提出補助
+submissionHelper.description: 貼り付けたコードを提出用に変換し、ショートカットで提出できます。
+submissionHelper.localRunnerRequired: "{package}.* の展開には Local Runner が必要です"
+submissionHelper.localRunnerGuide: Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。
+submissionHelper.unresolvedImports: 見つからない import があります
+submissionHelper.transformFailed: Local Runner で変換できませんでした
+submissionHelper.diagnostics: 診断の全文
+submissionHelper.debugFlag: Local Runner がないときに false にする Java の変数の名前（例：DEBUG。空欄なら変えない）
+submissionHelper.libraryPackage: Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）
+submissionHelper.foldOnPaste: 貼り付け後に Java のクラスとコメントを折りたたむ
 
 easyTest.title: Easy Test+
 easyTest.description: 問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。

@@ -28,7 +28,7 @@ export type LanguageSupport = {
 
 const LANGUAGE_SUPPORT: Readonly<Record<string, LanguageSupport>> = {
 	java: {
-		fallback: (code, {debugFlag}) => modifyJavaCode(code, {debugFlag}).modified,
+		fallback: (code, {debugFlag}) => modifyJavaCode(code, {debugFlag}),
 		needsLocalRunner: (code, {libraryPackage}) => libraryPackage !== "" && importsPackage(code, libraryPackage),
 		unresolvedImports,
 		foldStartLines: findFoldStartLines,

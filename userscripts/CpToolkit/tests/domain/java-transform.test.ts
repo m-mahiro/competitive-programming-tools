@@ -1,7 +1,7 @@
 import {describe, expect, test} from "bun:test";
 import {modifyJavaCode} from "@atcoder-tools/shared";
 
-const rename = (code: string) => modifyJavaCode(code).modified;
+const rename = (code: string) => modifyJavaCode(code);
 const withMain = (signature: string) => `class Helper {}\nclass Solver {\n\t${signature} {}\n}\n`;
 
 describe("modifyJavaCode の Main への改名", () => {
@@ -38,7 +38,7 @@ describe("modifyJavaCode の Main への改名", () => {
 
 	test("main を持つ型が複数あれば Main を残す", () => {
 		const code = "class Tool {\n\tpublic static void main(String[] args) {}\n}\npublic class Main {\n\tpublic static void main(String[] args) {}\n}\n";
-		expect(modifyJavaCode(code).classReplaced).toBe(false);
+		expect(modifyJavaCode(code)).toBe(code);
 	});
 
 	test("コメントと文字列の中の main は無視する", () => {
@@ -50,16 +50,16 @@ describe("modifyJavaCode の Main への改名", () => {
 
 	test("main を持つ型が複数あり Main も無ければ改名しない", () => {
 		const code = "class First {\n\tpublic static void main(String[] args) {}\n}\nclass Second {\n\tpublic static void main(String[] args) {}\n}\n";
-		expect(modifyJavaCode(code).classReplaced).toBe(false);
+		expect(modifyJavaCode(code)).toBe(code);
 	});
 
 	test("入れ子の型にしか main が無ければ改名しない", () => {
 		const code = "class Outer {\n\tstatic class Inner {\n\t\tpublic static void main(String[] args) {}\n\t}\n}\n";
-		expect(modifyJavaCode(code).classReplaced).toBe(false);
+		expect(modifyJavaCode(code)).toBe(code);
 	});
 
 	test("main が無ければ改名しない", () => {
-		expect(modifyJavaCode("class Helper {}\npublic class Solver {}\n").classReplaced).toBe(false);
+		expect(modifyJavaCode("class Helper {}\npublic class Solver {}\n")).toBe("class Helper {}\npublic class Solver {}\n");
 	});
 
 	test("record と interface の main も見つける", () => {
@@ -76,8 +76,8 @@ describe("modifyJavaCode の Main への改名", () => {
 	});
 
 	test("Main という名前がすでにあれば改名しない", () => {
-		expect(modifyJavaCode("public class A {\n\tstatic class Main {}\n\tpublic static void main(String[] args) {}\n}\n").classReplaced).toBe(false);
-		expect(modifyJavaCode("public class A {\n\tpublic static void main(String[] args) { int Main = 1; }\n}\n").classReplaced).toBe(false);
+		expect(modifyJavaCode("public class A {\n\tstatic class Main {}\n\tpublic static void main(String[] args) {}\n}\n")).toBe("public class A {\n\tstatic class Main {}\n\tpublic static void main(String[] args) {}\n}\n");
+		expect(modifyJavaCode("public class A {\n\tpublic static void main(String[] args) { int Main = 1; }\n}\n")).toBe("public class A {\n\tpublic static void main(String[] args) { int Main = 1; }\n}\n");
 	});
 
 	test(". の付く Main はほかの型のものなので、改名を妨げない", () => {
@@ -90,14 +90,13 @@ describe("modifyJavaCode のデバッグ用の変数", () => {
 		+ "\tpublic static void main(String[] args) {\n\t\tboolean DEBUG = true;\n\t}\n}\n";
 
 	test("起動クラスの直下の宣言だけを false にする", () => {
-		const result = modifyJavaCode(code, {debugFlag: "DEBUG"});
-		expect(result.modified).toBe(code.replace("private static final boolean DEBUG = true;", "private static final boolean DEBUG = false;"));
-		expect(result.debugReplaced).toBe(true);
+		expect(modifyJavaCode(code, {debugFlag: "DEBUG"})).toBe(code.replace("private static final boolean DEBUG = true;", "private static final boolean DEBUG = false;"));
 	});
 
 	test("名前を設定しなければ変えない", () => {
-		expect(modifyJavaCode(code, {debugFlag: ""}).modified).toBe(code);
-		expect(modifyJavaCode(code.replaceAll("DEBUG", "LOCAL"), {debugFlag: "DEBUG"}).debugReplaced).toBe(false);
+		expect(modifyJavaCode(code, {debugFlag: ""})).toBe(code);
+		const local = code.replaceAll("DEBUG", "LOCAL");
+		expect(modifyJavaCode(local, {debugFlag: "DEBUG"})).toBe(local);
 	});
 });
 
@@ -105,8 +104,7 @@ describe("createMaskedCode", () => {
 	test("テキストブロックの中を書き換えない", () => {
 		const code = "public class A {\n\tpublic static void main(String[] args) {\n\t\tString s = \"\"\"\n\t\t\tsay \"DEBUG = true\" and A\n\t\t\t\"\"\";\n\t}\n}\n";
 		const result = modifyJavaCode(code, {debugFlag: "DEBUG"});
-		expect(result.modified).toContain("say \"DEBUG = true\" and A");
-		expect(result.debugReplaced).toBe(false);
-		expect(result.modified).toContain("public class Main {");
+		expect(result).toContain("say \"DEBUG = true\" and A");
+		expect(result).toContain("public class Main {");
 	});
 });

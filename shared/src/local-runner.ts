@@ -135,6 +135,15 @@ export type LocalRunnerRunResponse = {
 /** 指定した programId のプログラムがサーバーにないときの stderr の先頭。サーバーの再起動やキャッシュの追い出しで起こる。 */
 export const STALE_PROGRAM_MESSAGE = "Prepared program is unavailable:";
 
+/**
+ * 提出用のヘッダーをすでに含むコードか。ヘッダーの1行目と同じ行があれば含むとみなす。
+ * toclip の出力を貼り付けたときや、ヘッダーを付けたコードにもう一度付けるときに、重ねないために使う。
+ */
+export function includesSubmissionHeader(code: string, header: string): boolean {
+	const firstLine = header.split("\n", 1)[0] ?? "";
+	return firstLine !== "" && code.split("\n").includes(firstLine);
+}
+
 /** コンパイル済みのプログラムが消えていて、ソースから作り直す必要がある応答か。 */
 export function isStaleProgramResponse(response: {status: string; stderr?: string}): boolean {
 	return response.status === "badRequest" && response.stderr?.startsWith(STALE_PROGRAM_MESSAGE) === true;

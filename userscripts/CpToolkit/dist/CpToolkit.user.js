@@ -532,6 +532,12 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		);
 	}
 
+	var IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+	function isIdentifier(name) {
+		return IDENTIFIER.test(name);
+	}
+
 	// ../shared/src/java-transform.ts
 	var State = {Normal: 0, LineComment: 1, BlockComment: 2, String: 3, Char: 4, TextBlock: 5};
 	var TEXT_BLOCK_QUOTE = '"""';
@@ -658,14 +664,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			if (openBraceIdx === -1) continue;
 			const closeBraceIdx = findMatchingBrace(maskedText, openBraceIdx);
 			if (closeBraceIdx === -1) continue;
-			types.push({
-				keyword: m[1],
-				name: m[2],
-				start: m.index,
-				depth: depths[m.index],
-				openBraceIdx,
-				closeBraceIdx,
-			});
+			types.push({keyword: m[1], name: m[2], depth: depths[m.index], openBraceIdx, closeBraceIdx});
 		}
 		return types;
 	}
@@ -698,7 +697,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 
 	function removePackageDeclaration(maskedCode, currentCode) {
 		const m = /\bpackage\s+[A-Za-z_][A-Za-z0-9_.]*\s*;/.exec(maskedCode);
-		if (!m) return {code: currentCode, modified: false};
+		if (!m) return currentCode;
 		let end = m.index + m[0].length;
 		if (
 			currentCode[end] ===
@@ -706,10 +705,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 `
 		)
 			end++;
-		return {
-			code: currentCode.slice(0, m.index) + currentCode.slice(end),
-			modified: true,
-		};
+		return currentCode.slice(0, m.index) + currentCode.slice(end);
 	}
 
 	function unqualifiedOccurrences(maskedText, name) {
@@ -720,24 +716,19 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 
 	function renameClassToMain(maskedCode, currentCode) {
 		const type = findMainType(maskedCode, braceDepths(maskedCode));
-		if (!type || type.name === "Main" || unqualifiedOccurrences(maskedCode, "Main").length > 0) {
-			return {code: currentCode, modified: false};
-		}
+		if (!type || type.name === "Main" || unqualifiedOccurrences(maskedCode, "Main").length > 0) return currentCode;
 		let code = currentCode;
 		for (const start of unqualifiedOccurrences(maskedCode, type.name).reverse()) {
 			code = code.slice(0, start) + "Main" + code.slice(start + type.name.length);
 		}
-		return {code, modified: true};
+		return code;
 	}
 
-	var IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
 	function disableDebugFlag(maskedCode, currentCode, flag) {
-		const unchanged = {code: currentCode, modified: false};
-		if (!IDENTIFIER.test(flag)) return unchanged;
+		if (!isIdentifier(flag)) return currentCode;
 		const depths = braceDepths(maskedCode);
 		const type = findMainType(maskedCode, depths);
-		if (!type) return unchanged;
+		if (!type) return currentCode;
 		const starts = [...maskedCode.matchAll(new RegExp(String.raw`\bboolean\s+${flag}\s*=\s*true\b`, "g"))]
 			.filter(
 				(m) =>
@@ -746,27 +737,15 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			.map((m) => m.index + m[0].length - "true".length);
 		let code = currentCode;
 		for (const start of starts.reverse()) code = code.slice(0, start) + "false" + code.slice(start + "true".length);
-		return {code, modified: starts.length > 0};
+		return code;
 	}
 
 	function modifyJavaCode(originalCode, options = {}) {
-		let currentCode = normalizeNewlines(originalCode);
-		let packageRemoved;
-		let classReplaced;
-		let debugReplaced = false;
-		const withoutPackage = removePackageDeclaration(createMaskedCode(currentCode), currentCode);
-		currentCode = withoutPackage.code;
-		packageRemoved = withoutPackage.modified;
-		const renamed = renameClassToMain(createMaskedCode(currentCode), currentCode);
-		currentCode = renamed.code;
-		classReplaced = renamed.modified;
-		if (options.debugFlag) {
-			const result = disableDebugFlag(createMaskedCode(currentCode), currentCode, options.debugFlag);
-			currentCode = result.code;
-			debugReplaced = result.modified;
-		}
-		currentCode = currentCode.replace(/^(?:[\t ]*\n)+/, "");
-		return {modified: currentCode, packageRemoved, classReplaced, debugReplaced};
+		let code = normalizeNewlines(originalCode);
+		code = removePackageDeclaration(createMaskedCode(code), code);
+		code = renameClassToMain(createMaskedCode(code), code);
+		if (options.debugFlag) code = disableDebugFlag(createMaskedCode(code), code, options.debugFlag);
+		return code.replace(/^(?:[\t ]*\n)+/, "");
 	}
 
 	// ../shared/src/java-imports.ts
@@ -827,6 +806,24 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	}
 
 	// ../shared/src/local-runner.ts
+	function includesSubmissionHeader(code, header) {
+		const firstLine =
+			header.split(
+				`
+`,
+				1,
+			)[0] ?? "";
+		return (
+			firstLine !== "" &&
+			code
+				.split(
+					`
+`,
+				)
+				.includes(firstLine)
+		);
+	}
+
 	function isHttpUrl(value) {
 		return /^https?:\/\//.test(value);
 	}
@@ -2291,6 +2288,7 @@ button:hover {
 `;
 
 	// CpToolkit/src/ui/toast/toast.ts
+	var ACTION_NOTICE_DURATION_MS = 15000;
 	var labels = {region: "Notifications", close: () => "Close"};
 	var host = null;
 	var container = null;
@@ -3536,19 +3534,19 @@ a:focus > .cp-settings-entry {
 		"localRunner.title": "Local Runner integration",
 		"localRunner.description": "Set the server used by Easy Test+ and the Java submission helper.",
 		"localRunner.url": "Server URL",
-		"javaSubmit.title": "Submission helper",
-		"javaSubmit.description": "Prepare pasted code for submission and submit with a keyboard shortcut.",
-		"javaSubmit.localRunnerRequired": "Expanding {package}.* needs Local Runner",
-		"javaSubmit.localRunnerGuide":
+		"submissionHelper.title": "Submission helper",
+		"submissionHelper.description": "Prepare pasted code for submission and submit with a keyboard shortcut.",
+		"submissionHelper.localRunnerRequired": "Expanding {package}.* needs Local Runner",
+		"submissionHelper.localRunnerGuide":
 			"Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
-		"javaSubmit.unresolvedImports": "Some imports could not be found",
-		"javaSubmit.transformFailed": "Local Runner could not transform the code",
-		"javaSubmit.diagnostics": "Full diagnostics",
-		"javaSubmit.debugFlag":
+		"submissionHelper.unresolvedImports": "Some imports could not be found",
+		"submissionHelper.transformFailed": "Local Runner could not transform the code",
+		"submissionHelper.diagnostics": "Full diagnostics",
+		"submissionHelper.debugFlag":
 			"Java variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)",
-		"javaSubmit.libraryPackage":
+		"submissionHelper.libraryPackage":
 			"Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)",
-		"javaSubmit.foldOnPaste": "Fold Java classes and comments after pasting",
+		"submissionHelper.foldOnPaste": "Fold Java classes and comments after pasting",
 		"easyTest.title": "Easy Test+",
 		"easyTest.description": "Run sample tests from the task page and submit when they all pass.",
 		"easyTest.precompile": "Precompile edited code with Local Runner",
@@ -3758,19 +3756,19 @@ a:focus > .cp-settings-entry {
 		"localRunner.title": "Local Runner との連携",
 		"localRunner.description": "Easy Test+ と Java の提出補助で使うサーバーの接続先を設定します。",
 		"localRunner.url": "接続先の URL",
-		"javaSubmit.title": "提出補助",
-		"javaSubmit.description": "貼り付けたコードを提出用に変換し、ショートカットで提出できます。",
-		"javaSubmit.localRunnerRequired": "{package}.* の展開には Local Runner が必要です",
-		"javaSubmit.localRunnerGuide":
+		"submissionHelper.title": "提出補助",
+		"submissionHelper.description": "貼り付けたコードを提出用に変換し、ショートカットで提出できます。",
+		"submissionHelper.localRunnerRequired": "{package}.* の展開には Local Runner が必要です",
+		"submissionHelper.localRunnerGuide":
 			"Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。",
-		"javaSubmit.unresolvedImports": "見つからない import があります",
-		"javaSubmit.transformFailed": "Local Runner で変換できませんでした",
-		"javaSubmit.diagnostics": "診断の全文",
-		"javaSubmit.debugFlag":
+		"submissionHelper.unresolvedImports": "見つからない import があります",
+		"submissionHelper.transformFailed": "Local Runner で変換できませんでした",
+		"submissionHelper.diagnostics": "診断の全文",
+		"submissionHelper.debugFlag":
 			"Local Runner がないときに false にする Java の変数の名前（例：DEBUG。空欄なら変えない）",
-		"javaSubmit.libraryPackage":
+		"submissionHelper.libraryPackage":
 			"Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）",
-		"javaSubmit.foldOnPaste": "貼り付け後に Java のクラスとコメントを折りたたむ",
+		"submissionHelper.foldOnPaste": "貼り付け後に Java のクラスとコメントを折りたたむ",
 		"easyTest.title": "Easy Test+",
 		"easyTest.description": "問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。",
 		"easyTest.precompile": "Local Runner で編集中のコードを事前にコンパイルする",
@@ -3887,6 +3885,7 @@ a:focus > .cp-settings-entry {
 	class LocalRunnerClient {
 		http;
 		endpoint;
+		compilers = null;
 
 		constructor(http, endpoint) {
 			this.http = http;
@@ -3898,7 +3897,11 @@ a:focus > .cp-settings-entry {
 		}
 
 		list() {
-			return this.post({mode: "list"});
+			const url = this.endpoint();
+			if (this.compilers && this.compilers.url === url) return this.compilers.list;
+			const list = this.post({mode: "list"});
+			if (url !== null) this.compilers = {url, list};
+			return list;
 		}
 
 		async compilerFor(language) {
@@ -3948,14 +3951,21 @@ a:focus > .cp-settings-entry {
 		async post(request, timeoutMs) {
 			const url = this.endpoint();
 			if (url === null) throw new LocalRunnerError("Local Runner is not configured.", 0);
-			const response = await this.http.send({
-				url,
-				method: "POST",
-				headers: {"Content-Type": "application/json"},
-				body: JSON.stringify(request),
-				timeoutMs,
-			});
+			let response;
+			try {
+				response = await this.http.send({
+					url,
+					method: "POST",
+					headers: {"Content-Type": "application/json"},
+					body: JSON.stringify(request),
+					timeoutMs,
+				});
+			} catch (error) {
+				this.compilers = null;
+				throw error;
+			}
 			if (response.status < 200 || response.status >= 300) {
+				this.compilers = null;
 				const reason = safeJsonParse(response.text, {}).stderr;
 				const detail =
 					typeof reason === "string" && reason
@@ -8856,16 +8866,7 @@ ${efficient_layout_default}`);
 	}
 
 	function insertRunnerHeader(code, header, syntax) {
-		if (
-			code.trimStart().startsWith(
-				header.split(
-					`
-`,
-					1,
-				)[0] ?? "",
-			)
-		)
-			return code;
+		if (includesSubmissionHeader(code, header)) return code;
 		return insertHeader(
 			code,
 			`${header}
@@ -8913,7 +8914,7 @@ ${efficient_layout_default}`);
 	// CpToolkit/src/application/source/submission-transform.ts
 	var LANGUAGE_SUPPORT = {
 		java: {
-			fallback: (code, {debugFlag}) => modifyJavaCode(code, {debugFlag}).modified,
+			fallback: (code, {debugFlag}) => modifyJavaCode(code, {debugFlag}),
 			needsLocalRunner: (code, {libraryPackage}) => libraryPackage !== "" && importsPackage(code, libraryPackage),
 			unresolvedImports,
 			foldStartLines: findFoldStartLines,
@@ -8954,11 +8955,9 @@ ${efficient_layout_default}`);
 
 	// CpToolkit/src/features/java-submit/index.ts
 	var FOLD_SHORTCUT = "Ctrl+Shift+M";
-	var MIN_SOURCE_LENGTH = 30;
 	var FOLD_DELAY_MS = 100;
 	var PASTE_ORDER = 10;
 	var LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
-	var GUIDE_DURATION_MS = 15000;
 
 	function findSubmitButton({submitButtons, labeledSubmit}) {
 		for (const selector of submitButtons) {
@@ -8989,7 +8988,9 @@ ${efficient_layout_default}`);
 			const imports = support.unresolvedImports?.(code, failure.items) ?? [];
 			const firstError = failure.items.find((item) => item.kind === "ERROR");
 			showToast({
-				title: translate(imports.length > 0 ? "javaSubmit.unresolvedImports" : "javaSubmit.transformFailed"),
+				title: translate(
+					imports.length > 0 ? "submissionHelper.unresolvedImports" : "submissionHelper.transformFailed",
+				),
 				detail:
 					imports.length > 0
 						? imports.join(`
@@ -9002,26 +9003,26 @@ ${efficient_layout_default}`);
 							)[0] ??
 							""),
 				tone: "warning",
-				durationMs: GUIDE_DURATION_MS,
+				durationMs: ACTION_NOTICE_DURATION_MS,
 				...(failure.diagnostics && {
-					more: {label: translate("javaSubmit.diagnostics"), text: failure.diagnostics},
+					more: {label: translate("submissionHelper.diagnostics"), text: failure.diagnostics},
 				}),
 			});
 		} else if (via !== "localRunner" && support.needsLocalRunner?.(code, options)) {
 			showToast({
-				title: translate("javaSubmit.localRunnerRequired").replace("{package}", options.libraryPackage),
-				detail: translate("javaSubmit.localRunnerGuide"),
+				title: translate("submissionHelper.localRunnerRequired").replace("{package}", options.libraryPackage),
+				detail: translate("submissionHelper.localRunnerGuide"),
 				tone: "warning",
 				href: LOCAL_RUNNER_GUIDE_URL,
-				durationMs: GUIDE_DURATION_MS,
+				durationMs: ACTION_NOTICE_DURATION_MS,
 			});
 		}
 	}
 
-	var javaSubmit = defineFeature({
+	var submissionHelper = defineFeature({
 		id: "java-submit",
-		title: "javaSubmit.title",
-		description: "javaSubmit.description",
+		title: "submissionHelper.title",
+		description: "submissionHelper.description",
 		category: "category.execution",
 		defaultEnabled: true,
 		routes: [
@@ -9035,9 +9036,9 @@ ${efficient_layout_default}`);
 		],
 		phase: "ready",
 		options: {
-			debugFlag: option.text("", "javaSubmit.debugFlag"),
-			libraryPackage: option.text("", "javaSubmit.libraryPackage"),
-			foldOnPaste: option.boolean(true, "javaSubmit.foldOnPaste"),
+			debugFlag: option.text("", "submissionHelper.debugFlag"),
+			libraryPackage: option.text("", "submissionHelper.libraryPackage"),
+			foldOnPaste: option.boolean(true, "submissionHelper.foldOnPaste"),
 		},
 		start({options, judge, judgeSite, editors, localRunner, paste, translate}) {
 			const target = judge?.submission;
@@ -9074,7 +9075,7 @@ ${efficient_layout_default}`);
 			paste.add(target, lookup, {
 				order: PASTE_ORDER,
 				async transform(code, {editor, pasted, original}) {
-					if (code.length < MIN_SOURCE_LENGTH || !isWholeCode(original, pasted)) return code;
+					if (!isWholeCode(original, pasted)) return code;
 					const language = submissionLanguageOf(await site, editor);
 					if (!language) return code;
 					const result = await transformSubmission(code, language, localRunner, fallbackOptions);
@@ -10115,7 +10116,6 @@ ${efficient_layout_default}`);
 
 	// CpToolkit/src/features/source-comments/index.ts
 	var PASTE_ORDER2 = 20;
-	var RUNNER_HEADER_DURATION_MS = 15000;
 	var SLOTS = ["header", "footer"];
 	var sourceComments = defineFeature({
 		id: "source-comments",
@@ -10214,8 +10214,9 @@ ${efficient_layout_default}`);
 				onApply() {
 					refresh();
 					const code = site.sourceCode();
-					const next = insertAll(code);
-					if (next !== code) site.setSourceCode(next);
+					insertWithRunnerHeader(code).then((next) => {
+						if (next !== code && site.sourceCode() === code) site.setSourceCode(next);
+					});
 				},
 			});
 			editorButtons.append(panel.button);
@@ -10240,11 +10241,19 @@ ${efficient_layout_default}`);
 							title: translate("sourceComments.runnerHeaderFailed"),
 							detail: error.message,
 							tone: "warning",
-							durationMs: RUNNER_HEADER_DURATION_MS,
+							durationMs: ACTION_NOTICE_DURATION_MS,
 						});
 					}
 					return null;
 				}
+			};
+			const insertWithRunnerHeader = async (code) => {
+				const header = await runnerHeader();
+				if (header === null) return insertAll(code);
+				const syntax = syntaxOf() ?? {};
+				return options.runnerHeader === "above"
+					? insertRunnerHeader(insertAll(code), header, syntax)
+					: insertAll(insertRunnerHeader(code, header, syntax));
 			};
 			paste.add(
 				target,
@@ -10254,12 +10263,7 @@ ${efficient_layout_default}`);
 					async transform(code, {pasted, original}) {
 						if (!isWholeCode(original, pasted)) return code;
 						inserted.clear();
-						const header = await runnerHeader();
-						if (header === null) return insertAll(code);
-						const syntax = syntaxOf() ?? {};
-						return options.runnerHeader === "above"
-							? insertRunnerHeader(insertAll(code), header, syntax)
-							: insertAll(insertRunnerHeader(code, header, syntax));
+						return insertWithRunnerHeader(code);
 					},
 				},
 			);
@@ -11629,7 +11633,7 @@ ${wide_layout_default}`);
 		tessokuDifficulty,
 		ratingGraph,
 		localRunner,
-		javaSubmit,
+		submissionHelper,
 		easyTest,
 		paizaLanguage,
 	];

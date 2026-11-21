@@ -13,16 +13,14 @@ import {
 	transformSubmission,
 } from "@application/source/submission-transform";
 import {registerShortcut} from "@ui/shortcuts";
-import {showToast} from "@ui/toast/toast";
+import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
 import {addTooltip} from "@ui/tooltip/tooltip";
 
 // 機能の id は、保存した設定を引き継ぐため、Java だけを扱っていたころの名前のままにする
 const FOLD_SHORTCUT = "Ctrl+Shift+M";
-const MIN_SOURCE_LENGTH = 30;
 const FOLD_DELAY_MS = 100;
 const PASTE_ORDER = 10;
 const LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
-const GUIDE_DURATION_MS = 15_000;
 
 function findSubmitButton({submitButtons, labeledSubmit}: SubmissionTarget): HTMLElement | null {
 	for (const selector of submitButtons) {
@@ -61,37 +59,37 @@ function notifyTransformProblem(
 		const imports = support.unresolvedImports?.(code, failure.items) ?? [];
 		const firstError = failure.items.find((item) => item.kind === "ERROR");
 		showToast({
-			title: translate(imports.length > 0 ? "javaSubmit.unresolvedImports" : "javaSubmit.transformFailed"),
+			title: translate(imports.length > 0 ? "submissionHelper.unresolvedImports" : "submissionHelper.transformFailed"),
 			detail: imports.length > 0 ? imports.join("\n") : firstError?.message ?? failure.diagnostics.split("\n", 1)[0] ?? "",
 			tone: "warning",
-			durationMs: GUIDE_DURATION_MS,
-			...(failure.diagnostics && {more: {label: translate("javaSubmit.diagnostics"), text: failure.diagnostics}}),
+			durationMs: ACTION_NOTICE_DURATION_MS,
+			...(failure.diagnostics && {more: {label: translate("submissionHelper.diagnostics"), text: failure.diagnostics}}),
 		});
 	} else if (via !== "localRunner" && support.needsLocalRunner?.(code, options)) {
 		// ライブラリの展開は Local Runner の Java Compiler API が行う。ブラウザの字句の置換ではできない
 		showToast({
-			title: translate("javaSubmit.localRunnerRequired").replace("{package}", options.libraryPackage),
-			detail: translate("javaSubmit.localRunnerGuide"),
+			title: translate("submissionHelper.localRunnerRequired").replace("{package}", options.libraryPackage),
+			detail: translate("submissionHelper.localRunnerGuide"),
 			tone: "warning",
 			href: LOCAL_RUNNER_GUIDE_URL,
-			durationMs: GUIDE_DURATION_MS,
+			durationMs: ACTION_NOTICE_DURATION_MS,
 		});
 	}
 }
 
-export const javaSubmit = defineFeature({
+export const submissionHelper = defineFeature({
 	id: "java-submit",
-	title: "javaSubmit.title",
-	description: "javaSubmit.description",
+	title: "submissionHelper.title",
+	description: "submissionHelper.description",
 	category: "category.execution",
 	defaultEnabled: true,
 	// AtCoder でエディタがあるのはこの3種類だけ。順位表などで探し続けないよう絞る
 	routes: ["atcoder:task", "atcoder:submit", "atcoder:customTest", "codeforces:page", "aoj:page", "libraryChecker:page", "paiza:page"],
 	phase: "ready",
 	options: {
-		debugFlag: option.text("", "javaSubmit.debugFlag"),
-		libraryPackage: option.text("", "javaSubmit.libraryPackage"),
-		foldOnPaste: option.boolean(true, "javaSubmit.foldOnPaste"),
+		debugFlag: option.text("", "submissionHelper.debugFlag"),
+		libraryPackage: option.text("", "submissionHelper.libraryPackage"),
+		foldOnPaste: option.boolean(true, "submissionHelper.foldOnPaste"),
 	},
 	start({options, judge, judgeSite, editors, localRunner, paste, translate}) {
 		const target = judge?.submission;
@@ -124,7 +122,7 @@ export const javaSubmit = defineFeature({
 			order: PASTE_ORDER,
 			async transform(code, {editor, pasted, original}) {
 				// 編集中のコードへ一部を貼り付けたときは、全体を書き換えない
-				if (code.length < MIN_SOURCE_LENGTH || !isWholeCode(original, pasted)) return code;
+				if (!isWholeCode(original, pasted)) return code;
 				const language = submissionLanguageOf(await site, editor);
 				if (!language) return code;
 				const result = await transformSubmission(code, language, localRunner, fallbackOptions);

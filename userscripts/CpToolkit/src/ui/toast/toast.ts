@@ -12,6 +12,9 @@ export type Toast = {
 	readonly more?: {readonly label: string; readonly text: string};
 };
 
+/** 読んで対処が要る通知(設定の案内や変換の失敗)を表示する時間。 */
+export const ACTION_NOTICE_DURATION_MS = 15_000;
+
 export type ToastLabels = {
 	/** 通知の領域の名前。支援技術が読み上げる。 */
 	readonly region: string;

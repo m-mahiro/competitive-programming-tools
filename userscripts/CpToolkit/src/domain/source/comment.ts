@@ -1,3 +1,5 @@
+import {includesSubmissionHeader} from "@atcoder-tools/shared";
+
 export type CommentSyntax = {
 	readonly line?: string;
 	readonly open?: string;
@@ -42,9 +44,9 @@ export function insertHeader(code: string, block: string, {preamble}: CommentSyn
 	return `${code.slice(0, offset)}${block}${code.slice(offset)}`;
 }
 
-/** Local Runner のヘッダーを先頭に置く。toclip の出力のように、既にその1行目で始まるコードには重ねない。 */
+/** Local Runner のヘッダーを先頭に置く。すでにそのヘッダーを含むコードには重ねない。 */
 export function insertRunnerHeader(code: string, header: string, syntax: CommentSyntax): string {
-	if (code.trimStart().startsWith(header.split("\n", 1)[0] ?? "")) return code;
+	if (includesSubmissionHeader(code, header)) return code;
 	return insertHeader(code, `${header}\n\n`, syntax);
 }
 

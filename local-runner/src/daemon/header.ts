@@ -2,6 +2,7 @@ import fs from "node:fs";
 import {
 	type LocalRunnerHeaderOption,
 	type LocalRunnerTransformResponse,
+	includesSubmissionHeader,
 	normalizeNewlines,
 } from "@atcoder-tools/shared";
 import * as config from "../config";
@@ -22,10 +23,10 @@ export function resolveSubmissionHeader(header: LocalRunnerHeaderOption, languag
 	return normalizeNewlines(fs.readFileSync(headerFile, "utf8")).trimEnd();
 }
 
-/** ソースの先頭にヘッダーを付ける。toclip の出力を貼り付けたときなど、既にヘッダーで始まるソースには重ねて付けない。 */
+/** ソースの先頭にヘッダーを付ける。toclip の出力を貼り付けたときなど、すでにそのヘッダーを含むソースには重ねて付けない。 */
 function prependHeader(sourceCode: string, header: LocalRunnerHeaderOption, languageKeys: readonly string[]): string {
 	const headerText = resolveSubmissionHeader(header, languageKeys);
-	if (headerText === null || sourceCode.startsWith(headerText.split("\n", 1)[0])) return sourceCode;
+	if (headerText === null || includesSubmissionHeader(sourceCode, headerText)) return sourceCode;
 	return `${headerText}\n\n${sourceCode}`;
 }
 

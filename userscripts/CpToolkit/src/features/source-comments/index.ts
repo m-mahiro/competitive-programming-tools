@@ -16,12 +16,11 @@ import {LocalRunnerError} from "@application/execution/local-runner";
 import {defineFeature} from "@application/feature/definition";
 import {EDITOR_SETUP_DELAY_MS} from "@application/ports/code-editor";
 import {type CommentSlot, SourceComments} from "@application/source/source-comments";
-import {showToast} from "@ui/toast/toast";
+import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
 import {createCommentPanel} from "./panel";
 
 /** 提出補助の変換が付け足す部分より外側に置く。 */
 const PASTE_ORDER = 20;
-const RUNNER_HEADER_DURATION_MS = 15_000;
 const SLOTS: readonly CommentSlot[] = ["header", "footer"];
 
 export const sourceComments = defineFeature({
@@ -123,8 +122,10 @@ export const sourceComments = defineFeature({
 			onApply() {
 				refresh();
 				const code = site.sourceCode();
-				const next = insertAll(code);
-				if (next !== code) site.setSourceCode(next);
+				void insertWithRunnerHeader(code).then((next) => {
+					// 待つ間に編集されていたら、その内容を上書きしない
+					if (next !== code && site.sourceCode() === code) site.setSourceCode(next);
+				});
 			},
 		});
 		editorButtons.append(panel.button);
@@ -153,11 +154,21 @@ export const sourceComments = defineFeature({
 						title: translate("sourceComments.runnerHeaderFailed"),
 						detail: error.message,
 						tone: "warning",
-						durationMs: RUNNER_HEADER_DURATION_MS,
+						durationMs: ACTION_NOTICE_DURATION_MS,
 					});
 				}
 				return null;
 			}
+		};
+
+		/** 問題ごとのヘッダーとフッターに加えて、Local Runner のヘッダーを付ける。上なら問題ごとのヘッダーの上に、下ならその下に置く。 */
+		const insertWithRunnerHeader = async (code: string): Promise<string> => {
+			const header = await runnerHeader();
+			if (header === null) return insertAll(code);
+			const syntax = syntaxOf() ?? {};
+			return options.runnerHeader === "above"
+				? insertRunnerHeader(insertAll(code), header, syntax)
+				: insertAll(insertRunnerHeader(code, header, syntax));
 		};
 
 		paste.add(target, {delayMs: EDITOR_SETUP_DELAY_MS}, {
@@ -165,13 +176,7 @@ export const sourceComments = defineFeature({
 			async transform(code, {pasted, original}) {
 				if (!isWholeCode(original, pasted)) return code;
 				inserted.clear();
-				const header = await runnerHeader();
-				if (header === null) return insertAll(code);
-				const syntax = syntaxOf() ?? {};
-				// 上なら問題ごとのヘッダーの上に、下ならその下に置く
-				return options.runnerHeader === "above"
-					? insertRunnerHeader(insertAll(code), header, syntax)
-					: insertAll(insertRunnerHeader(code, header, syntax));
+				return insertWithRunnerHeader(code);
 			},
 		});
 	},
