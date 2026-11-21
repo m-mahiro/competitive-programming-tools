@@ -1,8 +1,8 @@
-import {buildQueryString, type LocalRunnerCompilerInfo, sleep, toEasyTestStatus} from "@atcoder-tools/shared";
-import {languageCatalog, runnerCatalog} from "@catalog/tables";
-import {resolveFamily} from "@domain/execution/language";
+import {buildQueryString, sleep, toEasyTestStatus} from "@atcoder-tools/shared";
+import {runnerCatalog} from "@catalog/tables";
 import type {JudgeLanguage, RunOptions, RunResult} from "@domain/execution/result";
 import type {LocalRunnerClient} from "@application/execution/local-runner";
+import {orderLocalCompilers} from "@application/execution/local-languages";
 import type {CodeRunner, RunnerProvider} from "@application/execution/runner-catalog";
 import type {HttpClient} from "@application/ports/services";
 
@@ -138,26 +138,12 @@ export class LocalRunnerProvider implements RunnerProvider {
 		this.client = client;
 	}
 
-	/**
-	 * ページの言語と同じ種類の実行環境を返す。種類は、サーバーが返した family を使い、無ければ言語の表記から判定する。
-	 * サーバーが match を返していれば、ページの言語の表記にその語を含む環境を先頭にし、残りはサーバーが返した順に並べる。
-	 * PyPy のページで CPython や Codon が先に選ばれないようにするためで、表記の近さだけでは処理系を選び分けられない。
-	 */
-	async runnersFor({family, label}: JudgeLanguage): Promise<readonly CodeRunner[]> {
+	/** ページの言語と同じ種類の実行環境を、使う順に返す。サーバーが順番を決めたときだけ、その順位を付ける。 */
+	async runnersFor(language: JudgeLanguage): Promise<readonly CodeRunner[]> {
 		if (!this.client.isAvailable()) return [];
-		const compilers = await this.client.list();
-		const sameFamily = compilers.filter((compiler) => {
-			return (compiler.family ?? resolveFamily(languageCatalog, compiler.language)) === family;
-		});
-		if (!sameFamily.some(({match}) => match !== undefined)) {
-			return sameFamily.map(({compilerName, label: name}) => new LocalCodeRunner(this.client, compilerName, name));
-		}
-		const pageLabel = label.toLowerCase();
-		const matches = ({match}: LocalRunnerCompilerInfo): boolean => {
-			return (match ?? []).some((word) => pageLabel.includes(word.toLowerCase()));
-		};
-		return [...sameFamily.filter(matches), ...sameFamily.filter((compiler) => !matches(compiler))]
-			.map(({compilerName, label: name}, index) => new LocalCodeRunner(this.client, compilerName, name, index));
+		const ordered = orderLocalCompilers(await this.client.list(), language);
+		const ranked = ordered.some(({match}) => match !== undefined);
+		return ordered.map(({compilerName, label}, index) => new LocalCodeRunner(this.client, compilerName, label, ranked ? index : undefined));
 	}
 }
 

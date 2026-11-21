@@ -42,15 +42,15 @@ Tampermonkey の「設定を開く」、または AtCoder のヘッダーにあ�
 </tr>
 <tr>
 <td>Codeforces&emsp;</td>
-<td>Easy Test+、Java の提出補助</td>
+<td>Easy Test+、提出補助</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td>AOJ、Library Checker&emsp;</td>
-<td>Java の提出補助</td>
+<td>提出補助</td>
 </tr>
 <tr>
 <td>paiza&emsp;</td>
-<td>Java の提出補助、paiza の言語選択</td>
+<td>提出補助、paiza の言語選択</td>
 </tr>
 </tbody></table>
 
@@ -219,8 +219,8 @@ Tampermonkey の「設定を開く」、または AtCoder のヘッダーにあ�
 <td>問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.md"><strong>Java の提出補助</strong></a>&emsp;</td>
-<td>貼り付けた Java コードを提出用に変換し、ショートカットで提出できます。</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.md"><strong>提出補助</strong></a>&emsp;</td>
+<td>貼り付けたコードを提出用に変換し、ショートカットで提出できます。</td>
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/paiza-language.md"><strong>paiza の言語選択</strong></a>&emsp;</td>

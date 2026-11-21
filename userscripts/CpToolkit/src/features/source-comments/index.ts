@@ -7,17 +7,21 @@ import {
 	fillVariables,
 	insertFooter,
 	insertHeader,
+	insertRunnerHeader,
 	isWholeCode,
 	replaceBlock,
 	toComment,
 } from "@domain/source/comment";
+import {LocalRunnerError} from "@application/execution/local-runner";
 import {defineFeature} from "@application/feature/definition";
 import {EDITOR_SETUP_DELAY_MS} from "@application/ports/code-editor";
 import {type CommentSlot, SourceComments} from "@application/source/source-comments";
+import {showToast} from "@ui/toast/toast";
 import {createCommentPanel} from "./panel";
 
-/** Java の変換が付け足す部分より外側に置く。 */
+/** 提出補助の変換が付け足す部分より外側に置く。 */
 const PASTE_ORDER = 20;
+const RUNNER_HEADER_DURATION_MS = 15_000;
 const SLOTS: readonly CommentSlot[] = ["header", "footer"];
 
 export const sourceComments = defineFeature({
@@ -33,8 +37,14 @@ export const sourceComments = defineFeature({
 			{value: "line", label: "sourceComments.styleLine"},
 			{value: "block", label: "sourceComments.styleBlock"},
 		]),
+		runnerHeader: option.select("above", "sourceComments.runnerHeader", [
+			{value: "above", label: "sourceComments.runnerHeaderAbove"},
+			{value: "below", label: "sourceComments.runnerHeaderBelow"},
+			{value: "none", label: "sourceComments.runnerHeaderNone"},
+		]),
+		runnerHeaderName: option.text("", "sourceComments.runnerHeaderName"),
 	},
-	async start({options, judge, judgeSite, page, paste, state, translate}) {
+	async start({options, judge, judgeSite, localRunner, page, paste, state, translate}) {
 		const target = judge?.submission;
 		const site = await judgeSite();
 		const editorButtons = document.querySelector(".editor-buttons");
@@ -128,12 +138,40 @@ export const sourceComments = defineFeature({
 			});
 		}
 
+		/** Local Runner に設定した、この言語のヘッダー。付けない設定か、接続できなければ null。 */
+		const runnerHeader = async (): Promise<string | null> => {
+			const language = site.language();
+			if (options.runnerHeader === "none" || !language || !localRunner.isAvailable()) return null;
+			try {
+				const compilerName = await localRunner.compilerFor(language);
+				if (compilerName === null) return null;
+				return await localRunner.header(compilerName, options.runnerHeaderName.trim() || true);
+			} catch (error) {
+				// 名前を指定したヘッダーが無いときは、知らずに提出しないよう知らせる。起動していないだけなら知らせない
+				if (error instanceof LocalRunnerError && error.status !== 0) {
+					showToast({
+						title: translate("sourceComments.runnerHeaderFailed"),
+						detail: error.message,
+						tone: "warning",
+						durationMs: RUNNER_HEADER_DURATION_MS,
+					});
+				}
+				return null;
+			}
+		};
+
 		paste.add(target, {delayMs: EDITOR_SETUP_DELAY_MS}, {
 			order: PASTE_ORDER,
-			transform(code, {pasted, original}) {
+			async transform(code, {pasted, original}) {
 				if (!isWholeCode(original, pasted)) return code;
 				inserted.clear();
-				return insertAll(code);
+				const header = await runnerHeader();
+				if (header === null) return insertAll(code);
+				const syntax = syntaxOf() ?? {};
+				// 上なら問題ごとのヘッダーの上に、下ならその下に置く
+				return options.runnerHeader === "above"
+					? insertRunnerHeader(insertAll(code), header, syntax)
+					: insertAll(insertRunnerHeader(code, header, syntax));
 			},
 		});
 	},

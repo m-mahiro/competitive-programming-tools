@@ -1,10 +1,11 @@
 import {afterEach, beforeEach, describe, expect, mock, test} from "bun:test";
 import type {JudgeLanguage} from "@domain/execution/result";
+import {LocalRunnerClient} from "@application/execution/local-runner";
 import type {CodeEditor} from "@application/ports/code-editor";
 import type {JudgeSite} from "@application/ports/judge-site";
 import {PastePipeline} from "@application/source/paste-pipeline";
 import {sourceComments} from "@features/source-comments/index";
-import {createFakePage, createFakeServices, MemoryStore} from "../support/fakes";
+import {createFakePage, createFakeServices, FakeHttpClient, MemoryStore} from "../support/fakes";
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 const java: JudgeLanguage = {id: "1", label: "Java 24", family: "java"};
@@ -21,7 +22,21 @@ const target = {
 const judge = {id: "atcoder", name: "AtCoder", matches: [], routes: {}, navigationLists: [], submission: target};
 const taskUrl = "https://atcoder.jp/contests/abc1/tasks/abc1_a";
 
-function createContext() {
+const offline = new LocalRunnerClient(new FakeHttpClient(() => ({status: 500, text: ""})), () => null);
+
+/** Java のヘッダーを返す Local Runner。 */
+function runnerWithHeader(header: string | null) {
+	const http = new FakeHttpClient(({body}) => {
+		const {mode} = JSON.parse(String(body)) as {mode: string};
+		const response = mode === "list"
+			? [{language: "Java", compilerName: "java", label: "Java", family: "java"}]
+			: {status: "success", header};
+		return {status: 200, text: JSON.stringify(response)};
+	});
+	return {http, client: new LocalRunnerClient(http, () => "http://localhost:8080")};
+}
+
+function createContext(localRunner: LocalRunnerClient = offline) {
 	let code = "";
 	let language: JudgeLanguage | null = java;
 	let task = taskUrl;
@@ -62,7 +77,7 @@ function createContext() {
 	const editors = {locate: async () => editor};
 	const state = new MemoryStore();
 	const paste = new PastePipeline(editors);
-	const services = {judge, judgeSite: async () => site, page: createFakePage(), paste, state, editors};
+	const services = {judge, judgeSite: async () => site, localRunner, page: createFakePage(), paste, state, editors};
 	return {
 		services,
 		state,
@@ -90,8 +105,8 @@ function createContext() {
 	};
 }
 
-async function open(options?: unknown) {
-	const context = createContext();
+async function open(options?: unknown, localRunner?: LocalRunnerClient) {
+	const context = createContext(localRunner);
 	await sourceComments.run(options, createFakeServices(context.services));
 	await flush();
 	openPanel();
@@ -158,6 +173,28 @@ describe("sourceComments", () => {
 		await context.pasteCode("class Main {}\n");
 
 		expect(context.code()).toBe("// https://example.com/a\n// https://example.com/b\nclass Main {}\n// footer\n");
+	});
+
+	test("Local Runner のヘッダーを、問題ごとのヘッダーの上か下に置き、付けないこともできる", async () => {
+		for (const [placement, expected] of [
+			["above", "// server\n\n// task\nclass Main {}\n"],
+			["below", "// task\n// server\n\nclass Main {}\n"],
+			["none", "// task\nclass Main {}\n"],
+		] as const) {
+			document.body.innerHTML = '<div class="editor-buttons"></div>';
+			const {http, client} = runnerWithHeader("// server");
+			const context = await open({runnerHeader: placement}, client);
+			setText(0, "task");
+			await context.pasteCode("class Main {}\n");
+			expect(context.code()).toBe(expected);
+			if (placement === "none") expect(http.requests).toEqual([]);
+		}
+	});
+
+	test("Local Runner のヘッダーで始まるコードには重ねて付けない", async () => {
+		const context = await open(undefined, runnerWithHeader("// server").client);
+		await context.pasteCode("// server\n\nclass Main {}\n");
+		expect(context.code()).toBe("// server\n\nclass Main {}\n");
 	});
 
 	test("複数行コメントを選べる", async () => {

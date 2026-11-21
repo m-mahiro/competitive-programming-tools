@@ -508,7 +508,7 @@ describe("javaSubmit", () => {
 
 	const editorServices = (editor: CodeEditor | null) => {
 		const editors = {locate: async () => editor};
-		return {editors, paste: new PastePipeline(editors)};
+		return {editors, paste: new PastePipeline(editors), judgeSite: async () => null};
 	};
 	const source = "package a;\npublic class Solution {\n\tpublic static void main(String[] args) {}\n}\n";
 	const offline = new LocalRunnerClient(new FakeHttpClient(() => ({status: 500, text: ""})), () => null);
@@ -542,6 +542,32 @@ describe("javaSubmit", () => {
 		paste();
 		await wait();
 		expect(editor.getValue()).toBe("// transformed\n");
+	});
+
+	test("Java 以外の言語も、ページの言語に合う Local Runner の言語で変換する", async () => {
+		const pythonSource = "import sys\nDEBUG = True\nprint(sys.stdin.readline())\n";
+		const {editor, paste} = createEditor(pythonSource);
+		const http = new FakeHttpClient(({body}) => {
+			const request = JSON.parse(String(body)) as {mode: string; compilerName?: string};
+			const response = request.mode === "list"
+				? [
+					{language: "Python", compilerName: "cpython", label: "CPython", family: "python3", match: ["CPython"]},
+					{language: "Python", compilerName: "pypy", label: "PyPy", family: "python3", match: ["PyPy"]},
+				]
+				: {status: "success", sourceCode: `# ${request.compilerName}\n`, diagnostics: "", inlinedClasses: [], diagnosticItems: []};
+			return {status: 200, text: JSON.stringify(response)};
+		});
+		const pypy = {id: "5078", label: "Python (PyPy 3.11-v7.3.20)", family: "python3"};
+		await javaSubmit.run({foldOnPaste: false}, createFakeServices({
+			judge,
+			localRunner: new LocalRunnerClient(http, () => "http://localhost:8080"),
+			...editorServices(editor),
+			judgeSite: async () => ({language: () => pypy}) as unknown as JudgeSite,
+		}));
+		await wait();
+		paste();
+		await wait();
+		expect(editor.getValue()).toBe("# pypy\n");
 	});
 
 	test("短いコードは変換しない", async () => {
@@ -607,7 +633,7 @@ describe("javaSubmit", () => {
 
 		const text = shadowRoots().map((root) => root.textContent).join("");
 		expect(text).toContain("見つからない import があります");
-		expect(text).toContain("javac の診断");
+		expect(text).toContain("診断の全文");
 		expect(text).toContain("lib.ds.UnionFind");
 		expect(editor.getValue()).toBe(code);
 	});

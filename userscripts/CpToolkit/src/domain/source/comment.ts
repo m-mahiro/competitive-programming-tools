@@ -42,6 +42,12 @@ export function insertHeader(code: string, block: string, {preamble}: CommentSyn
 	return `${code.slice(0, offset)}${block}${code.slice(offset)}`;
 }
 
+/** Local Runner のヘッダーを先頭に置く。toclip の出力のように、既にその1行目で始まるコードには重ねない。 */
+export function insertRunnerHeader(code: string, header: string, syntax: CommentSyntax): string {
+	if (code.trimStart().startsWith(header.split("\n", 1)[0] ?? "")) return code;
+	return insertHeader(code, `${header}\n\n`, syntax);
+}
+
 export function insertFooter(code: string, block: string, {trailer}: CommentSyntax): string {
 	const end = (trailer === undefined ? null : new RegExp(trailer).exec(code))?.index ?? code.length;
 	const body = code.slice(0, end).trimEnd();

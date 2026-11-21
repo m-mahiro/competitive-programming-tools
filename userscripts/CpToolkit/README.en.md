@@ -42,15 +42,15 @@ When a newer version exists, a notice appears once in the corner of the page, an
 </tr>
 <tr>
 <td>Codeforces&emsp;</td>
-<td>Easy Test+, Java submission helper</td>
+<td>Easy Test+, Submission helper</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td>AOJ, Library Checker&emsp;</td>
-<td>Java submission helper</td>
+<td>Submission helper</td>
 </tr>
 <tr>
 <td>paiza&emsp;</td>
-<td>Java submission helper, paiza language selection</td>
+<td>Submission helper, paiza language selection</td>
 </tr>
 </tbody></table>
 
@@ -219,8 +219,8 @@ All features are enabled from the start, except those marked <sub>off by default
 <td>Run sample tests from the task page and submit when they all pass.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.en.md"><strong>Java submission helper</strong></a>&emsp;</td>
-<td>Prepare pasted Java code for submission and submit with a keyboard shortcut.</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.en.md"><strong>Submission helper</strong></a>&emsp;</td>
+<td>Prepare pasted code for submission and submit with a keyboard shortcut.</td>
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/paiza-language.en.md"><strong>paiza language selection</strong></a>&emsp;</td>

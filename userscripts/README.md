@@ -64,7 +64,7 @@ CP Toolkit は `@atcoder-tools/shared` の Local Runner API、ジャッジ、提
 | AtCoder Markdown Copier            | 問題文のコピー                        |
 | AtCoder Performance Overlay        | レーティンググラフにパフォーマンスを表示 |
 | AtCoder Widen Container            | ページ幅の拡張                        |
-| Java Code Submitter                | Java の提出補助                       |
+| Java Code Submitter                | 提出補助                              |
 
 別リポジトリの [Paiza Language Selector](https://github.com/nsubaru11/userscripts/blob/main/src/paiza-language-selector.user.js) も paiza の言語選択へ統合しました。
 

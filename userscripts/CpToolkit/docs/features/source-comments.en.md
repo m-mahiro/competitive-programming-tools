@@ -18,14 +18,18 @@
 - Without "Comment out when inserting", the text is inserted as written, so write the comment markers yourself.
 - `{url}`, `{task}` and `{contest}` become the task URL, the task ID and the contest ID.
 - For languages whose comment syntax is unknown, nothing is inserted and a notification tells you so.
+- With [Local Runner integration](local-runner.en.md), the header set in Local Runner for the language (`setheader`) is added too. In the detailed settings, put it above or below the task header, or leave it out. Code that already starts with that header does not get it again.
+- If you enter a header name in the detailed settings, the header saved under that name is used instead of the language default. A notification tells you if no header has that name.
 
 ## Detailed settings
 
 Open this feature’s “Detailed settings” in CP Toolkit.
 
-| Setting               | Default              |
-|-----------------------|----------------------|
-| Default comment style | Single-line comments |
+| Setting                                                   | Default               |
+|-----------------------------------------------------------|-----------------------|
+| Default comment style                                     | Single-line comments  |
+| Where to put the Local Runner header                      | Above the task header |
+| Local Runner header name (empty for the language default) | (empty)               |
 
 ## Pages
 

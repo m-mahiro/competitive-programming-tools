@@ -2,11 +2,11 @@
 
 [Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](local-runner.md)
 
-> Set the server used by Easy Test+ and the Java submission helper.
+> Set the server used by Easy Test+ and the submission helper.
 
 ## How it works
 
-- [Easy Test+](easy-test.en.md) uses this connection to run code. The [Java submission helper](java-submit.en.md) uses it to expand libraries and prepare submissions.
+- [Easy Test+](easy-test.en.md) uses this connection to run code. The [submission helper](java-submit.en.md) uses it to prepare submissions, and [Code header and footer](source-comments.en.md) uses it for the submission header.
 - Set the URL of your own server. You can use [Local Runner](../../../../local-runner/README.md) or any server that implements the same API. Local Runner needs a separate installation.
 - If you run Local Runner on your computer with its default settings, use `http://localhost:8080` as the server URL.
 
@@ -28,7 +28,8 @@ Open this feature’s “Detailed settings” in CP Toolkit.
 | `list`       | Easy Test+             | None                                                      | An array of `{language, compilerName, label}`. `language` is a language name (e.g. `Java`, `C++`, `Python`), and entries of the same family as the submission language become candidate environments. `label` is the name shown on screen |
 | `precompile` | Easy Test+             | `sourceCode`, `compilerName`, `debug`                     | `{status: "accepted"}`. Compiles the code being edited in advance. Respond at once, without waiting for the result                                                                                                                        |
 | `run`        | Easy Test+             | `sourceCode`, `stdin`, `compilerName`, `debug`            | `status`, `exitCode`, `stdout`, `stderr`, `time` (ms), `memory` (cumulative allocation in KB; 0 hides it), `peakMemory` (optional; peak usage in KB)                                                                                      |
-| `transform`  | Java submission helper | `sourceCode`, `header`, `debug`, `validate`               | `status` (`success` or `compileError`), `sourceCode` (transformed code), `diagnostics`, `diagnosticItems`                                                                                                                                 |
+| `transform`  | Submission helper      | `sourceCode`, `compilerName`, `header`, `debug`, `validate` | `status` (`success` or `compileError`), `sourceCode` (transformed code), `diagnostics`, `diagnosticItems`. CP Toolkit sends `header` as `false` |
+| `header`     | Code header and footer | `compilerName`, `header`                                  | `{status: "success", header}`. `header` is the text to put at the top of the submission, or `null` when none is set. A request `header` of `true` means the language default, and a string means the header with that name |
 
 - `compilerName` is the value returned by `list`. A server that handles several languages uses it to pick one.
 - Each entry of `list` may also carry `family` and `match`.

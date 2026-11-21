@@ -1,11 +1,15 @@
 import {
 	type LocalRunnerCompilerInfo,
 	type LocalRunnerHeaderOption,
+	type LocalRunnerHeaderResponse,
 	type LocalRunnerRequest,
 	type LocalRunnerRunResponse,
 	type LocalRunnerTransformResponse,
+	safeJsonParse,
 } from "@atcoder-tools/shared";
+import type {JudgeLanguage} from "@domain/execution/result";
 import type {HttpClient} from "@application/ports/services";
+import {orderLocalCompilers} from "./local-languages";
 
 const TRANSFORM_TIMEOUT_MS = 30_000;
 
@@ -36,15 +40,28 @@ export class LocalRunnerClient {
 		return this.post({mode: "list"});
 	}
 
-	transform(sourceCode: string, header: LocalRunnerHeaderOption): Promise<LocalRunnerTransformResponse> {
+	/** ページの言語に使う Local Runner の言語の識別子。同じ種類の言語が無ければ null。 */
+	async compilerFor(language: JudgeLanguage): Promise<string | null> {
+		return orderLocalCompilers(await this.list(), language)[0]?.compilerName ?? null;
+	}
+
+	/** 提出用に変換する。ヘッダーはブラウザがほかの文と並べて付けるので、ここでは付けない。compilerName を省くと Java。 */
+	transform(sourceCode: string, compilerName?: string): Promise<LocalRunnerTransformResponse> {
 		const request = {
 			mode: "transform",
 			sourceCode,
+			...(compilerName !== undefined && {compilerName}),
 			debug: false,
 			validate: false,
-			header
+			header: false,
 		} as const;
 		return this.post(request, TRANSFORM_TIMEOUT_MS);
+	}
+
+	/** 提出物に付けるヘッダーの文。設定が無ければ null。compilerName を省くと Java。 */
+	async header(compilerName: string | undefined, header: LocalRunnerHeaderOption): Promise<string | null> {
+		const response = await this.post<LocalRunnerHeaderResponse>({mode: "header", ...(compilerName !== undefined && {compilerName}), header});
+		return response.header;
 	}
 
 	/**
@@ -72,7 +89,10 @@ export class LocalRunnerClient {
 			timeoutMs,
 		});
 		if (response.status < 200 || response.status >= 300) {
-			throw new LocalRunnerError(`Local Runner returned ${response.status}.`, response.status);
+			// 誤りの理由は応答の stderr にある(名前を指定したヘッダーが無いなど)
+			const reason = safeJsonParse<{stderr?: unknown}>(response.text, {}).stderr;
+			const detail = typeof reason === "string" && reason ? `\n${reason}` : "";
+			throw new LocalRunnerError(`Local Runner returned ${response.status}.${detail}`, response.status);
 		}
 		return JSON.parse(response.text) as T;
 	}

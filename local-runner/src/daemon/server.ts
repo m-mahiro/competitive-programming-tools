@@ -1,5 +1,5 @@
 import http from "node:http";
-import type {LocalRunnerCompilerInfo, LocalRunnerHeaderOption} from "@atcoder-tools/shared";
+import type {LocalRunnerCompilerInfo, LocalRunnerHeaderOption, LocalRunnerHeaderResponse} from "@atcoder-tools/shared";
 import type {RunnerStatusInfo} from "../types";
 import * as config from "../config";
 import {loadedLibrarySource} from "../javaLibrary/prepare";
@@ -22,7 +22,7 @@ import {
 	schedulePrecompile,
 	transformSource,
 } from "./execution";
-import {applySubmissionHeader} from "./header";
+import {applySubmissionHeader, resolveSubmissionHeader} from "./header";
 import {isAllowedOrigin} from "./origin";
 import {missingProgramResponse} from "./runResponse";
 
@@ -146,6 +146,9 @@ export function createRunnerServer(requestShutdown: () => void): http.Server {
 				// 結果は待たずに受け付けだけを返す。コンパイルは順番待ちにし、実行の要求が来たら結果を使う。
 				schedulePrecompile(requireLanguage(request.compilerName), request.sourceCode, request.debug !== false);
 				response = {status: "accepted"};
+			} else if (request.mode === "header") {
+				const language = requireLanguage(request.compilerName);
+				response = {status: "success", header: resolveSubmissionHeader(request.header ?? true, headerKeys(language))} satisfies LocalRunnerHeaderResponse;
 			} else if (request.mode === "transform" && typeof request.sourceCode === "string") {
 				const language = requireLanguage(request.compilerName);
 				response = applySubmissionHeader(

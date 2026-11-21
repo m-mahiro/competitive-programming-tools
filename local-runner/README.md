@@ -5,7 +5,7 @@
 - **CLI**: AtCoder のサンプルでのテスト、提出、提出用コードの作成を行います。
 - **サーバー**: 解答をコンパイルして実行します。Java を速く動かすために常駐します。[CP Toolkit](../userscripts/CpToolkit/README.md) からも接続できます。
 
-[CP Toolkit](../userscripts/CpToolkit/README.md) の Java の提出補助でライブラリを展開するには、Local Runner と[ライブラリの設定](#ライブラリを使う)が必要です。
+[CP Toolkit](../userscripts/CpToolkit/README.md) の提出補助でライブラリを展開するには、Local Runner と[ライブラリの設定](#ライブラリを使う)が必要です。
 
 Windows（WSL）で動作を確認しています。
 
@@ -266,7 +266,7 @@ Go、Rust、Kotlin、C# の定義には、デバッグの切り替えはあり�
 
 ## 提出用ヘッダー
 
-提出物の先頭に付けるコメントなどのファイルを、`setheader` で設定できます。言語の既定のヘッダーと、名前付きのヘッダーの2通りがあります。`submit`、`tomain`、`toclip` と CP Toolkit の Java の提出補助が使います。言語の名前には、設定での名前(`java`、`cpp`、`pypy` など)か、言語の種類(`python3` など)を書きます。
+提出物の先頭に付けるコメントなどのファイルを、`setheader` で設定できます。言語の既定のヘッダーと、名前付きのヘッダーの2通りがあります。`submit`、`tomain`、`toclip` と CP Toolkit の「コードのヘッダーとフッター」が使います。言語の名前には、設定での名前(`java`、`cpp`、`pypy` など)か、言語の種類(`python3` など)を書きます。
 
 ```bash
 # java の既定のヘッダー。--header を付けなければこれを使う

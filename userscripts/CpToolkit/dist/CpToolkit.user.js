@@ -3460,6 +3460,12 @@ a:focus > .cp-settings-entry {
 		"sourceComments.style": "Default comment style",
 		"sourceComments.styleLine": "Single-line comments",
 		"sourceComments.styleBlock": "Multi-line comment",
+		"sourceComments.runnerHeader": "Where to put the Local Runner header",
+		"sourceComments.runnerHeaderAbove": "Above the task header",
+		"sourceComments.runnerHeaderBelow": "Below the task header",
+		"sourceComments.runnerHeaderNone": "Do not add it",
+		"sourceComments.runnerHeaderName": "Local Runner header name (empty for the language default)",
+		"sourceComments.runnerHeaderFailed": "Could not read the Local Runner header",
 		"sourceComments.panel": "Header and footer",
 		"sourceComments.header": "Header (top of the code)",
 		"sourceComments.footer": "Footer (bottom of the code)",
@@ -3530,21 +3536,19 @@ a:focus > .cp-settings-entry {
 		"localRunner.title": "Local Runner integration",
 		"localRunner.description": "Set the server used by Easy Test+ and the Java submission helper.",
 		"localRunner.url": "Server URL",
-		"javaSubmit.title": "Java submission helper",
-		"javaSubmit.description": "Prepare pasted Java code for submission and submit with a keyboard shortcut.",
+		"javaSubmit.title": "Submission helper",
+		"javaSubmit.description": "Prepare pasted code for submission and submit with a keyboard shortcut.",
 		"javaSubmit.localRunnerRequired": "Expanding {package}.* needs Local Runner",
 		"javaSubmit.localRunnerGuide":
 			"Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
 		"javaSubmit.unresolvedImports": "Some imports could not be found",
 		"javaSubmit.transformFailed": "Local Runner could not transform the code",
-		"javaSubmit.diagnostics": "javac diagnostics",
+		"javaSubmit.diagnostics": "Full diagnostics",
 		"javaSubmit.debugFlag":
-			"Variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)",
+			"Java variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)",
 		"javaSubmit.libraryPackage":
-			"Package of the library that Local Runner expands (e.g. lib; empty to skip the check)",
-		"javaSubmit.addHeader": "Add the submission header",
-		"javaSubmit.headerName": "Header name (empty for the default)",
-		"javaSubmit.foldOnPaste": "Fold classes and comments after pasting",
+			"Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)",
+		"javaSubmit.foldOnPaste": "Fold Java classes and comments after pasting",
 		"easyTest.title": "Easy Test+",
 		"easyTest.description": "Run sample tests from the task page and submit when they all pass.",
 		"easyTest.precompile": "Precompile edited code with Local Runner",
@@ -3678,6 +3682,12 @@ a:focus > .cp-settings-entry {
 		"sourceComments.style": "既定のコメントの形式",
 		"sourceComments.styleLine": "単一行コメントを並べる",
 		"sourceComments.styleBlock": "複数行コメント",
+		"sourceComments.runnerHeader": "Local Runner のヘッダーの置き場所",
+		"sourceComments.runnerHeaderAbove": "問題ごとのヘッダーの上",
+		"sourceComments.runnerHeaderBelow": "問題ごとのヘッダーの下",
+		"sourceComments.runnerHeaderNone": "付けない",
+		"sourceComments.runnerHeaderName": "Local Runner のヘッダーの名前（空欄なら言語の既定）",
+		"sourceComments.runnerHeaderFailed": "Local Runner のヘッダーを読めませんでした",
 		"sourceComments.panel": "ヘッダーとフッター",
 		"sourceComments.header": "ヘッダー（コードの先頭）",
 		"sourceComments.footer": "フッター（コードの末尾）",
@@ -3748,19 +3758,19 @@ a:focus > .cp-settings-entry {
 		"localRunner.title": "Local Runner との連携",
 		"localRunner.description": "Easy Test+ と Java の提出補助で使うサーバーの接続先を設定します。",
 		"localRunner.url": "接続先の URL",
-		"javaSubmit.title": "Java の提出補助",
-		"javaSubmit.description": "貼り付けた Java コードを提出用に変換し、ショートカットで提出できます。",
+		"javaSubmit.title": "提出補助",
+		"javaSubmit.description": "貼り付けたコードを提出用に変換し、ショートカットで提出できます。",
 		"javaSubmit.localRunnerRequired": "{package}.* の展開には Local Runner が必要です",
 		"javaSubmit.localRunnerGuide":
 			"Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。",
 		"javaSubmit.unresolvedImports": "見つからない import があります",
 		"javaSubmit.transformFailed": "Local Runner で変換できませんでした",
-		"javaSubmit.diagnostics": "javac の診断",
-		"javaSubmit.debugFlag": "Local Runner がないときに false にする変数の名前（例：DEBUG。空欄なら変えない）",
-		"javaSubmit.libraryPackage": "Local Runner で展開するライブラリのパッケージ（例：lib。空欄なら確かめない）",
-		"javaSubmit.addHeader": "提出用のヘッダーを付ける",
-		"javaSubmit.headerName": "ヘッダーの名前（空欄なら既定）",
-		"javaSubmit.foldOnPaste": "貼り付け後にクラスとコメントを折りたたむ",
+		"javaSubmit.diagnostics": "診断の全文",
+		"javaSubmit.debugFlag":
+			"Local Runner がないときに false にする Java の変数の名前（例：DEBUG。空欄なら変えない）",
+		"javaSubmit.libraryPackage":
+			"Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）",
+		"javaSubmit.foldOnPaste": "貼り付け後に Java のクラスとコメントを折りたたむ",
 		"easyTest.title": "Easy Test+",
 		"easyTest.description": "問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。",
 		"easyTest.precompile": "Local Runner で編集中のコードを事前にコンパイルする",
@@ -3798,82 +3808,6 @@ a:focus > .cp-settings-entry {
 
 	function createTranslator(getLocale) {
 		return (key) => MESSAGES[getLocale()][key];
-	}
-
-	// CpToolkit/src/application/execution/local-runner.ts
-	var TRANSFORM_TIMEOUT_MS = 30000;
-
-	class LocalRunnerError extends Error {
-		status;
-
-		constructor(message, status) {
-			super(message);
-			this.status = status;
-		}
-	}
-
-	class LocalRunnerClient {
-		http;
-		endpoint;
-
-		constructor(http, endpoint) {
-			this.http = http;
-			this.endpoint = endpoint;
-		}
-
-		isAvailable() {
-			return this.endpoint() !== null;
-		}
-
-		list() {
-			return this.post({mode: "list"});
-		}
-
-		transform(sourceCode, header) {
-			const request = {
-				mode: "transform",
-				sourceCode,
-				debug: false,
-				validate: false,
-				header,
-			};
-			return this.post(request, TRANSFORM_TIMEOUT_MS);
-		}
-
-		async precompile(sourceCode, compilerName) {
-			await this.post({
-				mode: "precompile",
-				sourceCode,
-				...(compilerName !== undefined && {compilerName}),
-				debug: true,
-			});
-		}
-
-		run(sourceCode, input, compilerName) {
-			return this.post({
-				mode: "run",
-				sourceCode,
-				...(compilerName !== undefined && {compilerName}),
-				stdin: input,
-				debug: true,
-			});
-		}
-
-		async post(request, timeoutMs) {
-			const url = this.endpoint();
-			if (url === null) throw new LocalRunnerError("Local Runner is not configured.", 0);
-			const response = await this.http.send({
-				url,
-				method: "POST",
-				headers: {"Content-Type": "application/json"},
-				body: JSON.stringify(request),
-				timeoutMs,
-			});
-			if (response.status < 200 || response.status >= 300) {
-				throw new LocalRunnerError(`Local Runner returned ${response.status}.`, response.status);
-			}
-			return JSON.parse(response.text);
-		}
 	}
 
 	// CpToolkit/src/domain/execution/language.ts
@@ -3923,6 +3857,115 @@ a:focus > .cp-settings-entry {
 		const label = optionLabel.trim().replace(/\s+/g, " ").toLowerCase();
 		if (!label || (label.startsWith(JAVASCRIPT_PREFIX) && target !== JAVASCRIPT_PREFIX)) return false;
 		return label === target || label.startsWith(`${target} `) || label.startsWith(`${target}(`);
+	}
+
+	// CpToolkit/src/application/execution/local-languages.ts
+	function orderLocalCompilers(compilers, {family, label}) {
+		const sameFamily = compilers.filter((compiler) => {
+			return (compiler.family ?? resolveFamily(languageCatalog, compiler.language)) === family;
+		});
+		if (!sameFamily.some(({match}) => match !== undefined)) return sameFamily;
+		const pageLabel = label.toLowerCase();
+		const matches = ({match}) => {
+			return (match ?? []).some((word) => pageLabel.includes(word.toLowerCase()));
+		};
+		return [...sameFamily.filter(matches), ...sameFamily.filter((compiler) => !matches(compiler))];
+	}
+
+	// CpToolkit/src/application/execution/local-runner.ts
+	var TRANSFORM_TIMEOUT_MS = 30000;
+
+	class LocalRunnerError extends Error {
+		status;
+
+		constructor(message, status) {
+			super(message);
+			this.status = status;
+		}
+	}
+
+	class LocalRunnerClient {
+		http;
+		endpoint;
+
+		constructor(http, endpoint) {
+			this.http = http;
+			this.endpoint = endpoint;
+		}
+
+		isAvailable() {
+			return this.endpoint() !== null;
+		}
+
+		list() {
+			return this.post({mode: "list"});
+		}
+
+		async compilerFor(language) {
+			return orderLocalCompilers(await this.list(), language)[0]?.compilerName ?? null;
+		}
+
+		transform(sourceCode, compilerName) {
+			const request = {
+				mode: "transform",
+				sourceCode,
+				...(compilerName !== undefined && {compilerName}),
+				debug: false,
+				validate: false,
+				header: false,
+			};
+			return this.post(request, TRANSFORM_TIMEOUT_MS);
+		}
+
+		async header(compilerName, header) {
+			const response = await this.post({
+				mode: "header",
+				...(compilerName !== undefined && {compilerName}),
+				header,
+			});
+			return response.header;
+		}
+
+		async precompile(sourceCode, compilerName) {
+			await this.post({
+				mode: "precompile",
+				sourceCode,
+				...(compilerName !== undefined && {compilerName}),
+				debug: true,
+			});
+		}
+
+		run(sourceCode, input, compilerName) {
+			return this.post({
+				mode: "run",
+				sourceCode,
+				...(compilerName !== undefined && {compilerName}),
+				stdin: input,
+				debug: true,
+			});
+		}
+
+		async post(request, timeoutMs) {
+			const url = this.endpoint();
+			if (url === null) throw new LocalRunnerError("Local Runner is not configured.", 0);
+			const response = await this.http.send({
+				url,
+				method: "POST",
+				headers: {"Content-Type": "application/json"},
+				body: JSON.stringify(request),
+				timeoutMs,
+			});
+			if (response.status < 200 || response.status >= 300) {
+				const reason = safeJsonParse(response.text, {}).stderr;
+				const detail =
+					typeof reason === "string" && reason
+						? `
+${reason}`
+						: "";
+				throw new LocalRunnerError(`Local Runner returned ${response.status}.${detail}`, response.status);
+			}
+			return JSON.parse(response.text);
+		}
 	}
 
 	// CpToolkit/src/domain/execution/result.ts
@@ -5531,23 +5574,13 @@ ${body}
 			this.client = client;
 		}
 
-		async runnersFor({family, label}) {
+		async runnersFor(language) {
 			if (!this.client.isAvailable()) return [];
-			const compilers = await this.client.list();
-			const sameFamily = compilers.filter((compiler) => {
-				return (compiler.family ?? resolveFamily(languageCatalog, compiler.language)) === family;
-			});
-			if (!sameFamily.some(({match}) => match !== undefined)) {
-				return sameFamily.map(
-					({compilerName, label: name}) => new LocalCodeRunner(this.client, compilerName, name),
-				);
-			}
-			const pageLabel = label.toLowerCase();
-			const matches = ({match}) => {
-				return (match ?? []).some((word) => pageLabel.includes(word.toLowerCase()));
-			};
-			return [...sameFamily.filter(matches), ...sameFamily.filter((compiler) => !matches(compiler))].map(
-				({compilerName, label: name}, index) => new LocalCodeRunner(this.client, compilerName, name, index),
+			const ordered = orderLocalCompilers(await this.client.list(), language);
+			const ranked = ordered.some(({match}) => match !== undefined);
+			return ordered.map(
+				({compilerName, label}, index) =>
+					new LocalCodeRunner(this.client, compilerName, label, ranked ? index : undefined),
 			);
 		}
 	}
@@ -8822,6 +8855,26 @@ ${efficient_layout_default}`);
 		return `${code.slice(0, offset)}${block}${code.slice(offset)}`;
 	}
 
+	function insertRunnerHeader(code, header, syntax) {
+		if (
+			code.trimStart().startsWith(
+				header.split(
+					`
+`,
+					1,
+				)[0] ?? "",
+			)
+		)
+			return code;
+		return insertHeader(
+			code,
+			`${header}
+
+`,
+			syntax,
+		);
+	}
+
 	function insertFooter(code, block, {trailer}) {
 		const end = (trailer === undefined ? null : new RegExp(trailer).exec(code))?.index ?? code.length;
 		const body = code.slice(0, end).trimEnd();
@@ -8837,6 +8890,9 @@ ${efficient_layout_default}`);
 		const index = fromEnd ? code.lastIndexOf(current) : code.indexOf(current);
 		return index < 0 ? null : `${code.slice(0, index)}${next}${code.slice(index + current.length)}`;
 	}
+
+	// CpToolkit/src/application/ports/code-editor.ts
+	var EDITOR_SETUP_DELAY_MS = 500;
 
 	// CpToolkit/src/domain/source/fold-lines.ts
 	var FOLDABLE_TYPE_PATTERN =
@@ -8854,25 +8910,46 @@ ${efficient_layout_default}`);
 			});
 	}
 
-	// CpToolkit/src/application/ports/code-editor.ts
-	var EDITOR_SETUP_DELAY_MS = 500;
+	// CpToolkit/src/application/source/submission-transform.ts
+	var LANGUAGE_SUPPORT = {
+		java: {
+			fallback: (code, {debugFlag}) => modifyJavaCode(code, {debugFlag}).modified,
+			needsLocalRunner: (code, {libraryPackage}) => libraryPackage !== "" && importsPackage(code, libraryPackage),
+			unresolvedImports,
+			foldStartLines: findFoldStartLines,
+		},
+	};
 
-	// CpToolkit/src/application/source/transform-java.ts
-	async function transformJava(code, localRunner, options) {
+	function languageSupport(family) {
+		return LANGUAGE_SUPPORT[family] ?? {};
+	}
+
+	async function compilerNameOf(localRunner, {family, judgeLanguage}) {
+		if (judgeLanguage) return localRunner.compilerFor(judgeLanguage);
+		return family === "java" ? undefined : null;
+	}
+
+	async function transformSubmission(code, language, localRunner, options) {
 		if (localRunner.isAvailable()) {
 			try {
-				const transformed = await localRunner.transform(code, options.header);
-				if (transformed.status === "success")
-					return {sourceCode: transformed.sourceCode, connected: true, failure: null};
-				return {
-					sourceCode: code,
-					connected: true,
-					failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems ?? []},
-				};
+				const compilerName = await compilerNameOf(localRunner, language);
+				if (compilerName !== null) {
+					const transformed = await localRunner.transform(code, compilerName);
+					if (transformed.status === "success")
+						return {sourceCode: transformed.sourceCode, via: "localRunner", failure: null};
+					return {
+						sourceCode: code,
+						via: "localRunner",
+						failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems ?? []},
+					};
+				}
 			} catch {
 			}
 		}
-		return {sourceCode: modifyJavaCode(code, options).modified, connected: false, failure: null};
+		const fallback = languageSupport(language.family).fallback;
+		return fallback
+			? {sourceCode: fallback(code, options), via: "fallback", failure: null}
+			: {sourceCode: code, via: "none", failure: null};
 	}
 
 	// CpToolkit/src/features/java-submit/index.ts
@@ -8900,10 +8977,16 @@ ${efficient_layout_default}`);
 		return null;
 	}
 
-	function notifyTransformProblem(code, result, libraryPackage, translate) {
-		const {failure, connected} = result;
+	function submissionLanguageOf(site, editor) {
+		const judgeLanguage = site?.language() ?? null;
+		if (judgeLanguage) return judgeLanguage.family ? {family: judgeLanguage.family, judgeLanguage} : null;
+		return editor.isJava() ? {family: "java", judgeLanguage: null} : null;
+	}
+
+	function notifyTransformProblem(code, {family}, {failure, via}, options, translate) {
+		const support = languageSupport(family);
 		if (failure) {
-			const imports = unresolvedImports(code, failure.items);
+			const imports = support.unresolvedImports?.(code, failure.items) ?? [];
 			const firstError = failure.items.find((item) => item.kind === "ERROR");
 			showToast({
 				title: translate(imports.length > 0 ? "javaSubmit.unresolvedImports" : "javaSubmit.transformFailed"),
@@ -8924,9 +9007,9 @@ ${efficient_layout_default}`);
 					more: {label: translate("javaSubmit.diagnostics"), text: failure.diagnostics},
 				}),
 			});
-		} else if (!connected && libraryPackage && importsPackage(code, libraryPackage)) {
+		} else if (via !== "localRunner" && support.needsLocalRunner?.(code, options)) {
 			showToast({
-				title: translate("javaSubmit.localRunnerRequired").replace("{package}", libraryPackage),
+				title: translate("javaSubmit.localRunnerRequired").replace("{package}", options.libraryPackage),
 				detail: translate("javaSubmit.localRunnerGuide"),
 				tone: "warning",
 				href: LOCAL_RUNNER_GUIDE_URL,
@@ -8954,11 +9037,9 @@ ${efficient_layout_default}`);
 		options: {
 			debugFlag: option.text("", "javaSubmit.debugFlag"),
 			libraryPackage: option.text("", "javaSubmit.libraryPackage"),
-			addHeader: option.boolean(true, "javaSubmit.addHeader"),
-			headerName: option.text("", "javaSubmit.headerName"),
 			foldOnPaste: option.boolean(true, "javaSubmit.foldOnPaste"),
 		},
-		start({options, judge, editors, localRunner, paste, translate}) {
+		start({options, judge, judgeSite, editors, localRunner, paste, translate}) {
 			const target = judge?.submission;
 			if (!target) return;
 			registerShortcut(target.shortcut, () => {
@@ -8970,9 +9051,19 @@ ${efficient_layout_default}`);
 				() => findSubmitButton(target),
 				() => target.shortcut,
 			);
-			const header = options.addHeader ? options.headerName || true : false;
+			const site = judgeSite();
+			const fallbackOptions = {
+				debugFlag: options.debugFlag.trim(),
+				libraryPackage: options.libraryPackage.trim(),
+			};
 			const lookup = {delayMs: EDITOR_SETUP_DELAY_MS};
-			const fold = (editor) => editor.foldLines(findFoldStartLines(editor.getValue()));
+			const fold = async (editor) => {
+				const language = submissionLanguageOf(await site, editor);
+				const lines = language
+					? languageSupport(language.family).foldStartLines?.(editor.getValue())
+					: undefined;
+				if (lines) editor.foldLines(lines);
+			};
 			editors.locate(target, lookup).then((editor) => {
 				if (!editor) return;
 				registerShortcut(FOLD_SHORTCUT, () => {
@@ -8983,18 +9074,15 @@ ${efficient_layout_default}`);
 			paste.add(target, lookup, {
 				order: PASTE_ORDER,
 				async transform(code, {editor, pasted, original}) {
-					if (!editor.isJava() || code.length < MIN_SOURCE_LENGTH || !isWholeCode(original, pasted))
-						return code;
-					const result = await transformJava(code, localRunner, {
-						...options,
-						debugFlag: options.debugFlag.trim(),
-						header,
-					});
-					notifyTransformProblem(code, result, options.libraryPackage.trim(), translate);
+					if (code.length < MIN_SOURCE_LENGTH || !isWholeCode(original, pasted)) return code;
+					const language = submissionLanguageOf(await site, editor);
+					if (!language) return code;
+					const result = await transformSubmission(code, language, localRunner, fallbackOptions);
+					notifyTransformProblem(code, language, result, fallbackOptions, translate);
 					return result.sourceCode;
 				},
 				applied(editor) {
-					if (options.foldOnPaste) setTimeout(() => fold(editor), FOLD_DELAY_MS);
+					if (options.foldOnPaste) setTimeout(() => void fold(editor), FOLD_DELAY_MS);
 				},
 			});
 		},
@@ -10027,6 +10115,7 @@ ${efficient_layout_default}`);
 
 	// CpToolkit/src/features/source-comments/index.ts
 	var PASTE_ORDER2 = 20;
+	var RUNNER_HEADER_DURATION_MS = 15000;
 	var SLOTS = ["header", "footer"];
 	var sourceComments = defineFeature({
 		id: "source-comments",
@@ -10041,8 +10130,14 @@ ${efficient_layout_default}`);
 				{value: "line", label: "sourceComments.styleLine"},
 				{value: "block", label: "sourceComments.styleBlock"},
 			]),
+			runnerHeader: option.select("above", "sourceComments.runnerHeader", [
+				{value: "above", label: "sourceComments.runnerHeaderAbove"},
+				{value: "below", label: "sourceComments.runnerHeaderBelow"},
+				{value: "none", label: "sourceComments.runnerHeaderNone"},
+			]),
+			runnerHeaderName: option.text("", "sourceComments.runnerHeaderName"),
 		},
-		async start({options, judge, judgeSite, page, paste, state, translate}) {
+		async start({options, judge, judgeSite, localRunner, page, paste, state, translate}) {
 			const target = judge?.submission;
 			const site = await judgeSite();
 			const editorButtons = document.querySelector(".editor-buttons");
@@ -10132,15 +10227,39 @@ ${efficient_layout_default}`);
 					refresh();
 				});
 			}
+			const runnerHeader = async () => {
+				const language = site.language();
+				if (options.runnerHeader === "none" || !language || !localRunner.isAvailable()) return null;
+				try {
+					const compilerName = await localRunner.compilerFor(language);
+					if (compilerName === null) return null;
+					return await localRunner.header(compilerName, options.runnerHeaderName.trim() || true);
+				} catch (error) {
+					if (error instanceof LocalRunnerError && error.status !== 0) {
+						showToast({
+							title: translate("sourceComments.runnerHeaderFailed"),
+							detail: error.message,
+							tone: "warning",
+							durationMs: RUNNER_HEADER_DURATION_MS,
+						});
+					}
+					return null;
+				}
+			};
 			paste.add(
 				target,
 				{delayMs: EDITOR_SETUP_DELAY_MS},
 				{
 					order: PASTE_ORDER2,
-					transform(code, {pasted, original}) {
+					async transform(code, {pasted, original}) {
 						if (!isWholeCode(original, pasted)) return code;
 						inserted.clear();
-						return insertAll(code);
+						const header = await runnerHeader();
+						if (header === null) return insertAll(code);
+						const syntax = syntaxOf() ?? {};
+						return options.runnerHeader === "above"
+							? insertRunnerHeader(insertAll(code), header, syntax)
+							: insertAll(insertRunnerHeader(code, header, syntax));
 					},
 				},
 			);

@@ -38,6 +38,21 @@ export type LocalRunnerPrecompileRequest = {
 /** 提出物の先頭に付けるヘッダー。true は言語の設定、文字列は setheader で設定した名前、false は付けない。 */
 export type LocalRunnerHeaderOption = boolean | string;
 
+/** 提出物に付けるヘッダーの文を返す。ブラウザがほかの文と並べて付けるときに使う。 */
+export type LocalRunnerHeaderRequest = {
+	mode: "header";
+	/** list で返したコンパイラの識別子。省略時は Java。 */
+	compilerName?: string;
+	/** 省略時は言語の設定のヘッダー。 */
+	header?: LocalRunnerHeaderOption;
+};
+
+export type LocalRunnerHeaderResponse = {
+	status: "success";
+	/** ヘッダーが設定されていなければ null。 */
+	header: string | null;
+};
+
 export type LocalRunnerTransformRequest = {
 	mode: "transform";
 	sourceCode: string;
@@ -78,6 +93,7 @@ export type LocalRunnerRunRequest = {
 export type LocalRunnerRequest =
 	| LocalRunnerListRequest
 	| LocalRunnerPrecompileRequest
+	| LocalRunnerHeaderRequest
 	| LocalRunnerTransformRequest
 	| LocalRunnerPrepareRequest
 	| LocalRunnerRunRequest;

@@ -8,7 +8,7 @@ import {writeUserSettings} from "../settings/settings";
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "submission-header-"));
 const settingsFile = path.join(dir, "settings.json");
 process.env.LOCAL_RUNNER_SETTINGS_FILE = settingsFile;
-const {applySubmissionHeader} = await import("./header");
+const {applySubmissionHeader, resolveSubmissionHeader} = await import("./header");
 
 const SOURCE = "public class Main {}\n";
 const success: LocalRunnerTransformResponse = {
@@ -92,6 +92,13 @@ describe("applySubmissionHeader", () => {
 		const result = applySubmissionHeader(success, true, ["java"]);
 		expect(result.status).toBe("compileError");
 		expect(result.diagnostics).toContain("Header file not found");
+	});
+
+	test("付けるヘッダーの文を返し、設定が無ければ null を返す", () => {
+		writeUserSettings(settingsFile, {headers: {python3: writeHeader("python.txt", "# python\n\n")}});
+		expect(resolveSubmissionHeader(true, ["pypy", "python3"])).toBe("# python");
+		expect(resolveSubmissionHeader(true, ["java"])).toBeNull();
+		expect(resolveSubmissionHeader(false, ["python3"])).toBeNull();
 	});
 
 	test("名前の形式を検査し、オブジェクトの既定のプロパティを読まない", () => {

@@ -113,6 +113,12 @@ sourceComments.description: コード全体を貼り付けると、登録した�
 sourceComments.style: 既定のコメントの形式
 sourceComments.styleLine: 単一行コメントを並べる
 sourceComments.styleBlock: 複数行コメント
+sourceComments.runnerHeader: Local Runner のヘッダーの置き場所
+sourceComments.runnerHeaderAbove: 問題ごとのヘッダーの上
+sourceComments.runnerHeaderBelow: 問題ごとのヘッダーの下
+sourceComments.runnerHeaderNone: 付けない
+sourceComments.runnerHeaderName: Local Runner のヘッダーの名前（空欄なら言語の既定）
+sourceComments.runnerHeaderFailed: Local Runner のヘッダーを読めませんでした
 sourceComments.panel: ヘッダーとフッター
 sourceComments.header: ヘッダー（コードの先頭）
 sourceComments.footer: フッター（コードの末尾）
@@ -187,18 +193,16 @@ localRunner.title: Local Runner との連携
 localRunner.description: Easy Test+ と Java の提出補助で使うサーバーの接続先を設定します。
 localRunner.url: 接続先の URL
 
-javaSubmit.title: Java の提出補助
-javaSubmit.description: 貼り付けた Java コードを提出用に変換し、ショートカットで提出できます。
+javaSubmit.title: 提出補助
+javaSubmit.description: 貼り付けたコードを提出用に変換し、ショートカットで提出できます。
 javaSubmit.localRunnerRequired: "{package}.* の展開には Local Runner が必要です"
 javaSubmit.localRunnerGuide: Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。
 javaSubmit.unresolvedImports: 見つからない import があります
 javaSubmit.transformFailed: Local Runner で変換できませんでした
-javaSubmit.diagnostics: javac の診断
-javaSubmit.debugFlag: Local Runner がないときに false にする変数の名前（例：DEBUG。空欄なら変えない）
-javaSubmit.libraryPackage: Local Runner で展開するライブラリのパッケージ（例：lib。空欄なら確かめない）
-javaSubmit.addHeader: 提出用のヘッダーを付ける
-javaSubmit.headerName: ヘッダーの名前（空欄なら既定）
-javaSubmit.foldOnPaste: 貼り付け後にクラスとコメントを折りたたむ
+javaSubmit.diagnostics: 診断の全文
+javaSubmit.debugFlag: Local Runner がないときに false にする Java の変数の名前（例：DEBUG。空欄なら変えない）
+javaSubmit.libraryPackage: Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）
+javaSubmit.foldOnPaste: 貼り付け後に Java のクラスとコメントを折りたたむ
 
 easyTest.title: Easy Test+
 easyTest.description: 問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。

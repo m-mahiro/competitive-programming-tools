@@ -112,6 +112,12 @@ sourceComments.description: Add a saved header and footer when you paste a compl
 sourceComments.style: Default comment style
 sourceComments.styleLine: Single-line comments
 sourceComments.styleBlock: Multi-line comment
+sourceComments.runnerHeader: Where to put the Local Runner header
+sourceComments.runnerHeaderAbove: Above the task header
+sourceComments.runnerHeaderBelow: Below the task header
+sourceComments.runnerHeaderNone: Do not add it
+sourceComments.runnerHeaderName: Local Runner header name (empty for the language default)
+sourceComments.runnerHeaderFailed: Could not read the Local Runner header
 sourceComments.panel: Header and footer
 sourceComments.header: Header (top of the code)
 sourceComments.footer: Footer (bottom of the code)
@@ -186,18 +192,16 @@ localRunner.title: Local Runner integration
 localRunner.description: Set the server used by Easy Test+ and the Java submission helper.
 localRunner.url: Server URL
 
-javaSubmit.title: Java submission helper
-javaSubmit.description: Prepare pasted Java code for submission and submit with a keyboard shortcut.
+javaSubmit.title: Submission helper
+javaSubmit.description: Prepare pasted code for submission and submit with a keyboard shortcut.
 javaSubmit.localRunnerRequired: "Expanding {package}.* needs Local Runner"
 javaSubmit.localRunnerGuide: Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.
 javaSubmit.unresolvedImports: Some imports could not be found
 javaSubmit.transformFailed: Local Runner could not transform the code
-javaSubmit.diagnostics: javac diagnostics
-javaSubmit.debugFlag: Variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)
-javaSubmit.libraryPackage: Package of the library that Local Runner expands (e.g. lib; empty to skip the check)
-javaSubmit.addHeader: Add the submission header
-javaSubmit.headerName: Header name (empty for the default)
-javaSubmit.foldOnPaste: Fold classes and comments after pasting
+javaSubmit.diagnostics: Full diagnostics
+javaSubmit.debugFlag: Java variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)
+javaSubmit.libraryPackage: Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)
+javaSubmit.foldOnPaste: Fold Java classes and comments after pasting
 
 easyTest.title: Easy Test+
 easyTest.description: Run sample tests from the task page and submit when they all pass.

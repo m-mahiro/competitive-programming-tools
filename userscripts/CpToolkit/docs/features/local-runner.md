@@ -2,11 +2,11 @@
 
 [機能一覧へ戻る](../../README.md#4-機能一覧) ・ [English](local-runner.en.md)
 
-> Easy Test+ と Java の提出補助で使うサーバーの接続先を設定します。
+> Easy Test+ と提出補助で使うサーバーの接続先を設定します。
 
 ## 使い方
 
-- [Easy Test+](easy-test.md) での実行と、[Java の提出補助](java-submit.md) でのライブラリ展開や提出用変換に使う共通設定です。
+- [Easy Test+](easy-test.md) での実行と、[提出補助](java-submit.md) での提出用の変換、[コードのヘッダーとフッター](source-comments.md) での提出用のヘッダーに使う共通設定です。
 - 接続先には、自分のサーバーの URL を指定します。[Local Runner](../../../../local-runner/README.md) か、同じ API に対応するサーバーを使えます。Local Runner は別途導入が必要です。
 - 手元で Local Runner を既定の設定で起動した場合は、接続先に `http://localhost:8080` を使います。
 
@@ -28,7 +28,8 @@
 | `list`       | Easy Test+      | なし                                                      | `{language, compilerName, label}` の配列。`language` は言語名（例：`Java`、`C++`、`Python`）で、提出言語と同じ系統のものが実行環境の候補になります。`label` は画面に出す名前です。 |
 | `precompile` | Easy Test+      | `sourceCode`、`compilerName`、`debug`                     | `{status: "accepted"}`。要求を受け付けたら返し、バックグラウンドでコンパイルします。                                                                                               |
 | `run`        | Easy Test+      | `sourceCode`、`stdin`、`compilerName`、`debug`            | `status`、`exitCode`、`stdout`、`stderr`、`time`（ミリ秒）、`memory`（累積の割り当て量。KB。0 なら表示しません）、`peakMemory`（任意。使用量の最大値。KB）                         |
-| `transform`  | Java の提出補助 | `sourceCode`、`header`、`debug`、`validate`               | `status`（`success` か `compileError`）、`sourceCode`（変換後のコード）、`diagnostics`、`diagnosticItems`                                                                          |
+| `transform`  | 提出補助        | `sourceCode`、`compilerName`、`header`、`debug`、`validate` | `status`（`success` か `compileError`）、`sourceCode`（変換後のコード）、`diagnostics`、`diagnosticItems`。CP Toolkit は `header` を `false` で送ります。                          |
+| `header`     | コードのヘッダーとフッター | `compilerName`、`header`                         | `{status: "success", header}`。`header` は提出物に付けるヘッダーの文で、無ければ `null` です。要求の `header` は、`true` なら言語の既定、文字列ならその名前のヘッダーです。 |
 
 - `compilerName` は `list` で返した値です。複数の言語を扱うサーバーは、これで言語を選びます。
 - `list` の各要素には、任意で `family` と `match` を付けられます。
