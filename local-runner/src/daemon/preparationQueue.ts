@@ -5,7 +5,6 @@ import {CanceledError} from "./processRunner";
 /** コンパイルの条件。同じソースでも、条件が違えば別のものとして扱う。 */
 export type PrepareOptions = {
 	readonly debug: boolean;
-	readonly autoImport: boolean;
 	readonly validate: boolean;
 };
 
@@ -26,9 +25,9 @@ type Job = {
 	settled: boolean;
 };
 
-function keyOf(language: string, sourceCode: string, {debug, autoImport, validate}: PrepareOptions): string {
+function keyOf(language: string, sourceCode: string, {debug, validate}: PrepareOptions): string {
 	const digest = crypto.createHash("md5").update(sourceCode).digest("hex");
-	return `${language}:${debug ? 1 : 0}${autoImport ? 1 : 0}${validate ? 1 : 0}:${digest}`;
+	return `${language}:${debug ? 1 : 0}${validate ? 1 : 0}:${digest}`;
 }
 
 /**

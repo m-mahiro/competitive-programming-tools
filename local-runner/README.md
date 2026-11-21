@@ -5,7 +5,7 @@
 - **CLI**: AtCoder のサンプルでのテスト、提出、提出用コードの作成を行います。
 - **サーバー**: 解答をコンパイルして実行します。Java を速く動かすために常駐します。[CP Toolkit](../userscripts/CpToolkit/README.md) からも接続できます。
 
-[CP Toolkit](../userscripts/CpToolkit/README.md) の Java の提出補助でライブラリの展開や `import` の補完を使うには、Local Runner と[ライブラリの設定](#ライブラリを使う)が必要です。
+[CP Toolkit](../userscripts/CpToolkit/README.md) の Java の提出補助でライブラリを展開するには、Local Runner と[ライブラリの設定](#ライブラリを使う)が必要です。
 
 Windows（WSL）で動作を確認しています。
 
@@ -242,7 +242,7 @@ setlib C:\path\to\library\src
 - 展開したクラスは `Bundled library classes: ...` と表示します。
 - `import lib.io.*;` のようなワイルドカードでも、実際に使っている型だけを展開します。
 - 提出コードの元の import はコメントアウトして残します。
-- import を書かなくても、単純名がライブラリの中で一意なら補完します。標準 API と同名のときは標準 API を優先します。
+- import を書いていない型は補いません。通常の Java と同じく、コンパイルエラーになります。
 - ライブラリの `import static`、本文中の `lib.ds.unionfind.UnionFind` のような完全修飾の参照、展開すると単純名が衝突する型はエラーになります。
 - 入出力のように大きくて毎回同じクラスは、設定の `languages.java.libraryLast` にパッケージを書くと、提出物の末尾へ回せます。
 

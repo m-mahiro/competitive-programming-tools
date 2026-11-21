@@ -26,9 +26,8 @@ function importsOutsideJdk(code: string): boolean {
 	return NON_JDK_IMPORT_PATTERN.test(createMaskedCode(code));
 }
 
-export async function transformJavaCode(sourceCode: string, debug: boolean, autoImport = true,
-	validate = true): Promise<LocalRunnerTransformResponse> {
-	const result = await dispatcher.queueDispatcherTransform(sourceCode, resolveLibrarySourceRoot(), debug, autoImport, validate);
+export async function transformJavaCode(sourceCode: string, debug: boolean, validate = true): Promise<LocalRunnerTransformResponse> {
+	const result = await dispatcher.queueDispatcherTransform(sourceCode, resolveLibrarySourceRoot(), debug, validate);
 	const libraryMissing = result.exitCode !== 0 && loadedLibrarySource() === null && importsOutsideJdk(sourceCode);
 	return {
 		status: result.exitCode === 0 ? "success" : "compileError",
@@ -36,7 +35,6 @@ export async function transformJavaCode(sourceCode: string, debug: boolean, auto
 		diagnostics: libraryMissing ? `${LIBRARY_MISSING_HINT}\n${result.diagnostics}` : result.diagnostics,
 		libraryMissing,
 		inlinedClasses: result.inlinedClasses,
-		addedImports: result.addedImports,
 		diagnosticItems: result.diagnosticItems,
 	};
 }
@@ -45,11 +43,10 @@ export async function transformJavaCode(sourceCode: string, debug: boolean, auto
 export async function prepareJavaCode(
 	sourceCode: string,
 	debug: boolean,
-	autoImport: boolean,
 	validate: boolean,
 	signal: AbortSignal,
 ): Promise<LocalRunnerPrepareResponse> {
-	const transformed = await transformJavaCode(sourceCode, debug, autoImport, validate);
+	const transformed = await transformJavaCode(sourceCode, debug, validate);
 	if (transformed.status !== "success") return transformed;
 	if (signal.aborted) throw new CanceledError();
 

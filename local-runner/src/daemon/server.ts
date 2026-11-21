@@ -34,7 +34,7 @@ const EXTRA_ORIGINS = config.SETTINGS.server.extraOrigins;
 
 type RunnerRequest = {
 	mode?: string; sourceCode?: string; programId?: string; stdin?: string; debug?: boolean;
-	autoImport?: boolean; validate?: boolean; header?: LocalRunnerHeaderOption; compilerName?: unknown
+	validate?: boolean; header?: LocalRunnerHeaderOption; compilerName?: unknown
 };
 
 /**
@@ -149,13 +149,13 @@ export function createRunnerServer(requestShutdown: () => void): http.Server {
 			} else if (request.mode === "transform" && typeof request.sourceCode === "string") {
 				const language = requireLanguage(request.compilerName);
 				response = applySubmissionHeader(
-					await transformSource(language, request.sourceCode, !!request.debug, request.autoImport !== false, request.validate !== false),
+					await transformSource(language, request.sourceCode, !!request.debug, request.validate !== false),
 					request.header ?? true,
 					headerKeys(language),
 				);
 			} else if (request.mode === "prepare" && typeof request.sourceCode === "string") {
 				const language = requireLanguage(request.compilerName);
-				const options = {debug: !!request.debug, autoImport: request.autoImport !== false, validate: request.validate === true};
+				const options = {debug: !!request.debug, validate: request.validate === true};
 				// コンパイルはヘッダーなしで行い、ローカル実行の行番号を元ソースと揃える。
 				response = applySubmissionHeader(
 					await prepareSource(language, request.sourceCode, options),

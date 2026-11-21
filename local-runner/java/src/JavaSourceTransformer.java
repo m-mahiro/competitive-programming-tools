@@ -48,27 +48,15 @@ final class JavaSourceTransformer {
 		return Arrays.stream(raw.split(",")).map(String::strip).filter(name -> !name.isEmpty()).toList();
 	}
 
-	SourceTransformResult transform(final String rawSource, final Path librarySourceRoot, final boolean debug, final boolean autoImport, final boolean validate) {
+	SourceTransformResult transform(final String rawSource, final Path librarySourceRoot, final boolean debug, final boolean validate) {
 		try {
 			final Path root = librarySourceRoot.toAbsolutePath().normalize();
 			if (!Files.isDirectory(root)) {
 				return failure(rawSource, "library folder was not found: " + root);
 			}
 			final LibraryIndex index = libraryIndex(root);
-			String source = normalize(rawSource);
-			final List<String> addedImports = new ArrayList<>();
-
-			Analysis analysis = analyze(source, index.classPath());
-			if (autoImport) {
-				final AutoImportResult inferred = inferImports(analysis, index);
-				if (!inferred.error().isEmpty()) return failure(source, inferred.error());
-				if (!inferred.imports().isEmpty()) {
-					addedImports.addAll(inferred.imports());
-					source = insertImports(source, analysis, inferred.imports());
-					analysis = analyze(source, index.classPath());
-				}
-			}
-
+			final String source = normalize(rawSource);
+			final Analysis analysis = analyze(source, index.classPath());
 			if (analysis.hasErrors()) return failure(source, analysis);
 			final List<Path> dependencies = collectDependencies(analysis, index);
 			final BundleOutput bundled = bundle(source, analysis, dependencies, index, debug);
@@ -76,18 +64,18 @@ final class JavaSourceTransformer {
 				final Analysis validation = analyze(bundled.source(), null);
 				if (validation.hasErrors()) return failure(bundled.source(), validation);
 			}
-			return new SourceTransformResult(0, bundled.source(), "", bundled.inlined(), List.copyOf(addedImports), List.of());
+			return new SourceTransformResult(0, bundled.source(), "", bundled.inlined(), List.of());
 		} catch (final Exception exception) {
 			return failure(rawSource, exception.toString());
 		}
 	}
 
 	private SourceTransformResult failure(final String source, final String diagnostics) {
-		return new SourceTransformResult(1, source, diagnostics, List.of(), List.of(), List.of());
+		return new SourceTransformResult(1, source, diagnostics, List.of(), List.of());
 	}
 
 	private SourceTransformResult failure(final String source, final Analysis analysis) {
-		return new SourceTransformResult(1, source, analysis.diagnostics(), List.of(), List.of(), analysis.diagnosticItems());
+		return new SourceTransformResult(1, source, analysis.diagnostics(), List.of(), analysis.diagnosticItems());
 	}
 
 	/**
@@ -103,7 +91,6 @@ final class JavaSourceTransformer {
 			stamp = 31L * stamp + Files.size(path);
 		}
 		if (root.equals(cachedRoot) && stamp == cachedStamp && cachedIndex != null) return cachedIndex;
-		final Map<String, List<LibraryType>> bySimpleName = new HashMap<>();
 		final Map<String, LibraryType> byFqcn = new HashMap<>();
 		final Map<Path, LibraryType> byPath = new HashMap<>();
 		final Set<String> packages = new HashSet<>();
@@ -112,8 +99,7 @@ final class JavaSourceTransformer {
 			final Matcher declaration = PACKAGE_DECLARATION.matcher(Files.readString(file, UTF_8));
 			final String packageName = declaration.find() ? declaration.group(1).replaceAll("\\s+", "") : "";
 			final String fqcn = packageName.isEmpty() ? simpleName : packageName + "." + simpleName;
-			final LibraryType libraryType = new LibraryType(simpleName, packageName, fqcn, file);
-			bySimpleName.computeIfAbsent(simpleName, ignored -> new ArrayList<>()).add(libraryType);
+			final LibraryType libraryType = new LibraryType(packageName, fqcn, file);
 			byFqcn.put(fqcn, libraryType);
 			byPath.put(file, libraryType);
 			packages.add(packageName);
@@ -122,7 +108,7 @@ final class JavaSourceTransformer {
 		compileLibrary(sources, classPath);
 		cachedRoot = root;
 		cachedStamp = stamp;
-		cachedIndex = new LibraryIndex(bySimpleName, byFqcn, byPath, packages, classPath, new HashMap<>());
+		cachedIndex = new LibraryIndex(byFqcn, byPath, packages, classPath, new HashMap<>());
 		return cachedIndex;
 	}
 
@@ -156,62 +142,6 @@ final class JavaSourceTransformer {
 				throw new IOException("library classpath compilation failed:\n" + diagnostics.getDiagnostics().stream().map(diagnostic -> diagnostic.getKind() + " " + diagnostic.getMessage(Locale.ROOT)).collect(Collectors.joining("\n")));
 			}
 		}
-	}
-
-	private AutoImportResult inferImports(final Analysis analysis, final LibraryIndex index) {
-		final Set<String> existing = new HashSet<>();
-		for (final ImportTree importTree : analysis.solution().getImports()) {
-			existing.add(importTree.getQualifiedIdentifier().toString());
-		}
-		final Set<String> localTypes = analysis.solution().getTypeDecls().stream().filter(ClassTree.class::isInstance).map(ClassTree.class::cast).map(type -> type.getSimpleName().toString()).collect(Collectors.toSet());
-		final Set<String> unresolved = new TreePathScanner<String, Void>() {
-			final Set<String> names = new TreeSet<>();
-
-			@Override
-			public String visitIdentifier(final IdentifierTree node, final Void unused) {
-				final Element element = analysis.trees().getElement(getCurrentPath());
-				if (element == null || element.asType().getKind() == TypeKind.ERROR)
-					names.add(node.getName().toString());
-				return super.visitIdentifier(node, unused);
-			}
-
-			Set<String> scanNames() {
-				scan(analysis.solution(), null);
-				return names;
-			}
-		}.scanNames();
-
-		final List<String> imports = new ArrayList<>();
-		for (final String name : unresolved) {
-			if (localTypes.contains(name)) continue;
-			final List<LibraryType> candidates = index.bySimpleName().getOrDefault(name, List.of());
-			// パッケージの無い型は import できないので、候補にしない
-			final List<LibraryType> uncovered = candidates.stream().filter(candidate -> !candidate.packageName().isEmpty() && !existing.contains(candidate.fqcn()) && !existing.contains(candidate.packageName() + ".*")).toList();
-			final int minimumDepth = uncovered.stream().mapToInt(candidate -> candidate.fqcn().split("\\.").length).min().orElse(Integer.MAX_VALUE);
-			final List<LibraryType> preferred = uncovered.stream().filter(candidate -> candidate.fqcn().split("\\.").length == minimumDepth).toList();
-			if (preferred.size() > 1) {
-				return new AutoImportResult(List.of(), "library type is ambiguous: " + name + " -> " + preferred.stream().map(LibraryType::fqcn).collect(Collectors.joining(", ")));
-			}
-			if (preferred.size() == 1) {
-				final String fqcn = preferred.getFirst().fqcn();
-				imports.add(fqcn);
-				existing.add(fqcn);
-			}
-		}
-		return new AutoImportResult(List.copyOf(imports), "");
-	}
-
-	private String insertImports(final String source, final Analysis analysis, final List<String> imports) {
-		long insertion = 0;
-		if (!analysis.solution().getImports().isEmpty()) {
-			final ImportTree last = analysis.solution().getImports().getLast();
-			insertion = analysis.positions().getEndPosition(analysis.solution(), last);
-		} else if (analysis.solution().getPackageName() != null) {
-			insertion = packageSpan(source, analysis).end();
-		}
-		if (insertion < 0) insertion = 0;
-		final String block = imports.stream().map(name -> "import " + name + ";").collect(Collectors.joining("\n", insertion == 0 ? "" : "\n", "\n"));
-		return source.substring(0, (int) insertion) + block + source.substring((int) insertion);
 	}
 
 	/**
@@ -573,11 +503,10 @@ final class JavaSourceTransformer {
 		return source.replace("\r\n", "\n").replace('\r', '\n');
 	}
 
-	private record LibraryType(String simpleName, String packageName, String fqcn, Path path) {}
+	private record LibraryType(String packageName, String fqcn, Path path) {}
 
-	private record LibraryIndex(Map<String, List<LibraryType>> bySimpleName, Map<String, LibraryType> byFqcn,
-								Map<Path, LibraryType> byPath, Set<String> packages, Path classPath,
-								Map<Path, Set<Path>> dependencies) {
+	private record LibraryIndex(Map<String, LibraryType> byFqcn, Map<Path, LibraryType> byPath, Set<String> packages,
+								Path classPath, Map<Path, Set<Path>> dependencies) {
 		/**
 		 * import の名前がライブラリを指すかを返します。
 		 * 型そのもの、型の中の入れ子やメンバー(static import)、パッケージ全体({@code a.b.*})を受け付けます。
@@ -590,8 +519,6 @@ final class JavaSourceTransformer {
 			}
 		}
 	}
-
-	private record AutoImportResult(List<String> imports, String error) {}
 
 	private record BundleOutput(String source, List<String> inlined) {}
 

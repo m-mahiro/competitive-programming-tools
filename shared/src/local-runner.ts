@@ -44,7 +44,6 @@ export type LocalRunnerTransformRequest = {
 	/** list で返したコンパイラの識別子。省略時は Java。 */
 	compilerName?: string;
 	debug?: boolean;
-	autoImport?: boolean;
 	validate?: boolean;
 	/** 省略時は既定のヘッダーを付ける。 */
 	header?: LocalRunnerHeaderOption;
@@ -56,7 +55,6 @@ export type LocalRunnerPrepareRequest = {
 	/** list で返したコンパイラの識別子。複数の言語を扱うサーバーが言語を選ぶのに使う。省略時は Java。 */
 	compilerName?: string;
 	debug?: boolean;
-	autoImport?: boolean;
 	validate?: boolean;
 	/** 省略時は付けない。指定しても返すソースにだけ付け、コンパイルはヘッダーなしで行う。 */
 	header?: LocalRunnerHeaderOption;
@@ -89,7 +87,6 @@ export type LocalRunnerTransformResponse = {
 	sourceCode: string;
 	diagnostics: string;
 	inlinedClasses: string[];
-	addedImports: string[];
 	diagnosticItems: CompilerDiagnostic[];
 	/** lib.* を使うのに、サーバーがライブラリなしで動いているので変換できなかった。 */
 	libraryMissing?: boolean;

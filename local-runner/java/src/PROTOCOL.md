@@ -127,16 +127,16 @@ COMPILED \t <id> \t <exitCode> \t <requiresIsolation> \t b64(diagnostics) \t b64
 要求:
 
 ```text
-TRANSFORM \t <id> \t b64(sourceCode) \t b64(librarySourceRoot) \t <debug> \t <autoImport> \t <validate>
+TRANSFORM \t <id> \t b64(sourceCode) \t b64(librarySourceRoot) \t <debug> \t <validate>
 ```
 
 応答:
 
 ```text
-TRANSFORMED \t <id> \t <exitCode> \t b64(sourceCode) \t b64(diagnostics) \t b64(inlinedClasses) \t b64(addedImports) \t b64(diagnosticItemsJson)
+TRANSFORMED \t <id> \t <exitCode> \t b64(sourceCode) \t b64(diagnostics) \t b64(inlinedClasses) \t b64(diagnosticItemsJson)
 ```
 
-`inlinedClasses`と`addedImports`はLF区切りです。javacの構文木・シンボル解決で暗黙importと実依存を確定し、Main/DEBUG/package/import変換と単一ソース化を行います。`validate=1`では変換後ソースも再解析します。旧クライアントが`validate`を省略した場合も`1`として扱います。
+`inlinedClasses`はLF区切りです。javacの構文木・シンボル解決で実依存を確定し、Main/DEBUG/package/import変換と単一ソース化を行います。importを書いていない型は補いません。`validate=1`では変換後ソースも再解析します。
 
 ### 3.6 `ERROR`：エラー応答
 

@@ -23,7 +23,6 @@ export interface DispatcherTransformResult {
 	sourceCode: string;
 	diagnostics: string;
 	inlinedClasses: string[];
-	addedImports: string[];
 	diagnosticItems: CompilerDiagnostic[];
 	timedOut?: boolean;
 }
@@ -154,8 +153,7 @@ function handleDispatcherResponse(line: string) {
 			sourceCode: decodeField(parts[3] || ""),
 			diagnostics: decodeField(parts[4] || ""),
 			inlinedClasses: decodeField(parts[5] || "").split("\n").filter(Boolean),
-			addedImports: decodeField(parts[6] || "").split("\n").filter(Boolean),
-			diagnosticItems: parts[7] ? JSON.parse(decodeField(parts[7])) as CompilerDiagnostic[] : [],
+			diagnosticItems: parts[6] ? JSON.parse(decodeField(parts[6])) as CompilerDiagnostic[] : [],
 		});
 		dispatcherState.currentRequest = null;
 		return;
@@ -287,7 +285,7 @@ export async function warmUpDispatcher(librarySourceRoot: string) {
 		`Warm up dispatcher and common I/O... repeat=${RUNNER_CONFIG.warmUpRepeatCount} timeout=${RUNNER_CONFIG.warmUpRunTimeoutMs}ms`,
 	);
 	const warmupSourceCode = await buildWarmUpSourceCode();
-	const transformed = await queueDispatcherTransform(warmupSourceCode, librarySourceRoot, false, true, false);
+	const transformed = await queueDispatcherTransform(warmupSourceCode, librarySourceRoot, false, false);
 	if (transformed.exitCode !== 0) {
 		throw new Error(`[WarmUp] transform failed: ${firstLine(transformed.diagnostics) || "unknown error"}`);
 	}
@@ -415,18 +413,16 @@ export function queueDispatcherTransform(
 	sourceCode: string,
 	librarySourceRoot: string,
 	debug: boolean,
-	autoImport = true,
 	validate = true,
 	timeoutMs = RUNNER_CONFIG.compileTimeoutMs,
 ): Promise<DispatcherTransformResult> {
 	const flag = (value: boolean) => (value ? "1" : "0");
-	const fields = [encodeField(sourceCode), encodeField(librarySourceRoot), flag(debug), flag(autoImport), flag(validate)];
+	const fields = [encodeField(sourceCode), encodeField(librarySourceRoot), flag(debug), flag(validate)];
 	return queueDispatcherRequest("transform", fields, timeoutMs, () => ({
 		kind: "transform",
 		exitCode: 1,
 		sourceCode,
 		inlinedClasses: [],
-		addedImports: [],
 		diagnosticItems: [],
 		diagnostics: `Transformation timed out after ${timeoutMs}ms.`,
 		timedOut: true,

@@ -61,7 +61,7 @@ async function requestSource(
 	const language = languageForFile(SETTINGS, resolvedSourcePath, lang);
 	const sourceText = shared.normalizeNewlines(fs.readFileSync(resolvedSourcePath, "utf8"));
 	await ensureServer.ensureLocalRunnerReady();
-	const fields = {sourceCode: sourceText, compilerName: language.name, debug, autoImport: true, validate, header};
+	const fields = {sourceCode: sourceText, compilerName: language.name, debug, validate, header};
 	const request = () => requestRunner<ServerResult>({mode, ...fields}, "Local Runner transform failed");
 
 	const originalFileName = path.basename(resolvedSourcePath);
@@ -71,9 +71,6 @@ async function requestSource(
 		// Java の診断は、変換の前のソースについて javac が返したものなので、名前を戻さない。
 		const diagnostics = language.isJava ? result.diagnostics : restoreNames(result.diagnostics);
 		throw new Error(diagnostics || "The source could not be prepared.");
-	}
-	if (result.addedImports.length > 0) {
-		console.log(`Added library imports: ${result.addedImports.join(", ")}`);
 	}
 	if (result.inlinedClasses.length > 0) {
 		console.log(`Bundled library classes: ${result.inlinedClasses.join(", ")}`);

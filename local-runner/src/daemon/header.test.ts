@@ -16,7 +16,6 @@ const success: LocalRunnerTransformResponse = {
 	sourceCode: SOURCE,
 	diagnostics: "",
 	inlinedClasses: [],
-	addedImports: [],
 	diagnosticItems: [],
 };
 

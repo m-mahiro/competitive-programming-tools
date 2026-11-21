@@ -13,7 +13,7 @@ import {compileErrorResponse, missingProgramResponse, toRunResponse} from "./run
 // 覚えておくコンパイルの結果の数。言語ごとの実行環境が持つコンパイル結果の数と揃える。
 const PREPARE_CACHE_MAX = 10;
 // 事前コンパイルと、実行の前のコンパイルは、言語によらず同じ条件で行う。CLI の prepare と同じ条件にして結果を共有する。
-const RUN_PREPARE_OPTIONS = {autoImport: true, validate: false} as const;
+const RUN_PREPARE_OPTIONS = {validate: false} as const;
 
 // 使える言語は、起動時に設定から決める(lifecycle.ts)。
 let runnerLanguages: readonly RunnerLanguage[] = [];
@@ -65,7 +65,7 @@ export function headerKeys(language: RunnerLanguage): string[] {
 	return [...new Set([language.name, language.family])];
 }
 
-const NO_JAVA_TRANSFORM = {inlinedClasses: [], addedImports: [], diagnosticItems: []};
+const NO_JAVA_TRANSFORM = {inlinedClasses: [], diagnosticItems: []};
 
 async function transformCommandCode(language: CommandLanguage, sourceCode: string, debug: boolean): Promise<LocalRunnerTransformResponse> {
 	const result = await commandEngine!.transformSource(language, sourceCode, debug);
@@ -101,11 +101,11 @@ async function runCommandProgram(programId: string, stdin: string, receivedAt: n
 }
 
 /** 言語に合った経路で、変換とコンパイルを行う。コンパイルの順番待ちの中から呼ばれる。 */
-const prepareInQueue: PrepareFunction = async (name, sourceCode, {debug, autoImport, validate}, signal) => {
+const prepareInQueue: PrepareFunction = async (name, sourceCode, {debug, validate}, signal) => {
 	const language = findLanguage(name);
 	if (!language) throw new Error(`Unknown language: "${name}".`);
 	return language.command === null
-		? prepareJavaCode(sourceCode, debug, autoImport, validate, signal)
+		? prepareJavaCode(sourceCode, debug, validate, signal)
 		: prepareCommandCode(language.command, sourceCode, debug, signal);
 };
 
@@ -116,11 +116,10 @@ export function transformSource(
 	language: RunnerLanguage,
 	sourceCode: string,
 	debug: boolean,
-	autoImport: boolean,
 	validate: boolean,
 ): Promise<LocalRunnerTransformResponse> {
 	return language.command === null
-		? transformJavaCode(sourceCode, debug, autoImport, validate)
+		? transformJavaCode(sourceCode, debug, validate)
 		: transformCommandCode(language.command, sourceCode, debug);
 }
 

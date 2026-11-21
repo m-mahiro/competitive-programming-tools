@@ -3774,7 +3774,6 @@ a:focus > .cp-settings-entry {
 				mode: "transform",
 				sourceCode,
 				debug: false,
-				autoImport: true,
 				validate: false,
 				header,
 			};

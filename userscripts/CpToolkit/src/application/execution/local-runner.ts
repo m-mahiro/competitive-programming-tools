@@ -41,7 +41,6 @@ export class LocalRunnerClient {
 			mode: "transform",
 			sourceCode,
 			debug: false,
-			autoImport: true,
 			validate: false,
 			header
 		} as const;

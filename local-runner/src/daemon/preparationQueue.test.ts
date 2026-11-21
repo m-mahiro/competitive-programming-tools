@@ -3,7 +3,7 @@ import type {LocalRunnerPrepareResponse} from "@atcoder-tools/shared";
 import {type PrepareFunction, type PrepareOptions, PreparationQueue} from "./preparationQueue";
 import {CanceledError} from "./processRunner";
 
-const OPTIONS: PrepareOptions = {debug: true, autoImport: true, validate: false};
+const OPTIONS: PrepareOptions = {debug: true, validate: false};
 
 function success(sourceCode: string): LocalRunnerPrepareResponse {
 	return {
@@ -12,7 +12,6 @@ function success(sourceCode: string): LocalRunnerPrepareResponse {
 		programId: `id-${sourceCode}`,
 		diagnostics: "",
 		inlinedClasses: [],
-		addedImports: [],
 		diagnosticItems: []
 	};
 }

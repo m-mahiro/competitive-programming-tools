@@ -61,7 +61,7 @@ final class ProtocolCodec {
 			return new ProtocolError("Malformed TRANSFORM command.");
 		}
 		try {
-			return new ValidRequest(new Transform(parts[1], decode(parts[2]), Paths.get(decode(parts[3])), "1".equals(parts[4]), "1".equals(parts[5]), parts.length < 7 || "1".equals(parts[6])));
+			return new ValidRequest(new Transform(parts[1], decode(parts[2]), Paths.get(decode(parts[3])), "1".equals(parts[4]), "1".equals(parts[5])));
 		} catch (final RuntimeException exception) {
 			return new ProtocolError("Malformed TRANSFORM command.");
 		}
@@ -110,7 +110,7 @@ final class ProtocolCodec {
 
 	private static String encodeTransformed(final Transformed response) {
 		final SourceTransformResult result = response.result();
-		return new StringJoiner(SEPARATOR).add("TRANSFORMED").add(response.requestId()).add(Integer.toString(result.exitCode())).add(b64(result.sourceCode())).add(b64(result.diagnostics())).add(b64(String.join("\n", result.inlinedClasses()))).add(b64(String.join("\n", result.addedImports()))).add(b64(diagnosticsJson(result.diagnosticItems()))).toString();
+		return new StringJoiner(SEPARATOR).add("TRANSFORMED").add(response.requestId()).add(Integer.toString(result.exitCode())).add(b64(result.sourceCode())).add(b64(result.diagnostics())).add(b64(String.join("\n", result.inlinedClasses()))).add(b64(diagnosticsJson(result.diagnosticItems()))).toString();
 	}
 
 	private static String diagnosticsJson(final List<CompilerDiagnostic> diagnostics) {

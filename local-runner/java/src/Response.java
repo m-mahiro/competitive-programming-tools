@@ -77,6 +77,6 @@ record CompileResult(int exitCode, String diagnostics, boolean requiresIsolation
 					 List<CompilerDiagnostic> diagnosticItems) {}
 
 record SourceTransformResult(int exitCode, String sourceCode, String diagnostics, List<String> inlinedClasses,
-							 List<String> addedImports, List<CompilerDiagnostic> diagnosticItems) {}
+							 List<CompilerDiagnostic> diagnosticItems) {}
 
 record CompilerDiagnostic(String kind, long line, long column, String code, String message) {}

@@ -28,7 +28,7 @@
 | `list`       | Easy Test+      | なし                                                      | `{language, compilerName, label}` の配列。`language` は言語名（例：`Java`、`C++`、`Python`）で、提出言語と同じ系統のものが実行環境の候補になります。`label` は画面に出す名前です。 |
 | `precompile` | Easy Test+      | `sourceCode`、`compilerName`、`debug`                     | `{status: "accepted"}`。要求を受け付けたら返し、バックグラウンドでコンパイルします。                                                                                               |
 | `run`        | Easy Test+      | `sourceCode`、`stdin`、`compilerName`、`debug`            | `status`、`exitCode`、`stdout`、`stderr`、`time`（ミリ秒）、`memory`（累積の割り当て量。KB。0 なら表示しません）、`peakMemory`（任意。使用量の最大値。KB）                         |
-| `transform`  | Java の提出補助 | `sourceCode`、`header`、`debug`、`autoImport`、`validate` | `status`（`success` か `compileError`）、`sourceCode`（変換後のコード）、`diagnostics`、`libraryMissing`（任意）                                                                   |
+| `transform`  | Java の提出補助 | `sourceCode`、`header`、`debug`、`validate`               | `status`（`success` か `compileError`）、`sourceCode`（変換後のコード）、`diagnostics`、`libraryMissing`（任意）                                                                   |
 
 - `compilerName` は `list` で返した値です。複数の言語を扱うサーバーは、これで言語を選びます。
 - `list` の各要素には、任意で `family` と `match` を付けられます。
