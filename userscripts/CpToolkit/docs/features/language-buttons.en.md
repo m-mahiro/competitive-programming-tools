@@ -11,6 +11,8 @@
 - Click the gear below the language selector and choose the languages to pin.
 - The buttons appear on task, submission and custom test pages wherever those languages are available.
 
+![Choosing languages for the buttons](../images/language-buttons-settings.png)
+
 ## Pages
 
 - Task pages

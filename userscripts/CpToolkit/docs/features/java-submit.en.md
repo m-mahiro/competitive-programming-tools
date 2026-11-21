@@ -4,6 +4,8 @@
 
 > Prepare pasted code for submission and submit with a keyboard shortcut.
 
+![Notification for imports that could not be found](../images/java-submit-imports.png)
+
 ## How it works
 
 - Pasting a complete solution transforms it into a form that can be submitted. Pasting part of the code into the editor leaves the code unchanged.
@@ -13,6 +15,8 @@
 - The submission header is added by [Code header and footer](source-comments.en.md).
 - If Local Runner cannot transform the code, the code is left unchanged and a notification shows the imports that could not be found, or the first error for other errors. Open “Full diagnostics” in the notification to read all of them.
 - Shortcuts submit the code: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd> on AtCoder and Codeforces, <kbd>Ctrl</kbd>+<kbd>Enter</kbd> on AOJ and paiza, and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> on Library Checker.
+
+![Shortcut shown on the submit button](../images/java-submit-shortcut.png)
 
 ## Java
 

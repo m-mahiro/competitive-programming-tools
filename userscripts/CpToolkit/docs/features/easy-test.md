@@ -30,6 +30,8 @@
 - 最後に実行したコードを1問につき1件、既定で直近10問分保存します。「Restore Last Code」でその問題のコードを復元できます。
 - <kbd>Ctrl</kbd>+<kbd>Enter</kbd> でテスト後に提出し、<kbd>Alt</kbd>+<kbd>Enter</kbd> で全サンプルを実行します。<kbd>Alt</kbd>+<kbd>Esc</kbd> で画面下部のパネルを開閉します。
 
+![サンプルごとの結果](../images/easy-test-panel.png)
+
 ## 詳細設定
 
 設定画面でこの機能の「詳細設定」を開きます。

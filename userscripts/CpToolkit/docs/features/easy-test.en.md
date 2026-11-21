@@ -30,6 +30,8 @@ Easy Test+ is based on [AtCoder Easy Test v2](https://greasyfork.org/scripts/433
 - Easy Test+ keeps the last code you ran for each task, up to 10 tasks by default. Choose “Restore Last Code” to restore it for the current task.
 - Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to test and submit, <kbd>Alt</kbd>+<kbd>Enter</kbd> to test all samples, or <kbd>Alt</kbd>+<kbd>Esc</kbd> to toggle the bottom panel.
 
+![Result for each sample](../images/easy-test-panel.png)
+
 ## Detailed settings
 
 Open this feature’s “Detailed settings” in CP Toolkit.

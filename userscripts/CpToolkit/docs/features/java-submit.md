@@ -4,6 +4,8 @@
 
 > 貼り付けたコードを提出用に変換し、ショートカットで提出できます。
 
+![見つからない import の通知](../images/java-submit-imports.png)
+
 ## 使い方
 
 - コード全体を貼り付けると、提出できる形に変換します。編集中のコードへ一部を貼り付けたときは変換しません。
@@ -13,6 +15,8 @@
 - 提出用のヘッダーは[コードのヘッダーとフッター](source-comments.md)が付けます。
 - Local Runner で変換できなかったときは、コードを変えずに知らせます。見つからない import があればその名前を、ほかのエラーなら最初のエラーを示します。診断の全文は、通知の「診断の全文」を開くと読めます。
 - ショートカットで提出できます。AtCoder と Codeforces は <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd>、AOJ と paiza は <kbd>Ctrl</kbd>+<kbd>Enter</kbd>、Library Checker は <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> です。
+
+![提出ボタンに表示するショートカット](../images/java-submit-shortcut.png)
 
 ## Java
 

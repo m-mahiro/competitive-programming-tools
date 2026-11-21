@@ -12,6 +12,8 @@
 - By default, green means at least one AC or a positive score. Red means all judged submissions scored zero and none was accepted. Unattempted tasks stay uncolored. Pending submissions are excluded.
 - Results are fetched while you are signed in, starting five minutes after the contest begins.
 
+![Colored Tasks dropdown](../images/task-status-dropdown.png)
+
 ## Detailed settings
 
 Open this feature’s “Detailed settings” in CP Toolkit.
