@@ -9,7 +9,8 @@
 | `atcoder-url.ts`     | 問題 URL の解析・生成、提出一覧 URL、提出詳細 URL                                            |
 | `local-runner.ts`    | Local Runner HTTP API の型、`isStaleProgramResponse`、`toEasyTestStatus`                     |
 | `easy-test-judge.ts` | Easy Test 互換の出力比較（trim / split / 誤差許容）                                          |
-| `java-transform.ts`  | Local Runner がないときの Java ソースの字句変換、`lib.*` を使うかの判定（`usesJavaLibrary`） |
+| `java-transform.ts`  | Local Runner がないときの Java ソースの字句変換                                              |
+| `java-imports.ts`    | Java の import の判定（`importsPackage`、`unresolvedImports`）                               |
 | `json.ts`            | `safeJsonParse`、`parseStoredObject`                                                         |
 | `query.ts`           | `buildQueryString`                                                                           |
 | `utils.ts`           | `normalizeNewlines`                                                                          |

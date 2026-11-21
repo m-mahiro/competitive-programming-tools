@@ -621,12 +621,6 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return out.join("");
 	}
 
-	var LIBRARY_IMPORT_PATTERN = /^\s*import\s+(?:static\s+)?lib\./m;
-
-	function usesJavaLibrary(code) {
-		return LIBRARY_IMPORT_PATTERN.test(createMaskedCode(code));
-	}
-
 	function findMatchingBrace(maskedText, openBraceIdx) {
 		let depth = 1;
 		for (let i = openBraceIdx + 1; i < maskedText.length; i++) {
@@ -776,6 +770,38 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		}
 		currentCode = currentCode.replace(/^(?:[\t ]*\n)+/, "");
 		return {modified: currentCode, packageRemoved, classReplaced, debugReplaced};
+	}
+
+	// ../shared/src/java-imports.ts
+	var IMPORT_LINE = /^\s*import\s+(?:static\s+)?([\w$]+(?:\s*\.\s*[\w$]+)*(?:\s*\.\s*\*)?)\s*;/;
+
+	function importedNames(code) {
+		const names = new Map();
+		createMaskedCode(code)
+			.split(
+				`
+`,
+			)
+			.forEach((line, index) => {
+				const name = IMPORT_LINE.exec(line)?.[1];
+				if (name) names.set(index + 1, name.replace(/\s+/g, ""));
+			});
+		return names;
+	}
+
+	function importsPackage(code, packageName) {
+		const prefix = `${packageName}.`;
+		return [...importedNames(code).values()].some((name) => name.startsWith(prefix));
+	}
+
+	function unresolvedImports(code, diagnostics) {
+		const names = importedNames(code);
+		const found = new Set();
+		for (const diagnostic of diagnostics) {
+			const name = diagnostic.kind === "ERROR" ? names.get(diagnostic.line) : undefined;
+			if (name) found.add(name);
+		}
+		return [...found];
 	}
 
 	// ../shared/src/json.ts
@@ -3472,15 +3498,16 @@ a:focus > .cp-settings-entry {
 		"localRunner.url": "Server URL",
 		"javaSubmit.title": "Java submission helper",
 		"javaSubmit.description": "Prepare pasted Java code for submission and submit with a keyboard shortcut.",
-		"javaSubmit.localRunnerRequired": "Expanding lib.* needs Local Runner",
+		"javaSubmit.localRunnerRequired": "Expanding {package}.* needs Local Runner",
 		"javaSubmit.localRunnerGuide":
 			"Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
-		"javaSubmit.libraryRequired": "Expanding lib.* needs the library to be set",
-		"javaSubmit.libraryGuide":
-			"The library folder is not set in Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
+		"javaSubmit.unresolvedImports": "Some imports could not be found",
+		"javaSubmit.transformFailed": "Local Runner could not transform the code",
 		"javaSubmit.removePackage": "Remove package declarations when Local Runner is unavailable",
 		"javaSubmit.renameClass": "Rename the class to Main when Local Runner is unavailable",
 		"javaSubmit.fixDebug": "Set DEBUG to false when Local Runner is unavailable",
+		"javaSubmit.libraryPackage":
+			"Package of the library that Local Runner expands (e.g. lib; empty to skip the check)",
 		"javaSubmit.addHeader": "Add the submission header",
 		"javaSubmit.headerName": "Header name (empty for the default)",
 		"javaSubmit.foldOnPaste": "Fold classes and comments after pasting",
@@ -3689,15 +3716,15 @@ a:focus > .cp-settings-entry {
 		"localRunner.url": "接続先の URL",
 		"javaSubmit.title": "Java の提出補助",
 		"javaSubmit.description": "貼り付けた Java コードを提出用に変換し、ショートカットで提出できます。",
-		"javaSubmit.localRunnerRequired": "lib.* の展開には Local Runner が必要です",
+		"javaSubmit.localRunnerRequired": "{package}.* の展開には Local Runner が必要です",
 		"javaSubmit.localRunnerGuide":
 			"Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。",
-		"javaSubmit.libraryRequired": "lib.* の展開にはライブラリの設定が必要です",
-		"javaSubmit.libraryGuide":
-			"Local Runner にライブラリのフォルダが設定されていないので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから設定方法を確認できます。",
+		"javaSubmit.unresolvedImports": "見つからない import があります",
+		"javaSubmit.transformFailed": "Local Runner で変換できませんでした",
 		"javaSubmit.removePackage": "Local Runner がないときにパッケージ宣言を削除する",
 		"javaSubmit.renameClass": "Local Runner がないときにクラス名を Main にする",
 		"javaSubmit.fixDebug": "Local Runner がないときに DEBUG を false にする",
+		"javaSubmit.libraryPackage": "Local Runner で展開するライブラリのパッケージ（例：lib。空欄なら確かめない）",
 		"javaSubmit.addHeader": "提出用のヘッダーを付ける",
 		"javaSubmit.headerName": "ヘッダーの名前（空欄なら既定）",
 		"javaSubmit.foldOnPaste": "貼り付け後にクラスとコメントを折りたたむ",
@@ -8799,23 +8826,20 @@ ${efficient_layout_default}`);
 
 	// CpToolkit/src/application/source/transform-java.ts
 	async function transformJava(code, localRunner, options) {
-		let connected = false;
-		let libraryMissing = false;
 		if (localRunner.isAvailable()) {
 			try {
 				const transformed = await localRunner.transform(code, options.header);
-				connected = true;
 				if (transformed.status === "success")
-					return {
-						sourceCode: transformed.sourceCode,
-						connected,
-						libraryMissing,
-					};
-				libraryMissing = transformed.libraryMissing === true;
+					return {sourceCode: transformed.sourceCode, connected: true, failure: null};
+				return {
+					sourceCode: code,
+					connected: true,
+					failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems ?? []},
+				};
 			} catch {
 			}
 		}
-		return {sourceCode: modifyJavaCode(code, options).modified, connected, libraryMissing};
+		return {sourceCode: modifyJavaCode(code, options).modified, connected: false, failure: null};
 	}
 
 	// CpToolkit/src/features/java-submit/index.ts
@@ -8824,8 +8848,8 @@ ${efficient_layout_default}`);
 	var FOLD_DELAY_MS = 100;
 	var PASTE_ORDER = 10;
 	var LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
-	var LIBRARY_GUIDE_URL = `${LOCAL_RUNNER_GUIDE_URL}#ライブラリを使う`;
 	var GUIDE_DURATION_MS = 15000;
+	var MAX_DIAGNOSTIC_LINES = 3;
 
 	function findSubmitButton({submitButtons, labeledSubmit}) {
 		for (const selector of submitButtons) {
@@ -8842,6 +8866,43 @@ ${efficient_layout_default}`);
 			if (button) return button;
 		}
 		return null;
+	}
+
+	function notifyTransformProblem(code, result, libraryPackage, translate) {
+		const {failure, connected} = result;
+		if (failure) {
+			const imports = unresolvedImports(code, failure.items);
+			showToast(
+				imports.length > 0
+					? {
+							title: translate("javaSubmit.unresolvedImports"),
+							detail: imports.join(`
+`),
+							tone: "warning",
+							durationMs: GUIDE_DURATION_MS,
+						}
+					: {
+							title: translate("javaSubmit.transformFailed"),
+							detail: failure.diagnostics
+								.split(
+									`
+`,
+								)
+								.slice(0, MAX_DIAGNOSTIC_LINES).join(`
+`),
+							tone: "warning",
+							durationMs: GUIDE_DURATION_MS,
+						},
+			);
+		} else if (!connected && libraryPackage && importsPackage(code, libraryPackage)) {
+			showToast({
+				title: translate("javaSubmit.localRunnerRequired").replace("{package}", libraryPackage),
+				detail: translate("javaSubmit.localRunnerGuide"),
+				tone: "warning",
+				href: LOCAL_RUNNER_GUIDE_URL,
+				durationMs: GUIDE_DURATION_MS,
+			});
+		}
 	}
 
 	var javaSubmit = defineFeature({
@@ -8864,6 +8925,7 @@ ${efficient_layout_default}`);
 			removePackage: option.boolean(true, "javaSubmit.removePackage"),
 			renameClass: option.boolean(true, "javaSubmit.renameClass"),
 			fixDebug: option.boolean(true, "javaSubmit.fixDebug"),
+			libraryPackage: option.text("", "javaSubmit.libraryPackage"),
 			addHeader: option.boolean(true, "javaSubmit.addHeader"),
 			headerName: option.text("", "javaSubmit.headerName"),
 			foldOnPaste: option.boolean(true, "javaSubmit.foldOnPaste"),
@@ -8895,28 +8957,9 @@ ${efficient_layout_default}`);
 				async transform(code, {editor, pasted, original}) {
 					if (!editor.isJava() || code.length < MIN_SOURCE_LENGTH || !isWholeCode(original, pasted))
 						return code;
-					const {sourceCode, connected, libraryMissing} = await transformJava(code, localRunner, {
-						...options,
-						header,
-					});
-					if (libraryMissing) {
-						showToast({
-							title: translate("javaSubmit.libraryRequired"),
-							detail: translate("javaSubmit.libraryGuide"),
-							tone: "warning",
-							href: LIBRARY_GUIDE_URL,
-							durationMs: GUIDE_DURATION_MS,
-						});
-					} else if (!connected && usesJavaLibrary(code)) {
-						showToast({
-							title: translate("javaSubmit.localRunnerRequired"),
-							detail: translate("javaSubmit.localRunnerGuide"),
-							tone: "warning",
-							href: LOCAL_RUNNER_GUIDE_URL,
-							durationMs: GUIDE_DURATION_MS,
-						});
-					}
-					return sourceCode;
+					const result = await transformJava(code, localRunner, {...options, header});
+					notifyTransformProblem(code, result, options.libraryPackage.trim(), translate);
+					return result.sourceCode;
 				},
 				applied(editor) {
 					if (options.foldOnPaste) setTimeout(() => fold(editor), FOLD_DELAY_MS);

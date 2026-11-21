@@ -88,8 +88,6 @@ export type LocalRunnerTransformResponse = {
 	diagnostics: string;
 	inlinedClasses: string[];
 	diagnosticItems: CompilerDiagnostic[];
-	/** lib.* を使うのに、サーバーがライブラリなしで動いているので変換できなかった。 */
-	libraryMissing?: boolean;
 };
 
 export type LocalRunnerPrepareResponse = LocalRunnerTransformResponse & {

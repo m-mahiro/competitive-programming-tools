@@ -189,13 +189,14 @@ localRunner.url: 接続先の URL
 
 javaSubmit.title: Java の提出補助
 javaSubmit.description: 貼り付けた Java コードを提出用に変換し、ショートカットで提出できます。
-javaSubmit.localRunnerRequired: lib.* の展開には Local Runner が必要です
+javaSubmit.localRunnerRequired: "{package}.* の展開には Local Runner が必要です"
 javaSubmit.localRunnerGuide: Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。
-javaSubmit.libraryRequired: lib.* の展開にはライブラリの設定が必要です
-javaSubmit.libraryGuide: Local Runner にライブラリのフォルダが設定されていないので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから設定方法を確認できます。
+javaSubmit.unresolvedImports: 見つからない import があります
+javaSubmit.transformFailed: Local Runner で変換できませんでした
 javaSubmit.removePackage: Local Runner がないときにパッケージ宣言を削除する
 javaSubmit.renameClass: Local Runner がないときにクラス名を Main にする
 javaSubmit.fixDebug: Local Runner がないときに DEBUG を false にする
+javaSubmit.libraryPackage: Local Runner で展開するライブラリのパッケージ（例：lib。空欄なら確かめない）
 javaSubmit.addHeader: 提出用のヘッダーを付ける
 javaSubmit.headerName: ヘッダーの名前（空欄なら既定）
 javaSubmit.foldOnPaste: 貼り付け後にクラスとコメントを折りたたむ

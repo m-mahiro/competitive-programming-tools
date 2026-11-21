@@ -1,5 +1,4 @@
 import {afterEach, beforeEach, describe, expect, mock, test} from "bun:test";
-import {usesJavaLibrary} from "@atcoder-tools/shared";
 import type {JudgeLanguage, RunResult} from "@domain/execution/result";
 import {LocalRunnerClient} from "@application/execution/local-runner";
 import {PastePipeline} from "@application/source/paste-pipeline";
@@ -571,10 +570,10 @@ describe("javaSubmit", () => {
 		expect(editor.getValue()).toBe(source);
 	});
 
-	test("Local Runner に接続できず lib を使うコードなら、導入方法を案内する", async () => {
+	test("Local Runner に接続できず、設定したライブラリを使うコードなら、導入方法を案内する", async () => {
 		const code = "import lib.ds.UnionFind;\npublic class Solution {\n\tpublic static void main(String[] args) {}\n}\n";
 		const {editor, paste} = createEditor(code);
-		await javaSubmit.run({foldOnPaste: false}, createFakeServices({
+		await javaSubmit.run({foldOnPaste: false, libraryPackage: "lib"}, createFakeServices({
 			judge,
 			localRunner: offline, ...editorServices(editor)
 		}));
@@ -587,22 +586,59 @@ describe("javaSubmit", () => {
 		expect(editor.getValue()).toContain("public class Main");
 	});
 
-	test("Local Runner にライブラリが設定されていなければ、設定方法を案内する", async () => {
+	const connectedRunner = (response: object) => new LocalRunnerClient(
+		new FakeHttpClient(() => ({status: 200, text: JSON.stringify(response)})),
+		() => "http://localhost:8080",
+	);
+
+	test("Local Runner で変換できず import が見つからなければ、その名前を知らせてコードを変えない", async () => {
 		const code = "import lib.ds.UnionFind;\npublic class Solution {\n\tpublic static void main(String[] args) {}\n}\n";
 		const {editor, paste} = createEditor(code);
-		const response = {status: "compileError", sourceCode: code, diagnostics: "", libraryMissing: true};
-		const localRunner = new LocalRunnerClient(
-			new FakeHttpClient(() => ({status: 200, text: JSON.stringify(response)})),
-			() => "http://localhost:8080",
-		);
+		const localRunner = connectedRunner({
+			status: "compileError",
+			sourceCode: code,
+			diagnostics: "ERROR 1:15 compiler.err.doesnt.exist package lib.ds does not exist",
+			diagnosticItems: [{kind: "ERROR", line: 1, column: 15, code: "compiler.err.doesnt.exist", message: "package lib.ds does not exist"}],
+		});
 		await javaSubmit.run({foldOnPaste: false}, createFakeServices({judge, localRunner, ...editorServices(editor)}));
 		await wait();
 		paste();
 		await wait();
 
 		const text = shadowRoots().map((root) => root.textContent).join("");
-		expect(text).toContain("lib.* の展開にはライブラリの設定が必要です");
-		expect(text).not.toContain("lib.* の展開には Local Runner が必要です");
+		expect(text).toContain("見つからない import があります");
+		expect(text).toContain("lib.ds.UnionFind");
+		expect(editor.getValue()).toBe(code);
+	});
+
+	test("Local Runner で変換できなければ、簡易変換をせず診断を知らせる", async () => {
+		const {editor, paste} = createEditor(source);
+		const localRunner = connectedRunner({
+			status: "compileError",
+			sourceCode: source,
+			diagnostics: "ERROR 3:40 compiler.err.cant.resolve cannot find symbol",
+			diagnosticItems: [{kind: "ERROR", line: 3, column: 40, code: "compiler.err.cant.resolve", message: "cannot find symbol"}],
+		});
+		await javaSubmit.run({foldOnPaste: false}, createFakeServices({judge, localRunner, ...editorServices(editor)}));
+		await wait();
+		paste();
+		await wait();
+
+		const text = shadowRoots().map((root) => root.textContent).join("");
+		expect(text).toContain("Local Runner で変換できませんでした");
+		expect(text).toContain("cannot find symbol");
+		expect(editor.getValue()).toBe(source);
+	});
+
+	test("ライブラリのパッケージを設定していなければ、接続できなくても案内しない", async () => {
+		const code = "import lib.ds.UnionFind;\npublic class Solution {\n\tpublic static void main(String[] args) {}\n}\n";
+		const {editor, paste} = createEditor(code);
+		await javaSubmit.run({foldOnPaste: false}, createFakeServices({judge, localRunner: offline, ...editorServices(editor)}));
+		await wait();
+		paste();
+		await wait();
+
+		expect(shadowRoots().map((root) => root.textContent).join("")).not.toContain("Local Runner が必要です");
 	});
 
 	test("lib を使わないコードなら Local Runner がなくても案内しない", async () => {
@@ -616,11 +652,6 @@ describe("javaSubmit", () => {
 		await wait();
 
 		expect(shadowRoots().map((root) => root.textContent).join("")).not.toContain("Local Runner");
-	});
-
-	test("コメントの中の lib は案内の対象にしない", () => {
-		expect(usesJavaLibrary("// import lib.ds.UnionFind;\nclass Main {}\n")).toBe(false);
-		expect(usesJavaLibrary("import static lib.math.Mod.pow;\nclass Main {}\n")).toBe(true);
 	});
 
 	test("ショートカットで提出ボタンを押す", async () => {

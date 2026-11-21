@@ -1,4 +1,4 @@
-import {type LocalRunnerHeaderOption, modifyJavaCode} from "@atcoder-tools/shared";
+import {type CompilerDiagnostic, type LocalRunnerHeaderOption, modifyJavaCode} from "@atcoder-tools/shared";
 import type {LocalRunnerClient} from "@application/execution/local-runner";
 
 export type JavaTransformOptions = {
@@ -8,35 +8,38 @@ export type JavaTransformOptions = {
 	readonly header: LocalRunnerHeaderOption;
 };
 
+/** Local Runner で変換できなかったときの javac の診断。 */
+export type JavaTransformFailure = {
+	readonly diagnostics: string;
+	readonly items: readonly CompilerDiagnostic[];
+};
+
 export type JavaTransformResult = {
 	readonly sourceCode: string;
 	/** Local Runner と通信できたか。偽なら字句の置換だけの結果になる。 */
 	readonly connected: boolean;
-	/** Local Runner にライブラリが設定されていないので、lib.* を展開できなかった。 */
-	readonly libraryMissing: boolean;
+	/** 通信できたが変換に失敗した。このときコードは変えない。 */
+	readonly failure: JavaTransformFailure | null;
 };
 
-/** Local Runner で変換する。使えないときだけ、字句の置換で最低限の修正を行う。 */
+/** Local Runner で変換する。通信できないときだけ、字句の置換で最低限の修正を行う。 */
 export async function transformJava(
 	code: string,
 	localRunner: LocalRunnerClient,
 	options: JavaTransformOptions,
 ): Promise<JavaTransformResult> {
-	let connected = false;
-	let libraryMissing = false;
 	if (localRunner.isAvailable()) {
 		try {
 			const transformed = await localRunner.transform(code, options.header);
-			connected = true;
-			if (transformed.status === "success") return {
-				sourceCode: transformed.sourceCode,
-				connected,
-				libraryMissing
+			if (transformed.status === "success") return {sourceCode: transformed.sourceCode, connected: true, failure: null};
+			return {
+				sourceCode: code,
+				connected: true,
+				failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems ?? []},
 			};
-			libraryMissing = transformed.libraryMissing === true;
 		} catch {
 			// Local Runner が起動していなければ、下の字句変換を使う
 		}
 	}
-	return {sourceCode: modifyJavaCode(code, options).modified, connected, libraryMissing};
+	return {sourceCode: modifyJavaCode(code, options).modified, connected: false, failure: null};
 }

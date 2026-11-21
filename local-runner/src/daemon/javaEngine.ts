@@ -1,12 +1,11 @@
 import {
-	createMaskedCode,
 	type LocalRunnerPrepareResponse,
 	type LocalRunnerRunResponse,
 	type LocalRunnerTransformResponse,
 } from "@atcoder-tools/shared";
 import type {CompileEntry} from "../types";
 import * as config from "../config";
-import {loadedLibrarySource, resolveLibrarySourceRoot} from "../javaLibrary/prepare";
+import {resolveLibrarySourceRoot} from "../javaLibrary/prepare";
 import * as formatter from "../utils/formatter";
 import * as logging from "../utils/logging";
 import * as compiler from "./compiler";
@@ -17,23 +16,12 @@ import {compileErrorResponse, notRunResponse} from "./runResponse";
 // Java の変換、コンパイル、実行。常駐 JVM(dispatcher.ts)と javac のキャッシュ(compiler.ts)を使う。
 // Java 以外の言語は commandEngine.ts が受け持つ。
 
-const LIBRARY_MISSING_HINT = "The Java library is not loaded. Set its folder with setlib <path>, then restart Local Runner with stop and serve.";
-
-const NON_JDK_IMPORT_PATTERN = /^\s*import\s+(?:static\s+)?(?!java\.|javax\.|jdk\.)[A-Za-z_$]/m;
-
-/** JDK 以外のものを import しているか。コメントや文字列の中は数えない。ライブラリの名前は決まっていないので、JDK かどうかで見分ける。 */
-function importsOutsideJdk(code: string): boolean {
-	return NON_JDK_IMPORT_PATTERN.test(createMaskedCode(code));
-}
-
 export async function transformJavaCode(sourceCode: string, debug: boolean, validate = true): Promise<LocalRunnerTransformResponse> {
 	const result = await dispatcher.queueDispatcherTransform(sourceCode, resolveLibrarySourceRoot(), debug, validate);
-	const libraryMissing = result.exitCode !== 0 && loadedLibrarySource() === null && importsOutsideJdk(sourceCode);
 	return {
 		status: result.exitCode === 0 ? "success" : "compileError",
 		sourceCode: result.sourceCode,
-		diagnostics: libraryMissing ? `${LIBRARY_MISSING_HINT}\n${result.diagnostics}` : result.diagnostics,
-		libraryMissing,
+		diagnostics: result.diagnostics,
 		inlinedClasses: result.inlinedClasses,
 		diagnosticItems: result.diagnosticItems,
 	};
