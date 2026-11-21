@@ -193,8 +193,7 @@ javaSubmit.localRunnerRequired: "{package}.* の展開には Local Runner が必
 javaSubmit.localRunnerGuide: Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。
 javaSubmit.unresolvedImports: 見つからない import があります
 javaSubmit.transformFailed: Local Runner で変換できませんでした
-javaSubmit.removePackage: Local Runner がないときにパッケージ宣言を削除する
-javaSubmit.renameClass: Local Runner がないときにクラス名を Main にする
+javaSubmit.diagnostics: javac の診断
 javaSubmit.debugFlag: Local Runner がないときに false にする変数の名前（例：DEBUG。空欄なら変えない）
 javaSubmit.libraryPackage: Local Runner で展開するライブラリのパッケージ（例：lib。空欄なら確かめない）
 javaSubmit.addHeader: 提出用のヘッダーを付ける

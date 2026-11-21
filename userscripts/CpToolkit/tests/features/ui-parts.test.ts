@@ -76,6 +76,16 @@ describe("通知", () => {
 		expect(link?.target).toBe("_blank");
 		expect(link?.rel).toBe("noopener");
 	});
+
+	test("詳しい内容は閉じた状態で添え、開閉のクリックでは消えない", () => {
+		showToast({...base, more: {label: "javac の診断", text: "ERROR 1:1 compiler.err.doesnt.exist"}});
+		const more = toasts()[0]!.querySelector<HTMLDetailsElement>("details.toast-more");
+		expect(more?.open).toBe(false);
+		expect(more?.querySelector("summary")?.textContent).toBe("javac の診断");
+		expect(more?.querySelector("pre")?.textContent).toBe("ERROR 1:1 compiler.err.doesnt.exist");
+		more!.querySelector("summary")!.click();
+		expect(toasts().length).toBe(1);
+	});
 });
 
 describe("ダイアログ", () => {

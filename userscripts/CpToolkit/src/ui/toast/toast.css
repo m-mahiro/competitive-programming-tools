@@ -45,6 +45,31 @@
 .toast-detail {
 	color: var(--cp-text-muted);
 	font-size: 13px;
+	white-space: pre-line;
+}
+
+.toast-more {
+	margin-top: 4px;
+	font-size: 12px;
+	cursor: auto;
+}
+
+.toast-more summary {
+	color: var(--cp-accent);
+	cursor: pointer;
+}
+
+.toast-more pre {
+	max-height: 200px;
+	margin: 4px 0 0;
+	padding: 6px 8px;
+	overflow: auto;
+	border-radius: 4px;
+	background: var(--cp-surface-muted);
+	color: var(--cp-text);
+	font-size: 12px;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 
 .toast a {

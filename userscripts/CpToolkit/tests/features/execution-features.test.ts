@@ -607,6 +607,7 @@ describe("javaSubmit", () => {
 
 		const text = shadowRoots().map((root) => root.textContent).join("");
 		expect(text).toContain("見つからない import があります");
+		expect(text).toContain("javac の診断");
 		expect(text).toContain("lib.ds.UnionFind");
 		expect(editor.getValue()).toBe(code);
 	});

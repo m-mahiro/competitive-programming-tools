@@ -17,7 +17,6 @@ const FOLD_DELAY_MS = 100;
 const PASTE_ORDER = 10;
 const LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
 const GUIDE_DURATION_MS = 15_000;
-const MAX_DIAGNOSTIC_LINES = 3;
 
 function findSubmitButton({submitButtons, labeledSubmit}: SubmissionTarget): HTMLElement | null {
 	for (const selector of submitButtons) {
@@ -41,14 +40,14 @@ function notifyTransformProblem(code: string, result: JavaTransformResult, libra
 	const {failure, connected} = result;
 	if (failure) {
 		const imports = unresolvedImports(code, failure.items);
-		showToast(imports.length > 0
-			? {title: translate("javaSubmit.unresolvedImports"), detail: imports.join("\n"), tone: "warning", durationMs: GUIDE_DURATION_MS}
-			: {
-				title: translate("javaSubmit.transformFailed"),
-				detail: failure.diagnostics.split("\n").slice(0, MAX_DIAGNOSTIC_LINES).join("\n"),
-				tone: "warning",
-				durationMs: GUIDE_DURATION_MS,
-			});
+		const firstError = failure.items.find((item) => item.kind === "ERROR");
+		showToast({
+			title: translate(imports.length > 0 ? "javaSubmit.unresolvedImports" : "javaSubmit.transformFailed"),
+			detail: imports.length > 0 ? imports.join("\n") : firstError?.message ?? failure.diagnostics.split("\n", 1)[0] ?? "",
+			tone: "warning",
+			durationMs: GUIDE_DURATION_MS,
+			...(failure.diagnostics && {more: {label: translate("javaSubmit.diagnostics"), text: failure.diagnostics}}),
+		});
 	} else if (!connected && libraryPackage && importsPackage(code, libraryPackage)) {
 		// ライブラリの展開は Local Runner の Java Compiler API が行う。ブラウザの字句の置換ではできない
 		showToast({
@@ -71,8 +70,6 @@ export const javaSubmit = defineFeature({
 	routes: ["atcoder:task", "atcoder:submit", "atcoder:customTest", "codeforces:page", "aoj:page", "libraryChecker:page", "paiza:page"],
 	phase: "ready",
 	options: {
-		removePackage: option.boolean(true, "javaSubmit.removePackage"),
-		renameClass: option.boolean(true, "javaSubmit.renameClass"),
 		debugFlag: option.text("", "javaSubmit.debugFlag"),
 		libraryPackage: option.text("", "javaSubmit.libraryPackage"),
 		addHeader: option.boolean(true, "javaSubmit.addHeader"),

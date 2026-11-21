@@ -8,6 +8,8 @@ export type Toast = {
 	readonly tone: "success" | "warning";
 	readonly href?: string;
 	readonly durationMs: number;
+	/** 閉じた状態で添える詳しい内容。開くと全文を読める。 */
+	readonly more?: {readonly label: string; readonly text: string};
 };
 
 export type ToastLabels = {
@@ -51,7 +53,11 @@ function syncVisibility(): void {
 	if (!needed && open) host.hidePopover();
 }
 
-function present({title, detail, tone, href, durationMs}: Toast): void {
+function moreElement({label, text}: NonNullable<Toast["more"]>): HTMLElement {
+	return h("details", {className: "toast-more"}, h("summary", {textContent: label}), h("pre", {textContent: text}));
+}
+
+function present({title, detail, tone, href, durationMs, more}: Toast): void {
 	const heading = href ? h("a", {href, target: "_blank", rel: "noopener", textContent: title}) : title;
 	const closeButton = h("button", {type: "button", className: "toast-close", textContent: "×"});
 	closeButton.setAttribute("aria-label", labels.close());
@@ -60,6 +66,7 @@ function present({title, detail, tone, href, durationMs}: Toast): void {
 		{className: "toast"},
 		h("div", {className: "toast-title"}, heading),
 		h("div", {className: "toast-detail", textContent: detail}),
+		...(more ? [moreElement(more)] : []),
 		closeButton,
 	);
 	toast.dataset.tone = tone;
@@ -92,7 +99,10 @@ function present({title, detail, tone, href, durationMs}: Toast): void {
 	toast.addEventListener("pointerleave", release);
 	toast.addEventListener("focusin", hold);
 	toast.addEventListener("focusout", release);
-	toast.addEventListener("click", dismiss);
+	// 詳しい内容を開閉したり選んだりするクリックでは消さない
+	toast.addEventListener("click", (event) => {
+		if (!(event.target instanceof Element && event.target.closest(".toast-more"))) dismiss();
+	});
 
 	const list = ensureContainer();
 	list.setAttribute("aria-label", labels.region);

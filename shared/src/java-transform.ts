@@ -1,8 +1,6 @@
 import {normalizeNewlines} from "./utils";
 
 export type TransformOptions = {
-	removePackage?: boolean;
-	renameClass?: boolean;
 	/** 起動クラスのフィールドで、false にする boolean の名前。空なら変えない。 */
 	debugFlag?: string;
 };
@@ -229,23 +227,19 @@ function disableDebugFlag(maskedCode: string, currentCode: string, flag: string)
 /**
  * Java ソースコードに対して指定された変換を順に適用する。
  */
-export function modifyJavaCode(originalCode: string, options: TransformOptions): TransformResult {
+export function modifyJavaCode(originalCode: string, options: TransformOptions = {}): TransformResult {
 	let currentCode = normalizeNewlines(originalCode);
-	let packageRemoved = false;
-	let classReplaced = false;
+	let packageRemoved: boolean;
+	let classReplaced: boolean;
 	let debugReplaced = false;
 
-	if (options.removePackage) {
-		const result = removePackageDeclaration(createMaskedCode(currentCode), currentCode);
-		currentCode = result.code;
-		packageRemoved = result.modified;
-	}
+	const withoutPackage = removePackageDeclaration(createMaskedCode(currentCode), currentCode);
+	currentCode = withoutPackage.code;
+	packageRemoved = withoutPackage.modified;
 
-	if (options.renameClass) {
-		const result = renameClassToMain(createMaskedCode(currentCode), currentCode);
-		currentCode = result.code;
-		classReplaced = result.modified;
-	}
+	const renamed = renameClassToMain(createMaskedCode(currentCode), currentCode);
+	currentCode = renamed.code;
+	classReplaced = renamed.modified;
 
 	if (options.debugFlag) {
 		const result = disableDebugFlag(createMaskedCode(currentCode), currentCode, options.debugFlag);

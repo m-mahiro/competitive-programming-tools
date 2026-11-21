@@ -2,8 +2,6 @@ import {type CompilerDiagnostic, type LocalRunnerHeaderOption, modifyJavaCode} f
 import type {LocalRunnerClient} from "@application/execution/local-runner";
 
 export type JavaTransformOptions = {
-	readonly removePackage: boolean;
-	readonly renameClass: boolean;
 	readonly debugFlag: string;
 	readonly header: LocalRunnerHeaderOption;
 };

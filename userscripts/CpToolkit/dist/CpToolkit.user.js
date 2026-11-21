@@ -749,21 +749,17 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return {code, modified: starts.length > 0};
 	}
 
-	function modifyJavaCode(originalCode, options) {
+	function modifyJavaCode(originalCode, options = {}) {
 		let currentCode = normalizeNewlines(originalCode);
-		let packageRemoved = false;
-		let classReplaced = false;
+		let packageRemoved;
+		let classReplaced;
 		let debugReplaced = false;
-		if (options.removePackage) {
-			const result = removePackageDeclaration(createMaskedCode(currentCode), currentCode);
-			currentCode = result.code;
-			packageRemoved = result.modified;
-		}
-		if (options.renameClass) {
-			const result = renameClassToMain(createMaskedCode(currentCode), currentCode);
-			currentCode = result.code;
-			classReplaced = result.modified;
-		}
+		const withoutPackage = removePackageDeclaration(createMaskedCode(currentCode), currentCode);
+		currentCode = withoutPackage.code;
+		packageRemoved = withoutPackage.modified;
+		const renamed = renameClassToMain(createMaskedCode(currentCode), currentCode);
+		currentCode = renamed.code;
+		classReplaced = renamed.modified;
 		if (options.debugFlag) {
 			const result = disableDebugFlag(createMaskedCode(currentCode), currentCode, options.debugFlag);
 			currentCode = result.code;
@@ -2227,6 +2223,31 @@ button:hover {
 .toast-detail {
 	color: var(--cp-text-muted);
 	font-size: 13px;
+	white-space: pre-line;
+}
+
+.toast-more {
+	margin-top: 4px;
+	font-size: 12px;
+	cursor: auto;
+}
+
+.toast-more summary {
+	color: var(--cp-accent);
+	cursor: pointer;
+}
+
+.toast-more pre {
+	max-height: 200px;
+	margin: 4px 0 0;
+	padding: 6px 8px;
+	overflow: auto;
+	border-radius: 4px;
+	background: var(--cp-surface-muted);
+	color: var(--cp-text);
+	font-size: 12px;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 
 .toast a {
@@ -2307,7 +2328,16 @@ ${toast_default}`,
 		if (!needed && open) host.hidePopover();
 	}
 
-	function present({title, detail, tone, href, durationMs}) {
+	function moreElement({label, text}) {
+		return h(
+			"details",
+			{className: "toast-more"},
+			h("summary", {textContent: label}),
+			h("pre", {textContent: text}),
+		);
+	}
+
+	function present({title, detail, tone, href, durationMs, more}) {
 		const heading = href ? h("a", {href, target: "_blank", rel: "noopener", textContent: title}) : title;
 		const closeButton = h("button", {type: "button", className: "toast-close", textContent: "×"});
 		closeButton.setAttribute("aria-label", labels.close());
@@ -2316,6 +2346,7 @@ ${toast_default}`,
 			{className: "toast"},
 			h("div", {className: "toast-title"}, heading),
 			h("div", {className: "toast-detail", textContent: detail}),
+			...(more ? [moreElement(more)] : []),
 			closeButton,
 		);
 		toast.dataset.tone = tone;
@@ -2345,7 +2376,9 @@ ${toast_default}`,
 		toast.addEventListener("pointerleave", release);
 		toast.addEventListener("focusin", hold);
 		toast.addEventListener("focusout", release);
-		toast.addEventListener("click", dismiss);
+		toast.addEventListener("click", (event) => {
+			if (!(event.target instanceof Element && event.target.closest(".toast-more"))) dismiss();
+		});
 		const list = ensureContainer();
 		list.setAttribute("aria-label", labels.region);
 		list.append(toast);
@@ -3504,8 +3537,7 @@ a:focus > .cp-settings-entry {
 			"Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
 		"javaSubmit.unresolvedImports": "Some imports could not be found",
 		"javaSubmit.transformFailed": "Local Runner could not transform the code",
-		"javaSubmit.removePackage": "Remove package declarations when Local Runner is unavailable",
-		"javaSubmit.renameClass": "Rename the class to Main when Local Runner is unavailable",
+		"javaSubmit.diagnostics": "javac diagnostics",
 		"javaSubmit.debugFlag":
 			"Variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)",
 		"javaSubmit.libraryPackage":
@@ -3723,8 +3755,7 @@ a:focus > .cp-settings-entry {
 			"Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。",
 		"javaSubmit.unresolvedImports": "見つからない import があります",
 		"javaSubmit.transformFailed": "Local Runner で変換できませんでした",
-		"javaSubmit.removePackage": "Local Runner がないときにパッケージ宣言を削除する",
-		"javaSubmit.renameClass": "Local Runner がないときにクラス名を Main にする",
+		"javaSubmit.diagnostics": "javac の診断",
 		"javaSubmit.debugFlag": "Local Runner がないときに false にする変数の名前（例：DEBUG。空欄なら変えない）",
 		"javaSubmit.libraryPackage": "Local Runner で展開するライブラリのパッケージ（例：lib。空欄なら確かめない）",
 		"javaSubmit.addHeader": "提出用のヘッダーを付ける",
@@ -8851,7 +8882,6 @@ ${efficient_layout_default}`);
 	var PASTE_ORDER = 10;
 	var LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
 	var GUIDE_DURATION_MS = 15000;
-	var MAX_DIAGNOSTIC_LINES = 3;
 
 	function findSubmitButton({submitButtons, labeledSubmit}) {
 		for (const selector of submitButtons) {
@@ -8874,28 +8904,26 @@ ${efficient_layout_default}`);
 		const {failure, connected} = result;
 		if (failure) {
 			const imports = unresolvedImports(code, failure.items);
-			showToast(
-				imports.length > 0
-					? {
-							title: translate("javaSubmit.unresolvedImports"),
-							detail: imports.join(`
-`),
-							tone: "warning",
-							durationMs: GUIDE_DURATION_MS,
-						}
-					: {
-							title: translate("javaSubmit.transformFailed"),
-							detail: failure.diagnostics
-								.split(
-									`
+			const firstError = failure.items.find((item) => item.kind === "ERROR");
+			showToast({
+				title: translate(imports.length > 0 ? "javaSubmit.unresolvedImports" : "javaSubmit.transformFailed"),
+				detail:
+					imports.length > 0
+						? imports.join(`
+`)
+						: (firstError?.message ??
+							failure.diagnostics.split(
+								`
 `,
-								)
-								.slice(0, MAX_DIAGNOSTIC_LINES).join(`
-`),
-							tone: "warning",
-							durationMs: GUIDE_DURATION_MS,
-						},
-			);
+								1,
+							)[0] ??
+							""),
+				tone: "warning",
+				durationMs: GUIDE_DURATION_MS,
+				...(failure.diagnostics && {
+					more: {label: translate("javaSubmit.diagnostics"), text: failure.diagnostics},
+				}),
+			});
 		} else if (!connected && libraryPackage && importsPackage(code, libraryPackage)) {
 			showToast({
 				title: translate("javaSubmit.localRunnerRequired").replace("{package}", libraryPackage),
@@ -8924,8 +8952,6 @@ ${efficient_layout_default}`);
 		],
 		phase: "ready",
 		options: {
-			removePackage: option.boolean(true, "javaSubmit.removePackage"),
-			renameClass: option.boolean(true, "javaSubmit.renameClass"),
 			debugFlag: option.text("", "javaSubmit.debugFlag"),
 			libraryPackage: option.text("", "javaSubmit.libraryPackage"),
 			addHeader: option.boolean(true, "javaSubmit.addHeader"),
