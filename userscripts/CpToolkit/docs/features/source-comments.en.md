@@ -18,7 +18,7 @@
 - Without "Comment out when inserting", the text is inserted as written, so write the comment markers yourself.
 - `{url}`, `{task}` and `{contest}` become the task URL, the task ID and the contest ID.
 - For languages whose comment syntax is unknown, nothing is inserted and a notification tells you so.
-- If a header is set in Local Runner, a full paste adds the selected language’s header above the task header. In the detailed settings, put it below the task header or leave it out. A matching block at that position appears once. Matching lines in the body are preserved. Editing or changing the language discards a pending response. [Local Runner integration](local-runner.en.md)
+- If a header is set in [Local Runner](local-runner.en.md), a full paste adds the selected language’s header above the task header. In the detailed settings, you can put it below or leave it out. The same header is never added twice.
 - If you enter a header name in the detailed settings, the header saved under that name is used instead of the language default. A notification tells you if no header has that name.
 
 ## Detailed settings

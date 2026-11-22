@@ -10,7 +10,7 @@
 - Set the URL of your own server. You can use [Local Runner](../../../../local-runner/README.md) or any server that implements the same API. Local Runner needs a separate installation.
 - If you run Local Runner on your computer with its default settings, use `http://localhost:8080` as the server URL.
 
-Local Runner 1.x supports Easy Test+. To prepare submissions and fetch headers, install Local Runner 2.0.0 or later. CP Toolkit checks the server version before requesting either operation.
+Easy Test+ works with Local Runner 1.x. Transforming submissions and fetching headers need Local Runner 2.0.0 or later.
 
 ## Detailed settings
 

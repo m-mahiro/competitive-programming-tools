@@ -10,7 +10,7 @@
 - On a Mac, `Ctrl` is the control key, `Alt` is the option key and `Cmd` is the command key. You can also write `Option` and `Command`. The default keys combine control and option, so they work on a Mac as they are.
 - Write `none` to use no key for that action.
 - Every key works whether or not you are in the submission field or the editor. Most actions use three modifier keys so that they do not overlap with the keys of the sites and Easy Test+.
-- Letter and digit keys are matched by the position of the key you press, not by the character Shift or other modifiers produce. Write `[` and `]` without Shift even when the key uses Shift (e.g. `Ctrl+Shift+[`).
+- Write letters and digits as printed on the key, not as the character Shift or other modifiers produce (write `Shift+1`, not `!`). The same goes for `[` and `]` (e.g. `Ctrl+Shift+[`).
 - For actions that have a button, hover over the button to see the assigned key.
 
 ### Submitting and testing

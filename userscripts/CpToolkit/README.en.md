@@ -15,7 +15,7 @@
 
 ## 2. Usage
 
-Choose "Open settings" in Tampermonkey or "CP Toolkit" in the AtCoder header. Toggle individual features or open their detailed settings. Settings are kept per site: switch sites with the tabs at the top to see only the features and settings that work there. A few settings that are the same everywhere, such as the Local Runner URL, are shared by all sites. If a feature shows "Reload to apply", choose "Reload page" at the bottom.
+Choose "Open settings" in Tampermonkey or "CP Toolkit" in the AtCoder header. Toggle individual features or open their detailed settings. Settings are kept per site. Switch sites with the tabs at the top; each tab lists only the features and settings that work there. A few settings, such as the Local Runner URL, are shared by all sites. If a feature shows "Reload to apply", choose "Reload page" at the bottom.
 
 <p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit settings" width="640"><br><sub>The settings opened on an AtCoder task page. Switch the site to configure with the tabs at the top.</sub></p>
 

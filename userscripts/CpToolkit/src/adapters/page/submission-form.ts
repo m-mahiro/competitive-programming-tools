@@ -7,7 +7,7 @@ import type {PendingWork, SubmissionForm} from "@application/ports/submission-fo
 import {CODEFORCES_LANGUAGE_SELECT} from "@adapters/judges/codeforces";
 import {selectedLanguageOf} from "@adapters/judges/languages";
 
-export function findSubmitButton({submitButtons, labeledSubmit}: SubmissionTarget): HTMLElement | null {
+function findSubmitButton({submitButtons, labeledSubmit}: SubmissionTarget): HTMLElement | null {
 	for (const selector of submitButtons) {
 		const button = document.querySelector<HTMLElement>(selector);
 		if (button) return button;

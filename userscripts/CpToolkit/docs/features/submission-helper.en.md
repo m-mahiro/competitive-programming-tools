@@ -6,18 +6,18 @@
 
 **This feature is off by default. Turn it on in settings.**
 
-<p><img src="../images/submission-helper.png" alt="Code converted with Local Runner"><br><sub>Java code converted with Local Runner. The class is renamed to <code>Main</code>, the <code>lib</code> imports become comments, and the library classes in use are added at the end. The image shows the result with folding after pasting turned on.</sub></p>
+<p><img src="../images/submission-helper.png" alt="Code converted with Local Runner"><br><sub>Java code converted with Local Runner, with folding after pasting turned on. The class is renamed to <code>Main</code>, the <code>lib</code> imports become comments, and the library classes in use are added at the end.</sub></p>
 
 ## How it works
 
 - Pasting a complete solution transforms it into a form that can be submitted. Pasting part of the code into the editor leaves the code unchanged.
-- With [Local Runner integration](local-runner.en.md), the code is transformed with the Local Runner language that matches the language selected on the page. Local Runner's settings decide what is done: expanding libraries and renaming the class to `Main` for Java, and running `bundle` and rewriting a debug variable for other languages.
+- With [Local Runner integration](local-runner.en.md), the code is transformed with the Local Runner language that matches the language selected on the page. Local Runner's settings decide what is done: expanding libraries and renaming the class to `Main` for Java, and running the conversion command you set (`bundle`) and rewriting a debug variable for other languages.
 - On AtCoder and yukicoder the helper uses the language selected on the site, and on Codeforces the language selector of the submission form. On AOJ, paiza and Library Checker it does not read the selector and uses the language the editor reports. If the editor cannot tell the language, such as a shared C/C++ mode, the code is not transformed.
 - Without Local Runner, only a basic transform for each language is applied: the transform in the Java section for Java, and rewriting the debug variable for Python, C, C++, Go and Rust.
 - A debug variable is set to `false` only when you set its name in the detailed settings. For languages other than Java, it is rewritten only when exactly one declaration or assignment exists outside blocks. If there are two or more, the original code is kept and a notification tells you so. With Local Runner, its `debugFlag` setting decides what is rewritten.
 - When turned on in the detailed settings, the outermost blocks and comments are folded after the transformed code is applied to the editor. Nested blocks are not folded. It is off by default. The keys for folding and for submitting are in [Keyboard shortcuts](keyboard-shortcuts.en.md).
 - The submission header is added by [Code header and footer](source-comments.en.md).
-- Submitting during a transform or header request waits for preparation. An edit, a task or language change, or a failed transform cancels the pending submission. The notification identifies unresolved imports or the first error. Open “Full diagnostics” for details.
+- If you submit while the code is being transformed or the header is being fetched, the submission waits until they finish. It is not submitted if the task, language or code changes while waiting, or if the transform fails. A failed transform shows the imports that could not be found or the first error.
 
 <p><img src="../images/submission-helper-imports.png" alt="Notification for imports that could not be found"><br><sub>Imports that could not be found are listed in a notification. Open “Full diagnostics” for details.</sub></p>
 

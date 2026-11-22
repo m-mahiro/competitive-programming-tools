@@ -10,7 +10,7 @@
 - 接続先には、自分のサーバーの URL を指定します。[Local Runner](../../../../local-runner/README.md) か、同じ API に対応するサーバーを使えます。Local Runner は別途導入が必要です。
 - 手元で Local Runner を既定の設定で起動した場合は、接続先に `http://localhost:8080` を使います。
 
-Local Runner 1.x でも Easy Test+ の実行を利用できます。提出用変換とヘッダー取得には 2.0.0 以降が必要です。CP Toolkit は操作の前に接続先のバージョンを確認します。
+Easy Test+ の実行は Local Runner 1.x でも使えます。提出補助の変換と、ヘッダーの取得には 2.0.0 以降が必要です。
 
 ## 詳細設定
 

@@ -6,18 +6,18 @@
 
 **この機能は既定で OFF です。設定画面で有効にしてください。**
 
-<p><img src="../images/submission-helper.png" alt="Local Runner で変換したコード"><br><sub>Local Runner で変換した Java のコード。クラス名は <code>Main</code> になり、<code>lib</code> の import はコメントに変わり、使ったライブラリのクラスが末尾に入ります。画像は、貼り付け後の折りたたみを ON にした例です。</sub></p>
+<p><img src="../images/submission-helper.png" alt="Local Runner で変換したコード"><br><sub>Local Runner で変換した Java のコード（貼り付け後の折りたたみを ON にした例）。クラス名が <code>Main</code> になり、<code>lib</code> の import はコメントになり、使ったライブラリのクラスが末尾に入ります。</sub></p>
 
 ## 使い方
 
 - コード全体を貼り付けると、提出できる形に変換します。編集中のコードへ一部を貼り付けたときは変換しません。
-- [Local Runner との連携](local-runner.md)があれば、ページで選んだ言語に合う Local Runner の言語で変換します。変換の内容は Local Runner の設定で決まります。Java ならライブラリの展開と `Main` への改名、ほかの言語なら `bundle` とデバッグ用の変数の書き換えです。
+- [Local Runner との連携](local-runner.md)があれば、ページで選んだ言語に合う Local Runner の言語で変換します。変換の内容は Local Runner の設定で決まります。Java ならライブラリの展開と `Main` への改名、ほかの言語なら設定した変換のコマンド（`bundle`）とデバッグ用の変数の書き換えです。
 - 言語は、AtCoder と yukicoder ではサイトで選んだ言語、Codeforces では提出欄の言語の選択欄から決めます。AOJ、paiza、Library Checker では言語の選択欄を読まず、エディタが判定した言語を使います。C と C++ の共通の表示のように、エディタから言語を決められないときは変換しません。
 - Local Runner がないときは、言語ごとの簡易の変換だけを行います。Java は下の節の変換、Python・C・C++・Go・Rust はデバッグ用の変数の書き換えだけです。
 - デバッグ用の変数は、詳細設定に名前を入れたときだけ `false` にします。Java 以外では、ブロックの外にある宣言か代入がちょうど1つのときだけ書き換えます。2つ以上あれば元のコードを残して知らせます。Local Runner での書き換えは、Local Runner の設定の `debugFlag` で決めます。
 - 詳細設定で ON にすると、変換したコードをエディタに反映した後に、いちばん外側のブロックとコメントを折りたたみます。入れ子のブロックは折りたたみません。既定は OFF です。キー操作で折りたたむ設定と、提出のキーは[ショートカットキー](keyboard-shortcuts.md)にあります。
 - 提出用のヘッダーは[コードのヘッダーとフッター](source-comments.md)が付けます。
-- 変換とヘッダーの取得中に提出を押すと、完了まで待ちます。待機中に問題・言語・本文が変わった場合や変換に失敗した場合は、提出を取り消します。見つからない import の名前や最初のエラーを通知し、「診断の全文」から詳細を確認できます。
+- 変換やヘッダーの取得の途中で提出すると、終わるまで待ってから提出します。待つ間に問題・言語・コードが変わったときや、変換に失敗したときは提出しません。失敗したときは、見つからない import の名前か最初のエラーを通知します。
 
 <p><img src="../images/submission-helper-imports.png" alt="見つからない import の通知"><br><sub>見つからない import があると、名前を通知します。「診断の全文」で詳細を開けます。</sub></p>
 
