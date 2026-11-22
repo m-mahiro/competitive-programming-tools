@@ -2,6 +2,7 @@ import {describe, expect, test} from "bun:test";
 import {modifyJavaCode, transformJavaForSubmission} from "@atcoder-tools/shared";
 
 const rename = (code: string) => modifyJavaCode(code);
+
 const withMain = (signature: string) => `class Helper {}\nclass Solver {\n\t${signature} {}\n}\n`;
 
 describe("modifyJavaCode の Main への改名", () => {

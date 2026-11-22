@@ -1,10 +1,12 @@
 import {describe, expect, test} from "bun:test";
-import {httpsHostOf, isNewerVersion, readMetadataValue} from "@domain/update/version";
 import type {HttpResponse} from "@application/ports/services";
+import {httpsHostOf, isNewerVersion, readMetadataValue} from "@domain/update/version";
 import {createFakeUpdates, FakeHttpClient, MemoryStore} from "../support/fakes";
 
 const HOUR_MS = 60 * 60 * 1000;
+
 const UPDATE_URL = "https://updates.example/scripts/1/tool.meta.js";
+
 const DOWNLOAD_URL = "https://updates.example/scripts/1/tool.user.js";
 
 function header(version: string): string {

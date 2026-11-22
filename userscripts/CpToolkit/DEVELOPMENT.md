@@ -83,6 +83,20 @@ app ──► features ──► application ──► catalog ──► domain 
 | 文字列を HTML にしない | `tests/architecture.test.ts`。`innerHTML`、`insertAdjacentHTML`、`eval`、文字列の `setTimeout` などを禁じます。 |
 | YAML の内容            | `tests/data.test.ts`。正規表現の妥当性や ID の重複、外部ファイルの版の固定と integrity など                     |
 
+## テストの置き方
+
+テストは `src` と同じ並びに置き、どこを直したらどのテストを見ればよいかを1つに決めます。
+
+| 対象                                      | テストのファイル                                                           |
+|-------------------------------------------|----------------------------------------------------------------------------|
+| 機能                                      | `tests/features/<機能の ID>.test.ts`。機能ごとに1ファイル                  |
+| `domain`、`application`、`adapters`、`ui` | `tests/<層>/<フォルダ>.test.ts`。`src/<層>/<フォルダ>` ごとに1ファイル     |
+| `shared` のコード                         | `tests/shared/<ファイル>.test.ts`                                          |
+| 全体の規則、データ、配布物                | `tests/architecture.test.ts`、`tests/data.test.ts`、`tests/bundle.test.ts` |
+
+- サービスの代役は `tests/support/fakes.ts`、画面の操作(待つ、キーを押す、カーソルを乗せる)は `tests/support/dom.ts` に置き、各ファイルで作り直しません。
+- DOM、`localStorage`、URL、キー操作の登録は、`tests/setup/dom.ts` がテストごとに元に戻します。各ファイルで片付けを書かず、前のテストの状態に頼りません。
+
 ## データ
 
 人が管理する表はコードに書かず、次の順で考えます。

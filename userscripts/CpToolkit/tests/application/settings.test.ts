@@ -1,6 +1,62 @@
 import {beforeEach, describe, expect, mock, test} from "bun:test";
+import {LocalStorageLegacyInbox} from "@adapters/page/local-storage-legacy-inbox";
+import {importLegacySettings} from "@application/settings/legacy-import";
 import {SettingsService} from "@application/settings/settings-service";
 import {MemoryStore} from "../support/fakes";
+
+describe("旧スクリプトの設定の引き継ぎ", () => {
+	const write = (scriptId: string, value: unknown) => {
+		localStorage.setItem(`cp-toolkit:legacy:${scriptId}`, JSON.stringify(value));
+	};
+
+	test("書き出された設定を機能の設定へ変換し、受け渡し場所を空にする", () => {
+		write("AtCoderHighlighter", {numColor: "#112233"});
+		write("AtCoderWidenContainer", {containerWidth: "80%"});
+		write("PaizaLanguageSelector", {paiza_target_language: "java"});
+		write("AtCoderEasyTestForJava", {
+			config: JSON.stringify({
+				"codeRunner.localRunnerURL": "http://localhost:9000",
+				"ui.useKeyboardShortcut": "false",
+			}),
+		});
+		const settings = new SettingsService(new MemoryStore());
+		importLegacySettings(new LocalStorageLegacyInbox(), settings);
+
+		expect(settings.storedOptions("statement-highlight")).toEqual({numberColor: "#112233"});
+		expect(settings.storedOptions("wide-layout")).toEqual({width: "80%"});
+		expect(settings.storedOptions("paiza-language")).toEqual({language: "java"});
+		expect(settings.storedOptions("local-runner")).toEqual({url: "http://localhost:9000"});
+		expect(settings.storedOptions("easy-test")).toEqual({});
+		expect(settings.storedOptions("keyboard-shortcuts")).toEqual({testAndSubmit: "none", testAll: "none", toggleEasyTest: "none"});
+		expect(localStorage.getItem("cp-toolkit:legacy:AtCoderHighlighter")).toBeNull();
+	});
+
+	test("すでに設定した機能は上書きしない", () => {
+		write("AtCoderWidenContainer", {containerWidth: "80%"});
+		const settings = new SettingsService(new MemoryStore());
+		settings.setOption("wide-layout", "width", "60%");
+		importLegacySettings(new LocalStorageLegacyInbox(), settings);
+		expect(settings.storedOptions("wide-layout")).toEqual({width: "60%"});
+	});
+
+	test("旧 Easy Test の利用者には Easy Test を有効にし、選び直した ON/OFF は変えない", () => {
+		const settings = new SettingsService(new MemoryStore());
+		write("AtCoderEasyTestForJava", {});
+		importLegacySettings(new LocalStorageLegacyInbox(), settings);
+		expect(settings.isEnabled("easy-test", false)).toBe(true);
+
+		settings.setEnabled("easy-test", false);
+		write("AtCoderEasyTestForJava", {});
+		importLegacySettings(new LocalStorageLegacyInbox(), settings);
+		expect(settings.isEnabled("easy-test", true)).toBe(false);
+	});
+
+	test("書き出しがなければ何もしない", () => {
+		const settings = new SettingsService(new MemoryStore());
+		importLegacySettings(new LocalStorageLegacyInbox(), settings);
+		expect(settings.storedOptions("wide-layout")).toBeUndefined();
+	});
+});
 
 describe("SettingsService", () => {
 	let store: MemoryStore;

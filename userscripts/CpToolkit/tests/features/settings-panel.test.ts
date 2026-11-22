@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, mock, test} from "bun:test";
+import {beforeEach, describe, expect, mock, test} from "bun:test";
 import {judges} from "@catalog/judges";
 import {createTranslator} from "@catalog/messages";
 import {matchPage} from "@domain/page/route";
@@ -81,14 +81,6 @@ describe("設定画面", () => {
 		input.checked = !input.checked;
 		input.dispatchEvent(new Event("change", {bubbles: true}));
 	};
-
-	beforeEach(() => {
-		document.body.replaceChildren();
-	});
-
-	afterEach(() => {
-		document.body.replaceChildren();
-	});
 
 	test("機能の一覧と状態を表示する", async () => {
 		const root = await openPanel([liveFeature]);
@@ -287,10 +279,6 @@ describe("サイトごとの設定画面", () => {
 		live: true,
 		start: () => () => {
 		},
-	});
-
-	beforeEach(() => {
-		document.body.replaceChildren();
 	});
 
 	async function open(): Promise<{root: ShadowRoot; settings: SettingsService}> {

@@ -67,3 +67,8 @@ export function registerShortcut(combo: string, handler: ShortcutHandler, {inTex
 		if (shortcuts.get(combo) === shortcut) shortcuts.delete(combo);
 	};
 }
+
+/** 登録をすべて外す。テストで、前のテストの登録を持ち越さないために使う。 */
+export function clearShortcuts(): void {
+	shortcuts.clear();
+}

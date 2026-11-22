@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, mock, test} from "bun:test";
+import {beforeEach, describe, expect, mock, test} from "bun:test";
 import {judges} from "@catalog/judges";
 import type {JudgeLanguage} from "@domain/execution/result";
 import {LocalRunnerClient} from "@application/execution/local-runner";
@@ -158,14 +158,8 @@ function select(element: HTMLSelectElement, value: string): void {
 }
 
 beforeEach(() => {
-	document.head.replaceChildren();
 	document.body.innerHTML = '<div class="editor-buttons"></div>';
 	history.replaceState(null, "", "/contests/abc1/tasks/abc1_a");
-});
-
-afterEach(() => {
-	document.body.replaceChildren();
-	history.replaceState(null, "", "/");
 });
 
 describe("sourceComments", () => {

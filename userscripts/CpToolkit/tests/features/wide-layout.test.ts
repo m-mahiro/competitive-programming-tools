@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, test} from "bun:test";
+import {describe, expect, test} from "bun:test";
 import {createFakeServices} from "../support/fakes";
 import {wideLayout} from "@features/wide-layout/index";
 
@@ -9,10 +9,6 @@ function injectedStyles(): string[] {
 }
 
 describe("wideLayout", () => {
-	afterEach(() => {
-		document.head.replaceChildren();
-	});
-
 	test("保存された幅をスタイルに反映する", async () => {
 		await wideLayout.run({width: "1200px"}, services);
 		const [css] = injectedStyles();

@@ -58,8 +58,6 @@ describe("配布物", () => {
 		for (const [type, listener, options] of addListener.mock.calls) document.removeEventListener(type, listener, options);
 		addListener.mockClear();
 		commands.clear();
-		document.head.replaceChildren();
-		document.body.replaceChildren();
 		delete document.documentElement.dataset.cpToolkit;
 	});
 

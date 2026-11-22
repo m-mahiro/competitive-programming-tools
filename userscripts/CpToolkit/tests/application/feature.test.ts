@@ -1,10 +1,10 @@
 import {beforeEach, describe, expect, mock, test} from "bun:test";
-import {option} from "@domain/settings/option";
-import {matchPage} from "@domain/page/route";
-import {judges} from "@catalog/judges";
 import {defineFeature, type Feature} from "@application/feature/definition";
 import {FeatureRuntime} from "@application/feature/runtime";
 import {SettingsService} from "@application/settings/settings-service";
+import {judges} from "@catalog/judges";
+import {matchPage} from "@domain/page/route";
+import {option} from "@domain/settings/option";
 import {createFakeServices, immediateLifecycle, MemoryStore, RecordingLogger} from "../support/fakes";
 
 const metadata = {

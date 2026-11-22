@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, test} from "bun:test";
+import {beforeEach, describe, expect, test} from "bun:test";
 import type {JudgeLanguage} from "@domain/execution/result";
 import type {JudgeSite} from "@application/ports/judge-site";
 import {languageButtons} from "@features/language-buttons/index";
@@ -52,10 +52,6 @@ const checkboxes = () => [...document.body.children]
 
 beforeEach(() => {
 	document.body.innerHTML = '<div id="select-lang"></div>';
-});
-
-afterEach(() => {
-	document.body.replaceChildren();
 });
 
 describe("languageButtons", () => {
