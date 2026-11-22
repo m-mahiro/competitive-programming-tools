@@ -2,7 +2,7 @@ import type {PageMatch} from "@domain/page/route";
 import type {Disposer, Feature, FeatureServices} from "@application/feature/definition";
 import type {Logger} from "@application/ports/logger";
 import type {PageLifecycle} from "@application/ports/page-lifecycle";
-import type {SettingsService} from "@application/settings/settings-service";
+import type {FeatureSettingsStore} from "@application/settings/settings-service";
 
 export type FeatureStatus =
 	| {readonly state: "disabled" | "outOfScope" | "pending" | "running" | "reloadRequired"}
@@ -25,7 +25,8 @@ export type FeatureRuntimeDependencies = {
 	readonly features: readonly Feature[];
 	readonly page: PageMatch | null;
 	readonly lifecycle: PageLifecycle;
-	readonly settings: SettingsService;
+	/** 表示中のサイトから見た設定。 */
+	readonly settings: FeatureSettingsStore;
 	readonly services: FeatureServices;
 	readonly logger: Logger;
 };

@@ -37,33 +37,33 @@
 
 ## 詳細設定
 
-設定画面でこの機能の「詳細設定」を開きます。
+設定画面でこの機能の「詳細設定」を開きます。キーはサイトごとに設定でき、そのサイトで動く項目だけを表示します。
 
-| 項目                                                         | 既定値               |
-|--------------------------------------------------------------|----------------------|
-| CP Toolkit の設定を開く                                      | Ctrl+I               |
-| 提出する                                                     | Ctrl+Shift+Enter     |
-| カーソルのあるブロックを折りたたむ                           | Ctrl+Shift+[         |
-| カーソルの行の折りたたみを開く                               | Ctrl+Shift+]         |
-| Easy Test+ でテストしてから提出する                          | Ctrl+Enter           |
-| Easy Test+ ですべての入出力例をテストする                    | Alt+Enter            |
-| Easy Test+ の画面を開閉する                                  | Ctrl+Shift+Alt+D     |
-| 入力例をコピーする（この修飾キーと番号の 1〜9）              | Ctrl+Alt             |
-| 出力例をコピーする（この修飾キーと番号の 1〜9）              | Ctrl+Shift+Alt       |
-| 問題文をすべてコピーする（AtCoder）                          | Ctrl+Shift+Alt+P     |
-| 前の問題を開く                                               | Ctrl+Shift+Alt+Left  |
-| 次の問題を開く                                               | Ctrl+Shift+Alt+Right |
-| 問題を開く（この修飾キーと A〜Z。一覧の上から順に A、B、C…） | Ctrl+Alt             |
-| 問題の一覧を開く                                             | Ctrl+Shift+Alt+T     |
-| 自分の提出を開く                                             | Ctrl+Shift+Alt+S     |
-| 順位表を開く                                                 | Ctrl+Shift+Alt+R     |
-| 解説を開く（AtCoder）                                        | Ctrl+Shift+Alt+E     |
-| コードテストを開く                                           | Ctrl+Shift+Alt+C     |
-| AC の提出を実行時間順に開く（AtCoder）                       | Ctrl+Shift+Alt+F     |
-| AC の提出をコード長順に開く（AtCoder）                       | Ctrl+Shift+Alt+L     |
-| AC の提出を提出日時順に開く（AtCoder）                       | Ctrl+Shift+Alt+N     |
-| AC の提出をメモリ順に開く（AtCoder）                         | Ctrl+Shift+Alt+M     |
-| 表示中のページを X に投稿する画面を開く                      | Ctrl+Shift+Alt+X     |
+| 項目                                                         | 既定値               | サイト                         |
+|--------------------------------------------------------------|----------------------|--------------------------------|
+| CP Toolkit の設定を開く                                      | Ctrl+I               | すべて                         |
+| 提出する                                                     | Ctrl+Shift+Enter     | すべて                         |
+| カーソルのあるブロックを折りたたむ                           | Ctrl+Shift+[         | yukicoder 以外                 |
+| カーソルの行の折りたたみを開く                               | Ctrl+Shift+]         | yukicoder 以外                 |
+| Easy Test+ でテストしてから提出する                          | Ctrl+Enter           | AtCoder、Codeforces、yukicoder |
+| Easy Test+ ですべての入出力例をテストする                    | Alt+Enter            | AtCoder、Codeforces、yukicoder |
+| Easy Test+ の画面を開閉する                                  | Ctrl+Shift+Alt+D     | AtCoder、Codeforces、yukicoder |
+| 入力例をコピーする（この修飾キーと番号の 1〜9）              | Ctrl+Alt             | AtCoder、Codeforces、yukicoder |
+| 出力例をコピーする（この修飾キーと番号の 1〜9）              | Ctrl+Shift+Alt       | AtCoder、Codeforces、yukicoder |
+| 問題文をすべてコピーする                                     | Ctrl+Shift+Alt+P     | AtCoder                        |
+| 前の問題を開く                                               | Ctrl+Shift+Alt+Left  | AtCoder、Codeforces            |
+| 次の問題を開く                                               | Ctrl+Shift+Alt+Right | AtCoder、Codeforces            |
+| 問題を開く（この修飾キーと A〜Z。一覧の上から順に A、B、C…） | Ctrl+Alt             | AtCoder、Codeforces            |
+| 問題の一覧を開く                                             | Ctrl+Shift+Alt+T     | AtCoder、Codeforces            |
+| 自分の提出を開く                                             | Ctrl+Shift+Alt+S     | AtCoder、Codeforces            |
+| 順位表を開く                                                 | Ctrl+Shift+Alt+R     | AtCoder、Codeforces            |
+| 解説を開く                                                   | Ctrl+Shift+Alt+E     | AtCoder                        |
+| コードテストを開く                                           | Ctrl+Shift+Alt+C     | AtCoder、Codeforces            |
+| AC の提出を実行時間順に開く                                  | Ctrl+Shift+Alt+F     | AtCoder                        |
+| AC の提出をコード長順に開く                                  | Ctrl+Shift+Alt+L     | AtCoder                        |
+| AC の提出を提出日時順に開く                                  | Ctrl+Shift+Alt+N     | AtCoder                        |
+| AC の提出をメモリ順に開く                                    | Ctrl+Shift+Alt+M     | AtCoder                        |
+| 表示中のページを X に投稿する画面を開く                      | Ctrl+Shift+Alt+X     | すべて                         |
 
 同じキーを複数の操作に割り当てると、表の下の操作から試し、そのページで使えなければ上の操作を行います。
 

@@ -2,9 +2,14 @@ import {describe, expect, test} from "bun:test";
 import {
 	createDefaultSettings,
 	CURRENT_SETTINGS_VERSION,
+	featureOptions,
+	isFeatureEnabled,
 	parseSettings,
 	updateFeatureSettings,
+	updateSiteFeatureSettings,
 } from "@domain/settings/settings";
+import {SettingsService} from "@application/settings/settings-service";
+import {MemoryStore} from "../support/fakes";
 
 describe("parseSettings", () => {
 	test("値がなければ既定の設定を返す", () => {
@@ -76,5 +81,36 @@ describe("3.0 への移行", () => {
 	test("新しい形式の設定を優先する", () => {
 		const raw = {version: 1, features: {"java-submit": {enabled: false}, "source-comments": {options: {runnerHeader: "below"}}}};
 		expect(parseSettings(raw).features["source-comments"]?.options?.runnerHeader).toBe("below");
+	});
+});
+
+describe("サイトごとの設定", () => {
+	test("サイトの値が無ければ、分ける前の値、既定値の順に使う", () => {
+		const settings = parseSettings({version: 2, features: {a: {enabled: false, options: {x: 1, y: 2}, sites: {atcoder: {enabled: true, options: {x: 3}}}}}});
+		expect(isFeatureEnabled(settings, "a", "atcoder", false)).toBe(true);
+		expect(isFeatureEnabled(settings, "a", "codeforces", true)).toBe(false);
+		expect(isFeatureEnabled(settings, "b", "codeforces", true)).toBe(true);
+		expect(featureOptions(settings, "a", "atcoder")).toEqual({x: 3, y: 2});
+		expect(featureOptions(settings, "a", "codeforces")).toEqual({x: 1, y: 2});
+	});
+
+	test("1つのサイトの変更は、ほかのサイトに影響しない", () => {
+		const updated = updateSiteFeatureSettings(createDefaultSettings(), "a", "atcoder", {enabled: false, options: {x: 1}});
+		expect(isFeatureEnabled(updated, "a", "atcoder", true)).toBe(false);
+		expect(isFeatureEnabled(updated, "a", "codeforces", true)).toBe(true);
+		expect(featureOptions(updated, "a", "codeforces")).toEqual({});
+		const restored = parseSettings(JSON.parse(JSON.stringify(updated)));
+		expect(featureOptions(restored, "a", "atcoder")).toEqual({x: 1});
+		expect(isFeatureEnabled(restored, "a", "atcoder", true)).toBe(false);
+	});
+
+	test("全サイトで同じ値を使う項目は、どのサイトから変えても全サイトに効く", () => {
+		const service = new SettingsService(new MemoryStore());
+		const atcoder = service.forSite("atcoder");
+		atcoder.setOption("a", "key", "Alt+S");
+		atcoder.setSharedOption("a", "url", "http://localhost:9000");
+		expect(service.forSite("codeforces").storedOptions("a")).toEqual({url: "http://localhost:9000"});
+		expect(atcoder.storedOptions("a")).toEqual({url: "http://localhost:9000", key: "Alt+S"});
+		expect(service.forSite(null)).toBe(service);
 	});
 });

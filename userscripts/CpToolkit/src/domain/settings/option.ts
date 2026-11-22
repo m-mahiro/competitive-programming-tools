@@ -7,6 +7,10 @@ type OptionBase<T, L extends string> = {
 	readonly invalidMessage?: L;
 	/** 保存値や入力値を検証して正規化する。不正な値は undefined を返す。 */
 	normalize(value: unknown): T | undefined;
+	/** 設定画面に表示するサイト。省略すると、機能が動くすべてのサイトで表示する。 */
+	readonly sites?: readonly string[];
+	/** 全サイトで同じ値を使う(Local Runner の URL など)。省略するとサイトごとに値を持つ。 */
+	readonly shared?: boolean;
 };
 
 export type BooleanOption<L extends string = string> = OptionBase<boolean, L> & {readonly kind: "boolean"};
@@ -105,6 +109,21 @@ export const option = {
 		};
 	},
 };
+
+/** 項目を、指定したサイトの設定画面だけに表示する。 */
+export function onSites<D extends OptionDefinition>(definition: D, sites: readonly string[]): D {
+	return {...definition, sites};
+}
+
+/** 項目を、全サイトで同じ値を使うものにする。 */
+export function sharedAcrossSites<D extends OptionDefinition>(definition: D): D {
+	return {...definition, shared: true};
+}
+
+/** 項目をサイトの設定画面に表示するか。 */
+export function isOptionOnSite(definition: OptionDefinition, site: string | null): boolean {
+	return site === null || definition.sites === undefined || definition.sites.includes(site);
+}
 
 /** 保存値を定義に合わせて補正する。未保存や不正な値は既定値に置き換え、未知のキーは捨てる。 */
 export function normalizeOptions<S extends OptionSet>(schema: S, stored: unknown): OptionValues<S> {

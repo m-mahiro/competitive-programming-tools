@@ -37,33 +37,33 @@
 
 ## Detailed settings
 
-Open this feature’s “Detailed settings” in CP Toolkit.
+Open this feature’s “Detailed settings” in CP Toolkit. Keys are set per site, and only the settings that work on that site are shown.
 
-| Setting                                                                          | Default              |
-|----------------------------------------------------------------------------------|----------------------|
-| Open the CP Toolkit settings                                                     | Ctrl+I               |
-| Submit                                                                           | Ctrl+Shift+Enter     |
-| Fold the block at the cursor                                                     | Ctrl+Shift+[         |
-| Unfold the fold on the cursor line                                               | Ctrl+Shift+]         |
-| Test with Easy Test+, then submit                                                | Ctrl+Enter           |
-| Test all samples with Easy Test+                                                 | Alt+Enter            |
-| Open or close the Easy Test+ panel                                               | Ctrl+Shift+Alt+D     |
-| Copy a sample input (these modifiers and a number from 1 to 9)                   | Ctrl+Alt             |
-| Copy a sample output (these modifiers and a number from 1 to 9)                  | Ctrl+Shift+Alt       |
-| Copy the whole statement (AtCoder)                                               | Ctrl+Shift+Alt+P     |
-| Open the previous task                                                           | Ctrl+Shift+Alt+Left  |
-| Open the next task                                                               | Ctrl+Shift+Alt+Right |
-| Open a task (these modifiers and A to Z: A, B, C… from the top of the task list) | Ctrl+Alt             |
-| Open the task list                                                               | Ctrl+Shift+Alt+T     |
-| Open my submissions                                                              | Ctrl+Shift+Alt+S     |
-| Open the standings                                                               | Ctrl+Shift+Alt+R     |
-| Open the editorial (AtCoder)                                                     | Ctrl+Shift+Alt+E     |
-| Open the custom test                                                             | Ctrl+Shift+Alt+C     |
-| Open AC submissions by execution time (AtCoder)                                  | Ctrl+Shift+Alt+F     |
-| Open AC submissions by code length (AtCoder)                                     | Ctrl+Shift+Alt+L     |
-| Open AC submissions by submission time (AtCoder)                                 | Ctrl+Shift+Alt+N     |
-| Open AC submissions by memory (AtCoder)                                          | Ctrl+Shift+Alt+M     |
-| Open a post to X for the current page                                            | Ctrl+Shift+Alt+X     |
+| Setting                                                                          | Default              | Sites                          |
+|----------------------------------------------------------------------------------|----------------------|--------------------------------|
+| Open the CP Toolkit settings                                                     | Ctrl+I               | All                            |
+| Submit                                                                           | Ctrl+Shift+Enter     | All                            |
+| Fold the block at the cursor                                                     | Ctrl+Shift+[         | All but yukicoder              |
+| Unfold the fold on the cursor line                                               | Ctrl+Shift+]         | All but yukicoder              |
+| Test with Easy Test+, then submit                                                | Ctrl+Enter           | AtCoder, Codeforces, yukicoder |
+| Test all samples with Easy Test+                                                 | Alt+Enter            | AtCoder, Codeforces, yukicoder |
+| Open or close the Easy Test+ panel                                               | Ctrl+Shift+Alt+D     | AtCoder, Codeforces, yukicoder |
+| Copy a sample input (these modifiers and a number from 1 to 9)                   | Ctrl+Alt             | AtCoder, Codeforces, yukicoder |
+| Copy a sample output (these modifiers and a number from 1 to 9)                  | Ctrl+Shift+Alt       | AtCoder, Codeforces, yukicoder |
+| Copy the whole statement                                                         | Ctrl+Shift+Alt+P     | AtCoder                        |
+| Open the previous task                                                           | Ctrl+Shift+Alt+Left  | AtCoder, Codeforces            |
+| Open the next task                                                               | Ctrl+Shift+Alt+Right | AtCoder, Codeforces            |
+| Open a task (these modifiers and A to Z: A, B, C… from the top of the task list) | Ctrl+Alt             | AtCoder, Codeforces            |
+| Open the task list                                                               | Ctrl+Shift+Alt+T     | AtCoder, Codeforces            |
+| Open my submissions                                                              | Ctrl+Shift+Alt+S     | AtCoder, Codeforces            |
+| Open the standings                                                               | Ctrl+Shift+Alt+R     | AtCoder, Codeforces            |
+| Open the editorial                                                               | Ctrl+Shift+Alt+E     | AtCoder                        |
+| Open the custom test                                                             | Ctrl+Shift+Alt+C     | AtCoder, Codeforces            |
+| Open AC submissions by execution time                                            | Ctrl+Shift+Alt+F     | AtCoder                        |
+| Open AC submissions by code length                                               | Ctrl+Shift+Alt+L     | AtCoder                        |
+| Open AC submissions by submission time                                           | Ctrl+Shift+Alt+N     | AtCoder                        |
+| Open AC submissions by memory                                                    | Ctrl+Shift+Alt+M     | AtCoder                        |
+| Open a post to X for the current page                                            | Ctrl+Shift+Alt+X     | All                            |
 
 If several actions share a key, the lower one in the table is tried first, and the upper one runs if the lower one is not available on the page.
 

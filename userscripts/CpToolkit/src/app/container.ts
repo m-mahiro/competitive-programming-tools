@@ -10,7 +10,7 @@ import {RunnerCatalogService, type RunnerProvider} from "@application/execution/
 import type {FeatureServices} from "@application/feature/definition";
 import type {JudgeSite} from "@application/ports/judge-site";
 import type {SubmissionForm} from "@application/ports/submission-form";
-import type {SettingsService} from "@application/settings/settings-service";
+import type {FeatureSettingsStore} from "@application/settings/settings-service";
 import {ShortcutActions} from "@application/shortcuts/shortcut-actions";
 import {PastePipeline} from "@application/source/paste-pipeline";
 import {CreateJsRatingGraph} from "@adapters/atcoder/rating-graph";
@@ -39,7 +39,7 @@ export function createTranslate(): Translate {
 /** 機能が使うサービスを組み立てる。重いものは最初に使われるまで生成しない。 */
 export function createServices(
 	page: PageMatch | null,
-	settings: SettingsService,
+	settings: FeatureSettingsStore,
 	openSettings: () => void,
 ): FeatureServices {
 	const state = new GmKeyValueStore();

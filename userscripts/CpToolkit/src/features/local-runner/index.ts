@@ -1,5 +1,5 @@
 import {isHttpUrl} from "@atcoder-tools/shared";
-import {option} from "@domain/settings/option";
+import {option, sharedAcrossSites} from "@domain/settings/option";
 import {defineFeature} from "@application/feature/definition";
 
 /** Java の変換と EasyTest が共用する接続先。ここを OFF にすると Local Runner を使わない。 */
@@ -12,7 +12,7 @@ export const localRunner = defineFeature({
 	routes: ["atcoder:contest", "codeforces:page", "yukicoder:problem", "aoj:page", "libraryChecker:page", "paiza:page"],
 	phase: "ready",
 	options: {
-		url: option.text("http://localhost:8080", "localRunner.url", {validate: isHttpUrl}),
+		url: sharedAcrossSites(option.text("http://localhost:8080", "localRunner.url", {validate: isHttpUrl})),
 	},
 	live: true,
 	start() {

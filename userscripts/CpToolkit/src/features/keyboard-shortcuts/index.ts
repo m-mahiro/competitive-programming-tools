@@ -1,6 +1,6 @@
 import type {MessageKey} from "@catalog/messages";
 import {type ContestPages, contestPagesOf, type ContestTaskLink, neighborTask} from "@domain/contest/pages";
-import {option} from "@domain/settings/option";
+import {onSites, option} from "@domain/settings/option";
 import {isModifierSetting, isShortcutSetting, NO_SHORTCUT, normalizeModifiers, normalizeShortcut} from "@domain/settings/shortcut";
 import {defineFeature} from "@application/feature/definition";
 import {type CodeEditor, EDITOR_SETUP_DELAY_MS} from "@application/ports/code-editor";
@@ -42,30 +42,38 @@ const PAGE_KEYS = {
 	openCustomTest: "customTest",
 } as const satisfies Record<string, keyof ContestPages>;
 
+/** 項目を表示するサイト。動かないサイトの設定画面には出さない。 */
+const NOT_YUKICODER = ["atcoder", "codeforces", "aoj", "libraryChecker", "paiza"];
+/** Easy Test+ と入出力例の読み取りが動くサイト。 */
+const EASY_TEST_SITES = ["atcoder", "codeforces", "yukicoder"];
+const ATCODER = ["atcoder"];
+/** 問題の一覧とコンテストのページがあるサイト。 */
+const CONTEST_SITES = ["atcoder", "codeforces"];
+
 /** 設定画面に並べる順番。キーが重なれば、後の項目から試す。 */
 const featureOptions = {
 	openSettings: shortcutOption("Ctrl+I", "keyboardShortcuts.openSettings"),
 	submit: shortcutOption("Ctrl+Shift+Enter", "keyboardShortcuts.submit"),
-	fold: shortcutOption("Ctrl+Shift+[", "keyboardShortcuts.fold"),
-	unfold: shortcutOption("Ctrl+Shift+]", "keyboardShortcuts.unfold"),
-	testAndSubmit: shortcutOption("Ctrl+Enter", "keyboardShortcuts.testAndSubmit"),
-	testAll: shortcutOption("Alt+Enter", "keyboardShortcuts.testAll"),
-	toggleEasyTest: shortcutOption("Ctrl+Shift+Alt+D", "keyboardShortcuts.toggleEasyTest"),
-	copyInput: modifierOption("Ctrl+Alt", "keyboardShortcuts.copyInput"),
-	copyOutput: modifierOption("Ctrl+Shift+Alt", "keyboardShortcuts.copyOutput"),
-	copyStatement: shortcutOption("Ctrl+Shift+Alt+P", "keyboardShortcuts.copyStatement"),
-	previousTask: shortcutOption("Ctrl+Shift+Alt+Left", "keyboardShortcuts.previousTask"),
-	nextTask: shortcutOption("Ctrl+Shift+Alt+Right", "keyboardShortcuts.nextTask"),
-	openTask: modifierOption("Ctrl+Alt", "keyboardShortcuts.openTask"),
-	openTasks: shortcutOption("Ctrl+Shift+Alt+T", "keyboardShortcuts.openTasks"),
-	openMySubmissions: shortcutOption("Ctrl+Shift+Alt+S", "keyboardShortcuts.openMySubmissions"),
-	openStandings: shortcutOption("Ctrl+Shift+Alt+R", "keyboardShortcuts.openStandings"),
-	openEditorial: shortcutOption("Ctrl+Shift+Alt+E", "keyboardShortcuts.openEditorial"),
-	openCustomTest: shortcutOption("Ctrl+Shift+Alt+C", "keyboardShortcuts.openCustomTest"),
-	acByTime: shortcutOption("Ctrl+Shift+Alt+F", "keyboardShortcuts.acByTime"),
-	acByLength: shortcutOption("Ctrl+Shift+Alt+L", "keyboardShortcuts.acByLength"),
-	acByCreated: shortcutOption("Ctrl+Shift+Alt+N", "keyboardShortcuts.acByCreated"),
-	acByMemory: shortcutOption("Ctrl+Shift+Alt+M", "keyboardShortcuts.acByMemory"),
+	fold: onSites(shortcutOption("Ctrl+Shift+[", "keyboardShortcuts.fold"), NOT_YUKICODER),
+	unfold: onSites(shortcutOption("Ctrl+Shift+]", "keyboardShortcuts.unfold"), NOT_YUKICODER),
+	testAndSubmit: onSites(shortcutOption("Ctrl+Enter", "keyboardShortcuts.testAndSubmit"), EASY_TEST_SITES),
+	testAll: onSites(shortcutOption("Alt+Enter", "keyboardShortcuts.testAll"), EASY_TEST_SITES),
+	toggleEasyTest: onSites(shortcutOption("Ctrl+Shift+Alt+D", "keyboardShortcuts.toggleEasyTest"), EASY_TEST_SITES),
+	copyInput: onSites(modifierOption("Ctrl+Alt", "keyboardShortcuts.copyInput"), EASY_TEST_SITES),
+	copyOutput: onSites(modifierOption("Ctrl+Shift+Alt", "keyboardShortcuts.copyOutput"), EASY_TEST_SITES),
+	copyStatement: onSites(shortcutOption("Ctrl+Shift+Alt+P", "keyboardShortcuts.copyStatement"), ATCODER),
+	previousTask: onSites(shortcutOption("Ctrl+Shift+Alt+Left", "keyboardShortcuts.previousTask"), CONTEST_SITES),
+	nextTask: onSites(shortcutOption("Ctrl+Shift+Alt+Right", "keyboardShortcuts.nextTask"), CONTEST_SITES),
+	openTask: onSites(modifierOption("Ctrl+Alt", "keyboardShortcuts.openTask"), CONTEST_SITES),
+	openTasks: onSites(shortcutOption("Ctrl+Shift+Alt+T", "keyboardShortcuts.openTasks"), CONTEST_SITES),
+	openMySubmissions: onSites(shortcutOption("Ctrl+Shift+Alt+S", "keyboardShortcuts.openMySubmissions"), CONTEST_SITES),
+	openStandings: onSites(shortcutOption("Ctrl+Shift+Alt+R", "keyboardShortcuts.openStandings"), CONTEST_SITES),
+	openEditorial: onSites(shortcutOption("Ctrl+Shift+Alt+E", "keyboardShortcuts.openEditorial"), ATCODER),
+	openCustomTest: onSites(shortcutOption("Ctrl+Shift+Alt+C", "keyboardShortcuts.openCustomTest"), CONTEST_SITES),
+	acByTime: onSites(shortcutOption("Ctrl+Shift+Alt+F", "keyboardShortcuts.acByTime"), ATCODER),
+	acByLength: onSites(shortcutOption("Ctrl+Shift+Alt+L", "keyboardShortcuts.acByLength"), ATCODER),
+	acByCreated: onSites(shortcutOption("Ctrl+Shift+Alt+N", "keyboardShortcuts.acByCreated"), ATCODER),
+	acByMemory: onSites(shortcutOption("Ctrl+Shift+Alt+M", "keyboardShortcuts.acByMemory"), ATCODER),
 	share: shortcutOption("Ctrl+Shift+Alt+X", "keyboardShortcuts.share"),
 };
 

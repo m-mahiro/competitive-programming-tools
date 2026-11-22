@@ -2,7 +2,7 @@ import {includesSubmissionHeader, normalizeNewlines} from "@atcoder-tools/shared
 import {languageCatalog} from "@catalog/tables";
 import {commentSyntaxOf} from "@domain/execution/language";
 import {contestIdOf} from "@domain/page/route";
-import {option} from "@domain/settings/option";
+import {option, sharedAcrossSites} from "@domain/settings/option";
 import {type CommentSyntax, fillVariables, headerOffset, insertFooter, insertHeader, isWholeCode, replaceBlock, toComment} from "@domain/source/comment";
 import {LocalRunnerError} from "@application/execution/local-runner";
 import {defineFeature} from "@application/feature/definition";
@@ -33,7 +33,7 @@ export const sourceComments = defineFeature({
 			{value: "below", label: "sourceComments.runnerHeaderBelow"},
 			{value: "none", label: "sourceComments.runnerHeaderNone"},
 		]),
-		runnerHeaderName: option.text("", "sourceComments.runnerHeaderName"),
+		runnerHeaderName: sharedAcrossSites(option.text("", "sourceComments.runnerHeaderName")),
 	},
 	async start(services) {
 		const {options, judge, localRunner, editors, paste, state, translate, submissionForm} = services;

@@ -3,6 +3,7 @@ settings.title: CP Toolkit settings
 settings.close: Close
 settings.empty: No features are available.
 settings.options: Options
+settings.sites: Sites
 settings.invalidValue: This value is not valid.
 settings.reloadNotice: Reload the page to apply your changes.
 settings.reload: Reload
@@ -205,19 +206,19 @@ keyboardShortcuts.testAll: Test all samples with Easy Test+
 keyboardShortcuts.toggleEasyTest: Open or close the Easy Test+ panel
 keyboardShortcuts.copyInput: Copy a sample input (these modifiers and a number from 1 to 9)
 keyboardShortcuts.copyOutput: Copy a sample output (these modifiers and a number from 1 to 9)
-keyboardShortcuts.copyStatement: Copy the whole statement (AtCoder)
+keyboardShortcuts.copyStatement: Copy the whole statement
 keyboardShortcuts.previousTask: Open the previous task
 keyboardShortcuts.nextTask: Open the next task
 keyboardShortcuts.openTask: "Open a task (these modifiers and A to Z: A, B, C… from the top of the task list)"
 keyboardShortcuts.openTasks: Open the task list
 keyboardShortcuts.openMySubmissions: Open my submissions
 keyboardShortcuts.openStandings: Open the standings
-keyboardShortcuts.openEditorial: Open the editorial (AtCoder)
+keyboardShortcuts.openEditorial: Open the editorial
 keyboardShortcuts.openCustomTest: Open the custom test
-keyboardShortcuts.acByTime: Open AC submissions by execution time (AtCoder)
-keyboardShortcuts.acByLength: Open AC submissions by code length (AtCoder)
-keyboardShortcuts.acByCreated: Open AC submissions by submission time (AtCoder)
-keyboardShortcuts.acByMemory: Open AC submissions by memory (AtCoder)
+keyboardShortcuts.acByTime: Open AC submissions by execution time
+keyboardShortcuts.acByLength: Open AC submissions by code length
+keyboardShortcuts.acByCreated: Open AC submissions by submission time
+keyboardShortcuts.acByMemory: Open AC submissions by memory
 keyboardShortcuts.share: Open a post to X for the current page
 keyboardShortcuts.invalidKey: "This key combination is not valid (e.g. Ctrl+Shift+Enter, Alt+S)."
 keyboardShortcuts.invalidModifiers: Write only modifier keys joined with + (e.g. Ctrl+Alt).

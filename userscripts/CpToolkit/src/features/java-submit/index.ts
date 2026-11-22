@@ -1,6 +1,6 @@
 import type {Translate} from "@catalog/messages";
 import {isWholeCode} from "@domain/source/comment";
-import {option} from "@domain/settings/option";
+import {option, sharedAcrossSites} from "@domain/settings/option";
 import {defineFeature} from "@application/feature/definition";
 import {type CodeEditor, EDITOR_SETUP_DELAY_MS} from "@application/ports/code-editor";
 import {
@@ -59,8 +59,8 @@ export const submissionHelper = defineFeature({
 	routes: ["atcoder:task", "atcoder:submit", "atcoder:customTest", "codeforces:page", "aoj:page", "libraryChecker:page", "paiza:page", "yukicoder:problem"],
 	phase: "ready",
 	options: {
-		debugFlag: option.text("", "submissionHelper.debugFlag"),
-		libraryPackage: option.text("", "submissionHelper.libraryPackage"),
+		debugFlag: sharedAcrossSites(option.text("", "submissionHelper.debugFlag")),
+		libraryPackage: sharedAcrossSites(option.text("", "submissionHelper.libraryPackage")),
 		foldOnPaste: option.boolean(true, "submissionHelper.foldOnPaste"),
 	},
 	async start(services) {

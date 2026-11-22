@@ -10,6 +10,33 @@
 	color: var(--cp-notice-text);
 }
 
+.site-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-bottom: 16px;
+	border-bottom: 1px solid var(--cp-border);
+}
+
+.site-tabs button {
+	margin-bottom: -1px;
+	padding: 6px 12px;
+	border: 1px solid transparent;
+	border-radius: 6px 6px 0 0;
+	background: none;
+	color: var(--cp-text-muted);
+	font: inherit;
+	cursor: pointer;
+}
+
+.site-tabs button[aria-selected="true"] {
+	border-color: var(--cp-border);
+	border-bottom-color: var(--cp-surface);
+	background: var(--cp-surface);
+	color: var(--cp-text);
+	font-weight: 600;
+}
+
 .error {
 	margin: 0 0 16px;
 	color: var(--cp-danger);

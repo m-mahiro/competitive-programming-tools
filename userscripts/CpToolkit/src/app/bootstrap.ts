@@ -35,22 +35,23 @@ export function bootstrap(): void {
 	const settings = new SettingsService(store, {installedBefore: updates.hasCheckedBefore()});
 	importLegacySettings(new LocalStorageLegacyInbox(), settings);
 	const page = matchPage(judges, location.href);
+	const siteSettings = settings.forSite(page?.judge.id ?? null);
 	let panel: SettingsPanel | null = null;
-	const services = createServices(page, settings, () => panel?.open());
+	const services = createServices(page, siteSettings, () => panel?.open());
 	configureToasts({region: host.name, close: () => services.translate("settings.close")});
 
 	const runtime = new FeatureRuntime({
 		features,
 		page,
 		lifecycle,
-		settings,
+		settings: siteSettings,
 		services,
 		logger: new ConsoleLogger(host.name),
 	});
 	runtime.start();
 
 	const {translate} = services;
-	panel = createSettingsPanel({features, settings, runtime, translate, updates});
+	panel = createSettingsPanel({features, settings, sites: judges, currentSite: page?.judge.id ?? null, runtime, translate, updates});
 	// ページの言語は DOM の構築後に確定するので、それを待ってから文言を決める
 	void lifecycle.reach("ready").then(() => {
 		host.registerCommand(translate("settings.open"), () => panel?.open());

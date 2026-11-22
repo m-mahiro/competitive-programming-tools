@@ -2,7 +2,7 @@ import {afterEach, beforeEach, describe, expect, mock, test} from "bun:test";
 import {judges} from "@catalog/judges";
 import {createTranslator} from "@catalog/messages";
 import {matchPage} from "@domain/page/route";
-import {option} from "@domain/settings/option";
+import {onSites, option, sharedAcrossSites} from "@domain/settings/option";
 import {defineFeature, type Feature} from "@application/feature/definition";
 import {FeatureRuntime} from "@application/feature/runtime";
 import {SettingsService} from "@application/settings/settings-service";
@@ -269,6 +269,85 @@ describe("設定画面", () => {
 		} finally {
 			window.confirm = originalConfirm;
 		}
+	});
+});
+
+describe("サイトごとの設定画面", () => {
+	const sites = [{id: "atcoder", name: "AtCoder"}, {id: "codeforces", name: "Codeforces"}, {id: "paiza", name: "paiza"}];
+	const both = defineFeature({
+		...metadata,
+		id: "both",
+		title: "keyboardShortcuts.title",
+		routes: ["atcoder:page", "codeforces:page"],
+		options: {
+			key: option.text("Ctrl+I", "keyboardShortcuts.openSettings"),
+			editorial: onSites(option.text("Ctrl+E", "keyboardShortcuts.openEditorial"), ["atcoder"]),
+			url: sharedAcrossSites(option.text("http://localhost:8080", "localRunner.url")),
+		},
+		live: true,
+		start: () => () => {
+		},
+	});
+
+	beforeEach(() => {
+		document.body.replaceChildren();
+	});
+
+	async function open(): Promise<{root: ShadowRoot; settings: SettingsService}> {
+		const settings = new SettingsService(new MemoryStore());
+		const features = [both, liveFeature];
+		const runtime = new FeatureRuntime({
+			features,
+			page: matchPage(judges, "https://atcoder.jp/home"),
+			lifecycle: immediateLifecycle,
+			settings: settings.forSite("atcoder"),
+			services: createFakeServices(),
+			logger: new RecordingLogger(),
+		});
+		runtime.start();
+		await runtime.settled();
+		createSettingsPanel({features, settings, sites, currentSite: "atcoder", runtime, translate, updates: createFakeUpdates()}).open();
+		const root = document.body.lastElementChild?.shadowRoot;
+		if (!root) throw new Error("設定画面が表示されていません");
+		return {root, settings};
+	}
+
+	const titles = (root: ShadowRoot) => [...root.querySelectorAll(".feature-title")].map(({textContent}) => textContent);
+	const labels = (root: ShadowRoot) => [...root.querySelectorAll(".feature-fields label")].map((label) => label.textContent);
+	const tab = (root: ShadowRoot, name: string) => [...root.querySelectorAll<HTMLButtonElement>(".site-tabs button")].find(({textContent}) => textContent === name);
+
+	test("表示中のサイトを選んで開き、機能が動くサイトのタブだけを出す", async () => {
+		const {root} = await open();
+		expect([...root.querySelectorAll(".site-tabs button")].map(({textContent}) => textContent)).toEqual(["AtCoder", "Codeforces"]);
+		expect(tab(root, "AtCoder")?.getAttribute("aria-selected")).toBe("true");
+		expect(titles(root)).toEqual([translate("keyboardShortcuts.title"), translate("wideLayout.title")]);
+	});
+
+	test("ほかのサイトでは、そのサイトで動く機能と項目だけを出し、動作の状態は出さない", async () => {
+		const {root} = await open();
+		expect(labels(root).some((label) => label?.includes(translate("keyboardShortcuts.openEditorial")))).toBe(true);
+		tab(root, "Codeforces")?.click();
+		expect(titles(root)).toEqual([translate("keyboardShortcuts.title")]);
+		expect(labels(root).some((label) => label?.includes(translate("keyboardShortcuts.openEditorial")))).toBe(false);
+		expect(root.querySelector<HTMLElement>(".status")?.hidden).toBe(true);
+	});
+
+	test("値と ON/OFF はサイトごとに保存し、共通の項目は全サイトに保存する", async () => {
+		const {root, settings} = await open();
+		tab(root, "Codeforces")?.click();
+		const [key, url] = [...root.querySelectorAll<HTMLInputElement>(".feature-fields input")];
+		key!.value = "Alt+S";
+		key!.dispatchEvent(new Event("change", {bubbles: true}));
+		url!.value = "http://localhost:9000";
+		url!.dispatchEvent(new Event("change", {bubbles: true}));
+		const toggle = root.querySelector<HTMLInputElement>("input[role=switch]")!;
+		toggle.checked = false;
+		toggle.dispatchEvent(new Event("change", {bubbles: true}));
+
+		expect(settings.forSite("codeforces").storedOptions("both")).toEqual({key: "Alt+S", url: "http://localhost:9000"});
+		expect(settings.forSite("codeforces").isEnabled("both", true)).toBe(false);
+		expect(settings.forSite("atcoder").storedOptions("both")).toEqual({url: "http://localhost:9000"});
+		expect(settings.forSite("atcoder").isEnabled("both", true)).toBe(true);
 	});
 });
 

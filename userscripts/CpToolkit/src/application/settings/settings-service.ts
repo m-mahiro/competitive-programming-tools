@@ -1,10 +1,39 @@
 import {safeJsonParse} from "@atcoder-tools/shared";
-import {createDefaultSettings, parseSettings, type Settings, updateFeatureSettings} from "@domain/settings/settings";
+import {
+	createDefaultSettings,
+	featureOptions,
+	isFeatureEnabled,
+	parseSettings,
+	type Settings,
+	updateFeatureSettings,
+	updateSiteFeatureSettings,
+} from "@domain/settings/settings";
 import type {KeyValueStore} from "@application/ports/key-value-store";
 
 const STORAGE_KEY = "settings";
 
-export class SettingsService {
+/** 1つのサイトから見た機能の設定。機能の起動と設定画面が使う。 */
+export interface FeatureSettingsStore {
+	/** 対象のサイト。サイトの外のページなら null。 */
+	readonly site: string | null;
+
+	isEnabled(featureId: string, defaultEnabled: boolean): boolean;
+
+	storedOptions(featureId: string): unknown;
+
+	setEnabled(featureId: string, enabled: boolean): void;
+
+	setOption(featureId: string, key: string, value: unknown): void;
+
+	/** 全サイトで同じ値を使う項目を変える。 */
+	setSharedOption(featureId: string, key: string, value: unknown): void;
+
+	subscribe(listener: () => void): void;
+}
+
+/** 保存した設定の全体。サイトを指定しない操作は、全サイトで同じ値と、サイトごとに分ける前の値を扱う。 */
+export class SettingsService implements FeatureSettingsStore {
+	readonly site = null;
 	private settings: Settings;
 	private readonly listeners = new Set<() => void>();
 	private readonly store: KeyValueStore;
@@ -23,6 +52,22 @@ export class SettingsService {
 		// 新しい利用者の設定も保存しておき、次に既定値を変えるときに、その時点の利用者として移行できるようにする
 		if (storedVersion !== this.settings.version) store.set(STORAGE_KEY, this.settings);
 		store.subscribeRemote(STORAGE_KEY, (value) => this.replace(parseSettings(value)));
+	}
+
+	/** サイトから見た設定。サイトの外のページ(null)では、サイトごとに分ける前の値を使う。 */
+	forSite(site: string | null): FeatureSettingsStore {
+		if (site === null) return this;
+		return {
+			site,
+			isEnabled: (featureId, defaultEnabled) => isFeatureEnabled(this.settings, featureId, site, defaultEnabled),
+			storedOptions: (featureId) => featureOptions(this.settings, featureId, site),
+			setEnabled: (featureId, enabled) => this.commit(updateSiteFeatureSettings(this.settings, featureId, site, {enabled})),
+			setOption: (featureId, key, value) => {
+				this.commit(updateSiteFeatureSettings(this.settings, featureId, site, {options: {[key]: value}}));
+			},
+			setSharedOption: (featureId, key, value) => this.setOption(featureId, key, value),
+			subscribe: (listener) => this.subscribe(listener),
+		};
 	}
 
 	isEnabled(featureId: string, defaultEnabled: boolean): boolean {
@@ -44,6 +89,10 @@ export class SettingsService {
 
 	setOption(featureId: string, key: string, value: unknown): void {
 		this.commit(updateFeatureSettings(this.settings, featureId, {options: {[key]: value}}));
+	}
+
+	setSharedOption(featureId: string, key: string, value: unknown): void {
+		this.setOption(featureId, key, value);
 	}
 
 	reset(): void {

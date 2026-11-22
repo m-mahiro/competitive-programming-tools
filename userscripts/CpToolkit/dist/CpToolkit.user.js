@@ -1062,11 +1062,21 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return {version: CURRENT_SETTINGS_VERSION, features: {}};
 	}
 
-	function parseFeatureSettings(raw) {
+	function parseSiteFeatureSettings(raw) {
 		const {enabled, options} = parseStoredObject(raw);
 		return {
 			...(typeof enabled === "boolean" ? {enabled} : {}),
 			options: parseStoredObject(options),
+		};
+	}
+
+	function parseFeatureSettings(raw) {
+		const sites = Object.entries(parseStoredObject(parseStoredObject(raw).sites));
+		return {
+			...parseSiteFeatureSettings(raw),
+			...(sites.length > 0
+				? {sites: Object.fromEntries(sites.map(([site, value]) => [site, parseSiteFeatureSettings(value)]))}
+				: {}),
 		};
 	}
 
@@ -1091,10 +1101,30 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return {...settings, features: {...settings.features, [featureId]: next}};
 	}
 
+	function updateSiteFeatureSettings(settings, featureId, site, patch) {
+		const current = settings.features[featureId];
+		const currentSite = current?.sites?.[site];
+		const nextSite = {...currentSite, ...patch, options: {...currentSite?.options, ...patch.options}};
+		const next = {...current, sites: {...current?.sites, [site]: nextSite}};
+		return {...settings, features: {...settings.features, [featureId]: next}};
+	}
+
+	function isFeatureEnabled(settings, featureId, site, defaultEnabled) {
+		const feature = settings.features[featureId];
+		const own = site === null ? undefined : feature?.sites?.[site]?.enabled;
+		return own ?? feature?.enabled ?? defaultEnabled;
+	}
+
+	function featureOptions(settings, featureId, site) {
+		const feature = settings.features[featureId];
+		return {...feature?.options, ...(site === null ? undefined : feature?.sites?.[site]?.options)};
+	}
+
 	// CpToolkit/src/application/settings/settings-service.ts
 	var STORAGE_KEY = "settings";
 
 	class SettingsService {
+		site = null;
 		settings;
 		listeners = new Set();
 		store;
@@ -1109,6 +1139,23 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 				raw && typeof raw === "object" && !Array.isArray(raw) && "version" in raw ? raw.version : undefined;
 			if (storedVersion !== this.settings.version) store.set(STORAGE_KEY, this.settings);
 			store.subscribeRemote(STORAGE_KEY, (value) => this.replace(parseSettings(value)));
+		}
+
+		forSite(site) {
+			if (site === null) return this;
+			return {
+				site,
+				isEnabled: (featureId, defaultEnabled) =>
+					isFeatureEnabled(this.settings, featureId, site, defaultEnabled),
+				storedOptions: (featureId) => featureOptions(this.settings, featureId, site),
+				setEnabled: (featureId, enabled) =>
+					this.commit(updateSiteFeatureSettings(this.settings, featureId, site, {enabled})),
+				setOption: (featureId, key, value) => {
+					this.commit(updateSiteFeatureSettings(this.settings, featureId, site, {options: {[key]: value}}));
+				},
+				setSharedOption: (featureId, key, value) => this.setOption(featureId, key, value),
+				subscribe: (listener) => this.subscribe(listener),
+			};
 		}
 
 		isEnabled(featureId, defaultEnabled) {
@@ -1129,6 +1176,10 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 
 		setOption(featureId, key, value) {
 			this.commit(updateFeatureSettings(this.settings, featureId, {options: {[key]: value}}));
+		}
+
+		setSharedOption(featureId, key, value) {
+			this.setOption(featureId, key, value);
 		}
 
 		reset() {
@@ -2821,6 +2872,18 @@ ${css}`,
 		},
 	};
 
+	function onSites(definition, sites) {
+		return {...definition, sites};
+	}
+
+	function sharedAcrossSites(definition) {
+		return {...definition, shared: true};
+	}
+
+	function isOptionOnSite(definition, site) {
+		return site === null || definition.sites === undefined || definition.sites.includes(site);
+	}
+
 	function normalizeOptions(schema, stored) {
 		const source = parseStoredObject(stored);
 		const entries = Object.entries(schema).map(([key, definition]) => {
@@ -2929,7 +2992,9 @@ ${css}`,
 	};
 
 	function createOptionsSection({feature, settings, translate}) {
-		const definitions = Object.entries(feature.options);
+		const definitions = Object.entries(feature.options).filter(([, definition]) =>
+			isOptionOnSite(definition, settings.site),
+		);
 		if (definitions.length === 0) return null;
 		const values = normalizeOptions(feature.options, settings.storedOptions(feature.id));
 		const fields = definitions.map(([key, definition]) =>
@@ -2937,7 +3002,10 @@ ${css}`,
 				definition,
 				value: values[key],
 				translate,
-				onChange: (value) => settings.setOption(feature.id, key, value),
+				onChange: (value) => {
+					if (definition.shared) settings.setSharedOption(feature.id, key, value);
+					else settings.setOption(feature.id, key, value);
+				},
 			}),
 		);
 		return h(
@@ -2949,10 +3017,10 @@ ${css}`,
 	}
 
 	function createFeatureRow(params) {
-		const {feature, settings, runtime, translate} = params;
+		const {feature, settings, runtime, translate, showStatus} = params;
 		const title = translate(feature.title);
 		const toggle = createSwitch(title, (enabled) => settings.setEnabled(feature.id, enabled));
-		const statusLabel = h("span", {className: "status"});
+		const statusLabel = h("span", {className: "status", hidden: !showStatus});
 		const summary = h(
 			"div",
 			{className: "feature-summary"},
@@ -2996,6 +3064,33 @@ ${css}`,
 	border-radius: 8px;
 	background: var(--cp-notice-surface);
 	color: var(--cp-notice-text);
+}
+
+.site-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-bottom: 16px;
+	border-bottom: 1px solid var(--cp-border);
+}
+
+.site-tabs button {
+	margin-bottom: -1px;
+	padding: 6px 12px;
+	border: 1px solid transparent;
+	border-radius: 6px 6px 0 0;
+	background: none;
+	color: var(--cp-text-muted);
+	font: inherit;
+	cursor: pointer;
+}
+
+.site-tabs button[aria-selected="true"] {
+	border-color: var(--cp-border);
+	border-bottom-color: var(--cp-surface);
+	background: var(--cp-surface);
+	color: var(--cp-text);
+	font-weight: 600;
 }
 
 .error {
@@ -3146,7 +3241,14 @@ ${css}`,
 	}
 
 	function createPanelView(dependencies) {
-		const {features, settings, runtime, translate, updates} = dependencies;
+		const {features, settings, runtime, translate, updates, sites = [], currentSite = null} = dependencies;
+		const siteOf = (route) => route.slice(0, route.indexOf(":"));
+		const tabSites = sites.filter(({id}) =>
+			features.some(({routes}) => routes.some((route) => siteOf(route) === id)),
+		);
+		let selectedSite = tabSites.find(({id}) => id === currentSite)?.id ?? tabSites[0]?.id ?? null;
+		const tabs = h("div", {className: "site-tabs", role: "tablist", hidden: tabSites.length === 0});
+		tabs.setAttribute("aria-label", translate("settings.sites"));
 		const notice = h(
 			"div",
 			{className: "notice", hidden: true},
@@ -3159,12 +3261,40 @@ ${css}`,
 		let modal = null;
 		const refresh = () => {
 			for (const row of rows) row.refresh();
-			notice.hidden = !rows.some((row) => row.status().state === "reloadRequired");
+			notice.hidden =
+				selectedSite !== currentSite || !rows.some((row) => row.status().state === "reloadRequired");
+		};
+		const renderTabs = () => {
+			tabs.replaceChildren(
+				...tabSites.map(({id, name}) => {
+					const tab = h("button", {
+						type: "button",
+						role: "tab",
+						textContent: name,
+						onclick: () => {
+							selectedSite = id;
+							render();
+						},
+					});
+					tab.setAttribute("aria-selected", String(id === selectedSite));
+					if (id === currentSite) tab.setAttribute("aria-current", "page");
+					return tab;
+				}),
+			);
 		};
 		const render = () => {
 			rows = [];
-			const sections = [...Map.groupBy(features, ({category}) => category)].map(([category, members]) => {
-				const memberRows = members.map((feature) => createFeatureRow({feature, settings, runtime, translate}));
+			renderTabs();
+			const store = settings.forSite(selectedSite);
+			const visible =
+				selectedSite === null
+					? features
+					: features.filter(({routes}) => routes.some((route) => siteOf(route) === selectedSite));
+			const showStatus = selectedSite === currentSite;
+			const sections = [...Map.groupBy(visible, ({category}) => category)].map(([category, members]) => {
+				const memberRows = members.map((feature) =>
+					createFeatureRow({feature, settings: store, runtime, translate, showStatus}),
+				);
 				rows.push(...memberRows);
 				return h(
 					"section",
@@ -3174,7 +3304,7 @@ ${css}`,
 				);
 			});
 			content.replaceChildren(...sections);
-			if (features.length === 0) {
+			if (visible.length === 0) {
 				content.append(h("p", {className: "empty", textContent: translate("settings.empty")}));
 			}
 			refresh();
@@ -3214,7 +3344,7 @@ ${css}`,
 				css: `${form_default}
 ${settings_panel_default}`,
 			});
-			created.body.append(notice, importError, content);
+			created.body.append(tabs, notice, importError, content);
 			created.footer.append(...createFooter());
 			settings.subscribe(refresh);
 			runtime.subscribe(refresh);
@@ -3529,6 +3659,7 @@ a:focus > .cp-settings-entry {
 		"settings.close": "Close",
 		"settings.empty": "No features are available.",
 		"settings.options": "Options",
+		"settings.sites": "Sites",
 		"settings.invalidValue": "This value is not valid.",
 		"settings.reloadNotice": "Reload the page to apply your changes.",
 		"settings.reload": "Reload",
@@ -3719,7 +3850,7 @@ a:focus > .cp-settings-entry {
 		"keyboardShortcuts.toggleEasyTest": "Open or close the Easy Test+ panel",
 		"keyboardShortcuts.copyInput": "Copy a sample input (these modifiers and a number from 1 to 9)",
 		"keyboardShortcuts.copyOutput": "Copy a sample output (these modifiers and a number from 1 to 9)",
-		"keyboardShortcuts.copyStatement": "Copy the whole statement (AtCoder)",
+		"keyboardShortcuts.copyStatement": "Copy the whole statement",
 		"keyboardShortcuts.previousTask": "Open the previous task",
 		"keyboardShortcuts.nextTask": "Open the next task",
 		"keyboardShortcuts.openTask":
@@ -3727,12 +3858,12 @@ a:focus > .cp-settings-entry {
 		"keyboardShortcuts.openTasks": "Open the task list",
 		"keyboardShortcuts.openMySubmissions": "Open my submissions",
 		"keyboardShortcuts.openStandings": "Open the standings",
-		"keyboardShortcuts.openEditorial": "Open the editorial (AtCoder)",
+		"keyboardShortcuts.openEditorial": "Open the editorial",
 		"keyboardShortcuts.openCustomTest": "Open the custom test",
-		"keyboardShortcuts.acByTime": "Open AC submissions by execution time (AtCoder)",
-		"keyboardShortcuts.acByLength": "Open AC submissions by code length (AtCoder)",
-		"keyboardShortcuts.acByCreated": "Open AC submissions by submission time (AtCoder)",
-		"keyboardShortcuts.acByMemory": "Open AC submissions by memory (AtCoder)",
+		"keyboardShortcuts.acByTime": "Open AC submissions by execution time",
+		"keyboardShortcuts.acByLength": "Open AC submissions by code length",
+		"keyboardShortcuts.acByCreated": "Open AC submissions by submission time",
+		"keyboardShortcuts.acByMemory": "Open AC submissions by memory",
 		"keyboardShortcuts.share": "Open a post to X for the current page",
 		"keyboardShortcuts.invalidKey": "This key combination is not valid (e.g. Ctrl+Shift+Enter, Alt+S).",
 		"keyboardShortcuts.invalidModifiers": "Write only modifier keys joined with + (e.g. Ctrl+Alt).",
@@ -3794,6 +3925,7 @@ a:focus > .cp-settings-entry {
 		"settings.close": "閉じる",
 		"settings.empty": "設定できる機能はありません。",
 		"settings.options": "詳細設定",
+		"settings.sites": "サイト",
 		"settings.invalidValue": "値の形式が正しくありません。",
 		"settings.reloadNotice": "変更を反映するには再読み込みしてください。",
 		"settings.reload": "再読み込み",
@@ -3978,19 +4110,19 @@ a:focus > .cp-settings-entry {
 		"keyboardShortcuts.toggleEasyTest": "Easy Test+ の画面を開閉する",
 		"keyboardShortcuts.copyInput": "入力例をコピーする（この修飾キーと番号の 1〜9）",
 		"keyboardShortcuts.copyOutput": "出力例をコピーする（この修飾キーと番号の 1〜9）",
-		"keyboardShortcuts.copyStatement": "問題文をすべてコピーする（AtCoder）",
+		"keyboardShortcuts.copyStatement": "問題文をすべてコピーする",
 		"keyboardShortcuts.previousTask": "前の問題を開く",
 		"keyboardShortcuts.nextTask": "次の問題を開く",
 		"keyboardShortcuts.openTask": "問題を開く（この修飾キーと A〜Z。一覧の上から順に A、B、C…）",
 		"keyboardShortcuts.openTasks": "問題の一覧を開く",
 		"keyboardShortcuts.openMySubmissions": "自分の提出を開く",
 		"keyboardShortcuts.openStandings": "順位表を開く",
-		"keyboardShortcuts.openEditorial": "解説を開く（AtCoder）",
+		"keyboardShortcuts.openEditorial": "解説を開く",
 		"keyboardShortcuts.openCustomTest": "コードテストを開く",
-		"keyboardShortcuts.acByTime": "AC の提出を実行時間順に開く（AtCoder）",
-		"keyboardShortcuts.acByLength": "AC の提出をコード長順に開く（AtCoder）",
-		"keyboardShortcuts.acByCreated": "AC の提出を提出日時順に開く（AtCoder）",
-		"keyboardShortcuts.acByMemory": "AC の提出をメモリ順に開く（AtCoder）",
+		"keyboardShortcuts.acByTime": "AC の提出を実行時間順に開く",
+		"keyboardShortcuts.acByLength": "AC の提出をコード長順に開く",
+		"keyboardShortcuts.acByCreated": "AC の提出を提出日時順に開く",
+		"keyboardShortcuts.acByMemory": "AC の提出をメモリ順に開く",
 		"keyboardShortcuts.share": "表示中のページを X に投稿する画面を開く",
 		"keyboardShortcuts.invalidKey": "キーの書き方が正しくありません（例：Ctrl+Shift+Enter、Alt+S）。",
 		"keyboardShortcuts.invalidModifiers": "修飾キーだけを + でつないで書いてください（例：Ctrl+Alt）。",
@@ -7930,7 +8062,7 @@ ${inner}
 		],
 		phase: "ready",
 		options: {
-			url: option.text("http://localhost:8080", "localRunner.url", {validate: isHttpUrl}),
+			url: sharedAcrossSites(option.text("http://localhost:8080", "localRunner.url", {validate: isHttpUrl})),
 		},
 		live: true,
 		start() {
@@ -9189,7 +9321,7 @@ summary {
 
 	// CpToolkit/src/features/easy-test/index.ts
 	var PRECOMPILE_DELAY_MS = 180;
-	var featureOptions = {
+	var featureOptions2 = {
 		precompile: option.boolean(true, "easyTest.precompile"),
 		savedCodeLimit: option.number(10, "easyTest.savedCodeLimit", {min: 0}),
 		allowableError: option.text("1e-6", "easyTest.allowableError"),
@@ -9562,7 +9694,7 @@ summary {
 		defaultEnabled: false,
 		routes: ["atcoder:task", "atcoder:submit", "yukicoder:problem", "codeforces:problem"],
 		phase: "ready",
-		options: featureOptions,
+		options: featureOptions2,
 		async start(context) {
 			const site = await context.judgeSite();
 			if (site) new EasyTest(site, context).start();
@@ -9957,29 +10089,39 @@ ${efficient_layout_default}`);
 		openEditorial: "editorial",
 		openCustomTest: "customTest",
 	};
-	var featureOptions2 = {
+	var NOT_YUKICODER = ["atcoder", "codeforces", "aoj", "libraryChecker", "paiza"];
+	var EASY_TEST_SITES = ["atcoder", "codeforces", "yukicoder"];
+	var ATCODER = ["atcoder"];
+	var CONTEST_SITES = ["atcoder", "codeforces"];
+	var featureOptions3 = {
 		openSettings: shortcutOption("Ctrl+I", "keyboardShortcuts.openSettings"),
 		submit: shortcutOption("Ctrl+Shift+Enter", "keyboardShortcuts.submit"),
-		fold: shortcutOption("Ctrl+Shift+[", "keyboardShortcuts.fold"),
-		unfold: shortcutOption("Ctrl+Shift+]", "keyboardShortcuts.unfold"),
-		testAndSubmit: shortcutOption("Ctrl+Enter", "keyboardShortcuts.testAndSubmit"),
-		testAll: shortcutOption("Alt+Enter", "keyboardShortcuts.testAll"),
-		toggleEasyTest: shortcutOption("Ctrl+Shift+Alt+D", "keyboardShortcuts.toggleEasyTest"),
-		copyInput: modifierOption("Ctrl+Alt", "keyboardShortcuts.copyInput"),
-		copyOutput: modifierOption("Ctrl+Shift+Alt", "keyboardShortcuts.copyOutput"),
-		copyStatement: shortcutOption("Ctrl+Shift+Alt+P", "keyboardShortcuts.copyStatement"),
-		previousTask: shortcutOption("Ctrl+Shift+Alt+Left", "keyboardShortcuts.previousTask"),
-		nextTask: shortcutOption("Ctrl+Shift+Alt+Right", "keyboardShortcuts.nextTask"),
-		openTask: modifierOption("Ctrl+Alt", "keyboardShortcuts.openTask"),
-		openTasks: shortcutOption("Ctrl+Shift+Alt+T", "keyboardShortcuts.openTasks"),
-		openMySubmissions: shortcutOption("Ctrl+Shift+Alt+S", "keyboardShortcuts.openMySubmissions"),
-		openStandings: shortcutOption("Ctrl+Shift+Alt+R", "keyboardShortcuts.openStandings"),
-		openEditorial: shortcutOption("Ctrl+Shift+Alt+E", "keyboardShortcuts.openEditorial"),
-		openCustomTest: shortcutOption("Ctrl+Shift+Alt+C", "keyboardShortcuts.openCustomTest"),
-		acByTime: shortcutOption("Ctrl+Shift+Alt+F", "keyboardShortcuts.acByTime"),
-		acByLength: shortcutOption("Ctrl+Shift+Alt+L", "keyboardShortcuts.acByLength"),
-		acByCreated: shortcutOption("Ctrl+Shift+Alt+N", "keyboardShortcuts.acByCreated"),
-		acByMemory: shortcutOption("Ctrl+Shift+Alt+M", "keyboardShortcuts.acByMemory"),
+		fold: onSites(shortcutOption("Ctrl+Shift+[", "keyboardShortcuts.fold"), NOT_YUKICODER),
+		unfold: onSites(shortcutOption("Ctrl+Shift+]", "keyboardShortcuts.unfold"), NOT_YUKICODER),
+		testAndSubmit: onSites(shortcutOption("Ctrl+Enter", "keyboardShortcuts.testAndSubmit"), EASY_TEST_SITES),
+		testAll: onSites(shortcutOption("Alt+Enter", "keyboardShortcuts.testAll"), EASY_TEST_SITES),
+		toggleEasyTest: onSites(
+			shortcutOption("Ctrl+Shift+Alt+D", "keyboardShortcuts.toggleEasyTest"),
+			EASY_TEST_SITES,
+		),
+		copyInput: onSites(modifierOption("Ctrl+Alt", "keyboardShortcuts.copyInput"), EASY_TEST_SITES),
+		copyOutput: onSites(modifierOption("Ctrl+Shift+Alt", "keyboardShortcuts.copyOutput"), EASY_TEST_SITES),
+		copyStatement: onSites(shortcutOption("Ctrl+Shift+Alt+P", "keyboardShortcuts.copyStatement"), ATCODER),
+		previousTask: onSites(shortcutOption("Ctrl+Shift+Alt+Left", "keyboardShortcuts.previousTask"), CONTEST_SITES),
+		nextTask: onSites(shortcutOption("Ctrl+Shift+Alt+Right", "keyboardShortcuts.nextTask"), CONTEST_SITES),
+		openTask: onSites(modifierOption("Ctrl+Alt", "keyboardShortcuts.openTask"), CONTEST_SITES),
+		openTasks: onSites(shortcutOption("Ctrl+Shift+Alt+T", "keyboardShortcuts.openTasks"), CONTEST_SITES),
+		openMySubmissions: onSites(
+			shortcutOption("Ctrl+Shift+Alt+S", "keyboardShortcuts.openMySubmissions"),
+			CONTEST_SITES,
+		),
+		openStandings: onSites(shortcutOption("Ctrl+Shift+Alt+R", "keyboardShortcuts.openStandings"), CONTEST_SITES),
+		openEditorial: onSites(shortcutOption("Ctrl+Shift+Alt+E", "keyboardShortcuts.openEditorial"), ATCODER),
+		openCustomTest: onSites(shortcutOption("Ctrl+Shift+Alt+C", "keyboardShortcuts.openCustomTest"), CONTEST_SITES),
+		acByTime: onSites(shortcutOption("Ctrl+Shift+Alt+F", "keyboardShortcuts.acByTime"), ATCODER),
+		acByLength: onSites(shortcutOption("Ctrl+Shift+Alt+L", "keyboardShortcuts.acByLength"), ATCODER),
+		acByCreated: onSites(shortcutOption("Ctrl+Shift+Alt+N", "keyboardShortcuts.acByCreated"), ATCODER),
+		acByMemory: onSites(shortcutOption("Ctrl+Shift+Alt+M", "keyboardShortcuts.acByMemory"), ATCODER),
 		share: shortcutOption("Ctrl+Shift+Alt+X", "keyboardShortcuts.share"),
 	};
 	var keyboardShortcuts = defineFeature({
@@ -9998,7 +10140,7 @@ ${efficient_layout_default}`);
 			"yukicoder:problem",
 		],
 		phase: "ready",
-		options: featureOptions2,
+		options: featureOptions3,
 		start(services) {
 			const {options, judge, openSettings, shortcuts, isOnRoute, translate} = services;
 			const notice = (title, tone) => {
@@ -10092,7 +10234,7 @@ ${efficient_layout_default}`);
 			const bind = (key, handler) => {
 				byKey.set(key, [handler, ...(byKey.get(key) ?? [])]);
 			};
-			for (const name of Object.keys(featureOptions2)) {
+			for (const name of Object.keys(featureOptions3)) {
 				if (name === "copyInput" || name === "copyOutput" || name === "openTask") {
 					const value = options[name];
 					const modifiers = value.toLowerCase() === NO_SHORTCUT ? null : normalizeModifiers(value);
@@ -10316,8 +10458,8 @@ ${efficient_layout_default}`);
 		],
 		phase: "ready",
 		options: {
-			debugFlag: option.text("", "submissionHelper.debugFlag"),
-			libraryPackage: option.text("", "submissionHelper.libraryPackage"),
+			debugFlag: sharedAcrossSites(option.text("", "submissionHelper.debugFlag")),
+			libraryPackage: sharedAcrossSites(option.text("", "submissionHelper.libraryPackage")),
 			foldOnPaste: option.boolean(true, "submissionHelper.foldOnPaste"),
 		},
 		async start(services) {
@@ -11430,7 +11572,7 @@ ${efficient_layout_default}`);
 				{value: "below", label: "sourceComments.runnerHeaderBelow"},
 				{value: "none", label: "sourceComments.runnerHeaderNone"},
 			]),
-			runnerHeaderName: option.text("", "sourceComments.runnerHeaderName"),
+			runnerHeaderName: sharedAcrossSites(option.text("", "sourceComments.runnerHeaderName")),
 		},
 		async start(services) {
 			const {options, judge, localRunner, editors, paste, state, translate, submissionForm} = services;
@@ -13011,20 +13153,29 @@ ${wide_layout_default}`);
 		const settings = new SettingsService(store, {installedBefore: updates.hasCheckedBefore()});
 		importLegacySettings(new LocalStorageLegacyInbox(), settings);
 		const page = matchPage(judges, location.href);
+		const siteSettings = settings.forSite(page?.judge.id ?? null);
 		let panel = null;
-		const services = createServices(page, settings, () => panel?.open());
+		const services = createServices(page, siteSettings, () => panel?.open());
 		configureToasts({region: host.name, close: () => services.translate("settings.close")});
 		const runtime = new FeatureRuntime({
 			features,
 			page,
 			lifecycle,
-			settings,
+			settings: siteSettings,
 			services,
 			logger: new ConsoleLogger(host.name),
 		});
 		runtime.start();
 		const {translate} = services;
-		panel = createSettingsPanel({features, settings, runtime, translate, updates});
+		panel = createSettingsPanel({
+			features,
+			settings,
+			sites: judges,
+			currentSite: page?.judge.id ?? null,
+			runtime,
+			translate,
+			updates,
+		});
 		lifecycle.reach("ready").then(() => {
 			host.registerCommand(translate("settings.open"), () => panel?.open());
 			if (page) addNavigationEntry(page.judge.navigationLists, host.name, () => panel?.open());

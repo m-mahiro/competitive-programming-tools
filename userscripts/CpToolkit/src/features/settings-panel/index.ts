@@ -10,9 +10,19 @@ import {createFeatureRow, type FeatureRow} from "./feature-row";
 import panelCss from "./settings-panel.css" with {type: "text"};
 import {createVersionStatus} from "./version-status";
 
+/** 設定画面のタブに並べるサイト。 */
+export type SettingsSite = {
+	readonly id: string;
+	readonly name: string;
+};
+
 export type SettingsPanelDependencies = {
 	readonly features: readonly Feature[];
 	readonly settings: SettingsService;
+	/** 設定を分けるサイト。無ければタブを出さず、すべての機能を1つの画面に出す。 */
+	readonly sites?: readonly SettingsSite[];
+	/** 表示中のページのサイト。開いたときにこのサイトのタブを選ぶ。 */
+	readonly currentSite?: string | null;
 	readonly runtime: FeatureRuntime;
 	readonly translate: Translate;
 	readonly updates: UpdateChecker;
@@ -43,7 +53,13 @@ export function createSettingsPanel(dependencies: SettingsPanelDependencies): Se
 }
 
 function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel {
-	const {features, settings, runtime, translate, updates} = dependencies;
+	const {features, settings, runtime, translate, updates, sites = [], currentSite = null} = dependencies;
+	const siteOf = (route: string): string => route.slice(0, route.indexOf(":"));
+	// 機能が1つも動かないサイトのタブは出さない
+	const tabSites = sites.filter(({id}) => features.some(({routes}) => routes.some((route) => siteOf(route) === id)));
+	let selectedSite: string | null = tabSites.find(({id}) => id === currentSite)?.id ?? tabSites[0]?.id ?? null;
+	const tabs = h("div", {className: "site-tabs", role: "tablist", hidden: tabSites.length === 0});
+	tabs.setAttribute("aria-label", translate("settings.sites"));
 	const notice = h(
 		"div",
 		{className: "notice", hidden: true},
@@ -57,13 +73,30 @@ function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel
 
 	const refresh = (): void => {
 		for (const row of rows) row.refresh();
-		notice.hidden = !rows.some((row) => row.status().state === "reloadRequired");
+		// 再読み込みが要るかは、表示中のページのサイトの設定でだけ分かる
+		notice.hidden = selectedSite !== currentSite || !rows.some((row) => row.status().state === "reloadRequired");
+	};
+
+	const renderTabs = (): void => {
+		tabs.replaceChildren(...tabSites.map(({id, name}) => {
+			const tab = h("button", {type: "button", role: "tab", textContent: name, onclick: () => {
+				selectedSite = id;
+				render();
+			}});
+			tab.setAttribute("aria-selected", String(id === selectedSite));
+			if (id === currentSite) tab.setAttribute("aria-current", "page");
+			return tab;
+		}));
 	};
 
 	const render = (): void => {
 		rows = [];
-		const sections = [...Map.groupBy(features, ({category}) => category)].map(([category, members]) => {
-			const memberRows = members.map((feature) => createFeatureRow({feature, settings, runtime, translate}));
+		renderTabs();
+		const store = settings.forSite(selectedSite);
+		const visible = selectedSite === null ? features : features.filter(({routes}) => routes.some((route) => siteOf(route) === selectedSite));
+		const showStatus = selectedSite === currentSite;
+		const sections = [...Map.groupBy(visible, ({category}) => category)].map(([category, members]) => {
+			const memberRows = members.map((feature) => createFeatureRow({feature, settings: store, runtime, translate, showStatus}));
 			rows.push(...memberRows);
 			return h(
 				"section",
@@ -73,7 +106,7 @@ function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel
 			);
 		});
 		content.replaceChildren(...sections);
-		if (features.length === 0) {
+		if (visible.length === 0) {
 			content.append(h("p", {className: "empty", textContent: translate("settings.empty")}));
 		}
 		refresh();
@@ -115,7 +148,7 @@ function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel
 			closeLabel: translate("settings.close"),
 			css: `${formCss}\n${panelCss}`,
 		});
-		created.body.append(notice, importError, content);
+		created.body.append(tabs, notice, importError, content);
 		created.footer.append(...createFooter());
 		settings.subscribe(refresh);
 		runtime.subscribe(refresh);

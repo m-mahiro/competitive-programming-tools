@@ -4,6 +4,7 @@ settings.title: CP Toolkit の設定
 settings.close: 閉じる
 settings.empty: 設定できる機能はありません。
 settings.options: 詳細設定
+settings.sites: サイト
 settings.invalidValue: 値の形式が正しくありません。
 settings.reloadNotice: 変更を反映するには再読み込みしてください。
 settings.reload: 再読み込み
@@ -206,19 +207,19 @@ keyboardShortcuts.testAll: Easy Test+ ですべての入出力例をテストす
 keyboardShortcuts.toggleEasyTest: Easy Test+ の画面を開閉する
 keyboardShortcuts.copyInput: 入力例をコピーする（この修飾キーと番号の 1〜9）
 keyboardShortcuts.copyOutput: 出力例をコピーする（この修飾キーと番号の 1〜9）
-keyboardShortcuts.copyStatement: 問題文をすべてコピーする（AtCoder）
+keyboardShortcuts.copyStatement: 問題文をすべてコピーする
 keyboardShortcuts.previousTask: 前の問題を開く
 keyboardShortcuts.nextTask: 次の問題を開く
 keyboardShortcuts.openTask: 問題を開く（この修飾キーと A〜Z。一覧の上から順に A、B、C…）
 keyboardShortcuts.openTasks: 問題の一覧を開く
 keyboardShortcuts.openMySubmissions: 自分の提出を開く
 keyboardShortcuts.openStandings: 順位表を開く
-keyboardShortcuts.openEditorial: 解説を開く（AtCoder）
+keyboardShortcuts.openEditorial: 解説を開く
 keyboardShortcuts.openCustomTest: コードテストを開く
-keyboardShortcuts.acByTime: AC の提出を実行時間順に開く（AtCoder）
-keyboardShortcuts.acByLength: AC の提出をコード長順に開く（AtCoder）
-keyboardShortcuts.acByCreated: AC の提出を提出日時順に開く（AtCoder）
-keyboardShortcuts.acByMemory: AC の提出をメモリ順に開く（AtCoder）
+keyboardShortcuts.acByTime: AC の提出を実行時間順に開く
+keyboardShortcuts.acByLength: AC の提出をコード長順に開く
+keyboardShortcuts.acByCreated: AC の提出を提出日時順に開く
+keyboardShortcuts.acByMemory: AC の提出をメモリ順に開く
 keyboardShortcuts.share: 表示中のページを X に投稿する画面を開く
 keyboardShortcuts.invalidKey: キーの書き方が正しくありません（例：Ctrl+Shift+Enter、Alt+S）。
 keyboardShortcuts.invalidModifiers: 修飾キーだけを + でつないで書いてください（例：Ctrl+Alt）。
