@@ -19,7 +19,7 @@ Tampermonkey の「設定を開く」、または AtCoder のヘッダーにあ�
 
 <p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit の設定画面" width="640"></p>
 
-「設定を書き出す」で、機能の ON/OFF と詳細設定を保存できます。設定画面は日本語と英語に対応しています。
+設定画面の一番下の「設定をファイルにバックアップ」で、機能の ON/OFF と詳細設定をファイルに保存できます。「ファイルから設定を復元」で読み込み直せます。設定画面は日本語と英語に対応しています。
 
 新しいバージョンがあると通知が届きます。設定画面の「更新する」から更新できます。手動で確認するには「更新を確認」を押します。
 

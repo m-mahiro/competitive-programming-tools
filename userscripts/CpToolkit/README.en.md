@@ -19,7 +19,7 @@ Choose "Open settings" in Tampermonkey or "CP Toolkit" in the AtCoder header. To
 
 <p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit settings" width="640"></p>
 
-Use "Export settings" to save feature toggles and detailed settings. The interface is available in Japanese and English.
+Use "Back up settings to a file" at the bottom of the settings to save feature toggles and detailed settings to a file, and "Restore settings from a file" to load them again. The interface is available in Japanese and English.
 
 When a newer version exists, a notice appears once in the corner of the page, and an "Update to" link appears at the bottom right of the settings. Opening the link shows the update page of Tampermonkey. "Check for updates" in the settings checks right away.
 

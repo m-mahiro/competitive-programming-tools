@@ -332,6 +332,17 @@ describe("サイトごとの設定画面", () => {
 		expect(root.querySelector<HTMLElement>(".status")?.hidden).toBe(true);
 	});
 
+	test("バックアップの操作は機能の一覧の一番下に置き、下の欄には再読み込みのボタンを置く", async () => {
+		const {root} = await open();
+		const last = [...root.querySelectorAll(".category")].at(-1);
+		expect(last?.querySelector("h3")?.textContent).toBe(translate("settings.backup"));
+		expect([...last!.querySelectorAll("button")].map(({textContent}) => textContent))
+			.toEqual([translate("settings.export"), translate("settings.import"), translate("settings.reset")]);
+		tab(root, "Codeforces")?.click();
+		expect([...root.querySelectorAll(".category")].at(-1)?.querySelector("h3")?.textContent).toBe(translate("settings.backup"));
+		expect([...root.querySelectorAll(".modal-footer button, footer button")].some(({textContent}) => textContent === translate("settings.reload"))).toBe(true);
+	});
+
 	test("値と ON/OFF はサイトごとに保存し、共通の項目は全サイトに保存する", async () => {
 		const {root, settings} = await open();
 		tab(root, "Codeforces")?.click();

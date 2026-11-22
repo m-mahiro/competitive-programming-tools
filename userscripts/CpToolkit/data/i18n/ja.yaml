@@ -7,12 +7,13 @@ settings.options: 詳細設定
 settings.sites: サイト
 settings.invalidValue: 値の形式が正しくありません。
 settings.reloadNotice: 変更を反映するには再読み込みしてください。
-settings.reload: 再読み込み
-settings.export: 設定を書き出す
-settings.import: 設定を読み込む
+settings.reload: ページを再読み込み
+settings.backup: 設定のバックアップ
+settings.export: 設定をファイルにバックアップ
+settings.import: ファイルから設定を復元
 settings.importFailed: 設定ファイルを読み込めませんでした。
-settings.reset: 初期状態に戻す
-settings.resetConfirm: すべての設定を初期状態に戻します。よろしいですか?
+settings.reset: 初期設定に戻す
+settings.resetConfirm: すべてのサイトの設定を初期設定に戻します。よろしいですか?
 
 update.check: 更新を確認
 update.install: 更新する

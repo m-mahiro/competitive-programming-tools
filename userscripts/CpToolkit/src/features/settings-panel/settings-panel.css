@@ -20,12 +20,13 @@
 
 .site-tabs button {
 	margin-bottom: -1px;
-	padding: 6px 12px;
+	padding: 6px 10px;
+	font-size: 13px;
 	border: 1px solid transparent;
 	border-radius: 6px 6px 0 0;
 	background: none;
 	color: var(--cp-text-muted);
-	font: inherit;
+	font-family: inherit;
 	cursor: pointer;
 }
 
@@ -120,6 +121,12 @@
 	display: grid;
 	gap: 12px;
 	margin-top: 8px;
+}
+
+.backup-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .footer-version {

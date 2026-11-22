@@ -109,6 +109,8 @@ function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel
 		if (visible.length === 0) {
 			content.append(h("p", {className: "empty", textContent: translate("settings.empty")}));
 		}
+		// たまにしか使わないので、機能の一覧の下に置く
+		content.append(backup);
 		refresh();
 	};
 
@@ -118,7 +120,8 @@ function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel
 		if (imported) render();
 	};
 
-	const createFooter = (): HTMLElement[] => {
+	/** 設定のバックアップ、復元、初期化。すべてのサイトの設定をまとめて扱う。 */
+	const createBackupSection = (): HTMLElement => {
 		const fileInput = h("input", {type: "file", accept: "application/json,.json", hidden: true});
 		fileInput.addEventListener("change", () => {
 			const file = fileInput.files?.[0];
@@ -128,19 +131,33 @@ function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel
 		const button = (label: MessageKey, onclick: () => void) => {
 			return h("button", {type: "button", textContent: translate(label), onclick});
 		};
-		return [
-			button("settings.export", () => downloadText("cp-toolkit-settings.json", settings.exportJson())),
-			button("settings.import", () => fileInput.click()),
-			button("settings.reset", () => {
-				if (!window.confirm(translate("settings.resetConfirm"))) return;
-				settings.reset();
-				importError.hidden = true;
-				render();
-			}),
-			fileInput,
-			createVersionStatus(updates, translate),
-		];
+		return h(
+			"section",
+			{className: "category backup"},
+			h("h3", {textContent: translate("settings.backup")}),
+			importError,
+			h(
+				"div",
+				{className: "backup-actions"},
+				button("settings.export", () => downloadText("cp-toolkit-settings.json", settings.exportJson())),
+				button("settings.import", () => fileInput.click()),
+				button("settings.reset", () => {
+					if (!window.confirm(translate("settings.resetConfirm"))) return;
+					settings.reset();
+					importError.hidden = true;
+					render();
+				}),
+				fileInput,
+			),
+		);
 	};
+	const backup = createBackupSection();
+
+	/** 再読み込みで反映する機能のために、いつでもページを再読み込みできるようにする。 */
+	const createFooter = (): HTMLElement[] => [
+		h("button", {type: "button", textContent: translate("settings.reload"), onclick: () => location.reload()}),
+		createVersionStatus(updates, translate),
+	];
 
 	const createPanelModal = (): Modal => {
 		const created = createModal({
@@ -148,7 +165,7 @@ function createPanelView(dependencies: SettingsPanelDependencies): SettingsPanel
 			closeLabel: translate("settings.close"),
 			css: `${formCss}\n${panelCss}`,
 		});
-		created.body.append(tabs, notice, importError, content);
+		created.body.append(tabs, notice, content);
 		created.footer.append(...createFooter());
 		settings.subscribe(refresh);
 		runtime.subscribe(refresh);

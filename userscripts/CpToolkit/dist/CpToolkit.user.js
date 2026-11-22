@@ -3076,12 +3076,13 @@ ${css}`,
 
 .site-tabs button {
 	margin-bottom: -1px;
-	padding: 6px 12px;
+	padding: 6px 10px;
+	font-size: 13px;
 	border: 1px solid transparent;
 	border-radius: 6px 6px 0 0;
 	background: none;
 	color: var(--cp-text-muted);
-	font: inherit;
+	font-family: inherit;
 	cursor: pointer;
 }
 
@@ -3176,6 +3177,12 @@ ${css}`,
 	display: grid;
 	gap: 12px;
 	margin-top: 8px;
+}
+
+.backup-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .footer-version {
@@ -3307,6 +3314,7 @@ ${css}`,
 			if (visible.length === 0) {
 				content.append(h("p", {className: "empty", textContent: translate("settings.empty")}));
 			}
+			content.append(backup);
 			refresh();
 		};
 		const importFile = async (file) => {
@@ -3314,7 +3322,7 @@ ${css}`,
 			importError.hidden = imported;
 			if (imported) render();
 		};
-		const createFooter = () => {
+		const createBackupSection = () => {
 			const fileInput = h("input", {type: "file", accept: "application/json,.json", hidden: true});
 			fileInput.addEventListener("change", () => {
 				const file = fileInput.files?.[0];
@@ -3324,19 +3332,31 @@ ${css}`,
 			const button = (label, onclick) => {
 				return h("button", {type: "button", textContent: translate(label), onclick});
 			};
-			return [
-				button("settings.export", () => downloadText("cp-toolkit-settings.json", settings.exportJson())),
-				button("settings.import", () => fileInput.click()),
-				button("settings.reset", () => {
-					if (!window.confirm(translate("settings.resetConfirm"))) return;
-					settings.reset();
-					importError.hidden = true;
-					render();
-				}),
-				fileInput,
-				createVersionStatus(updates, translate),
-			];
+			return h(
+				"section",
+				{className: "category backup"},
+				h("h3", {textContent: translate("settings.backup")}),
+				importError,
+				h(
+					"div",
+					{className: "backup-actions"},
+					button("settings.export", () => downloadText("cp-toolkit-settings.json", settings.exportJson())),
+					button("settings.import", () => fileInput.click()),
+					button("settings.reset", () => {
+						if (!window.confirm(translate("settings.resetConfirm"))) return;
+						settings.reset();
+						importError.hidden = true;
+						render();
+					}),
+					fileInput,
+				),
+			);
 		};
+		const backup = createBackupSection();
+		const createFooter = () => [
+			h("button", {type: "button", textContent: translate("settings.reload"), onclick: () => location.reload()}),
+			createVersionStatus(updates, translate),
+		];
 		const createPanelModal = () => {
 			const created = createModal({
 				title: translate("settings.title"),
@@ -3344,7 +3364,7 @@ ${css}`,
 				css: `${form_default}
 ${settings_panel_default}`,
 			});
-			created.body.append(tabs, notice, importError, content);
+			created.body.append(tabs, notice, content);
 			created.footer.append(...createFooter());
 			settings.subscribe(refresh);
 			runtime.subscribe(refresh);
@@ -3662,12 +3682,13 @@ a:focus > .cp-settings-entry {
 		"settings.sites": "Sites",
 		"settings.invalidValue": "This value is not valid.",
 		"settings.reloadNotice": "Reload the page to apply your changes.",
-		"settings.reload": "Reload",
-		"settings.export": "Export settings",
-		"settings.import": "Import settings",
+		"settings.reload": "Reload page",
+		"settings.backup": "Backup",
+		"settings.export": "Back up settings to a file",
+		"settings.import": "Restore settings from a file",
 		"settings.importFailed": "The settings file could not be read.",
 		"settings.reset": "Reset to defaults",
-		"settings.resetConfirm": "All settings will be reset to their defaults. Continue?",
+		"settings.resetConfirm": "The settings of all sites will be reset to their defaults. Continue?",
 		"update.check": "Check for updates",
 		"update.install": "Update to",
 		"update.upToDate": "Up to date",
@@ -3928,12 +3949,13 @@ a:focus > .cp-settings-entry {
 		"settings.sites": "サイト",
 		"settings.invalidValue": "値の形式が正しくありません。",
 		"settings.reloadNotice": "変更を反映するには再読み込みしてください。",
-		"settings.reload": "再読み込み",
-		"settings.export": "設定を書き出す",
-		"settings.import": "設定を読み込む",
+		"settings.reload": "ページを再読み込み",
+		"settings.backup": "設定のバックアップ",
+		"settings.export": "設定をファイルにバックアップ",
+		"settings.import": "ファイルから設定を復元",
 		"settings.importFailed": "設定ファイルを読み込めませんでした。",
-		"settings.reset": "初期状態に戻す",
-		"settings.resetConfirm": "すべての設定を初期状態に戻します。よろしいですか?",
+		"settings.reset": "初期設定に戻す",
+		"settings.resetConfirm": "すべてのサイトの設定を初期設定に戻します。よろしいですか?",
 		"update.check": "更新を確認",
 		"update.install": "更新する",
 		"update.upToDate": "最新です",
