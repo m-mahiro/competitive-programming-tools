@@ -5,7 +5,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {stripAnsi} from "../utils/color";
 import {CommandEngine, type CommandLanguage, expandArguments} from "./commandEngine";
-import {canRewriteDebugFlag, DEBUG_FLAG_FAMILIES, rewriteDebugFlag} from "./debugFlag";
+import {canRewriteDebugFlag, DEBUG_FLAG_FAMILIES, rewriteDebugFlag} from "@atcoder-tools/shared";
 import {CanceledError, ensureLauncher, findOnPath} from "./processRunner";
 
 describe("expandArguments", () => {

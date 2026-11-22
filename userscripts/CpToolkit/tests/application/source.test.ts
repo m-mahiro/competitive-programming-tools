@@ -1,6 +1,9 @@
 import {describe, expect, test} from "bun:test";
 import type {CodeEditor} from "@application/ports/code-editor";
+import {LocalRunnerClient} from "@application/execution/local-runner";
 import {PastePipeline} from "@application/source/paste-pipeline";
+import {transformSubmission} from "@application/source/submission-transform";
+import {FakeHttpClient} from "../support/fakes";
 
 describe("PastePipeline", () => {
 	const target = {editor: "ace", editorElements: ["#editor"], submitButtons: []} as const;
@@ -20,7 +23,7 @@ describe("PastePipeline", () => {
 				paste = listener;
 			},
 			onChange: () => undefined,
-			foldLines: () => undefined,
+			foldTopLevel: () => undefined,
 		};
 		return {editor, paste: () => paste(value), edit: (next: string) => void (value = next)};
 	}
@@ -87,5 +90,28 @@ describe("PastePipeline", () => {
 		await flush();
 		expect(originals).toEqual(["code"]);
 		expect(editor.getValue()).toBe("code!");
+	});
+});
+
+describe("transformSubmission の Local Runner がないときの変換", () => {
+	const offline = new LocalRunnerClient(new FakeHttpClient(() => ({status: 500, text: ""})), () => null);
+	const python = {id: "1", label: "Python", family: "python3"};
+	const options = {debugFlag: "DEBUG", libraryPackage: ""};
+
+	test("Java 以外の言語でも、デバッグ用の変数を false にする", async () => {
+		const result = await transformSubmission("DEBUG = True\nprint(1)\n", python, offline, options);
+		expect(result).toEqual({sourceCode: "DEBUG = False\nprint(1)\n", via: "fallback", failure: null});
+	});
+
+	test("宣言が2つあって決められなければ、元のコードを残して知らせる", async () => {
+		const code = "DEBUG = True\nDEBUG = False\n";
+		const result = await transformSubmission(code, python, offline, options);
+		expect(result.sourceCode).toBe(code);
+		expect(result.failure?.diagnostics).toContain("debug flag");
+	});
+
+	test("名前を設定しなければ変えない", async () => {
+		const code = "DEBUG = True\n";
+		expect((await transformSubmission(code, python, offline, {...options, debugFlag: ""})).sourceCode).toBe(code);
 	});
 });

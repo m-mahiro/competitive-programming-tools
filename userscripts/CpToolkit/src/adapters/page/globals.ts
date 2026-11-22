@@ -7,6 +7,7 @@ export type AceSession = {
 	setValue(value: string): void;
 	getMode(): {$id?: string};
 	getAllFolds(): AceFold[];
+	getLength(): number;
 	expandFold(fold: AceFold): void;
 	getFoldWidget(row: number): unknown;
 	getFoldWidgetRange(row: number): unknown;

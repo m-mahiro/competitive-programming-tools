@@ -1,6 +1,6 @@
-import {isIdentifier} from "@atcoder-tools/shared";
+import {isIdentifier} from "./utils";
 
-// コマンドで動かす言語の、デバッグ用の変数(debugFlag)の書き換え。
+// デバッグ用の変数(debugFlag)の書き換え。Local Runner のコマンドで動かす言語と、CP Toolkit の Local Runner がないときの変換で使う。
 // 言語ごとの違いは、コメントと文字列の書き方(字句の規則)と、対象の宣言の形だけにし、DEBUG_FLAG_SYNTAXES に登録する。
 // 書き換えるのは、ブロックの外にある宣言・代入がちょうど1つのときだけ。
 

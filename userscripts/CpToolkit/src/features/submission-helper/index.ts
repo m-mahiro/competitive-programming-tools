@@ -60,7 +60,7 @@ export const submissionHelper = defineFeature({
 	options: {
 		debugFlag: sharedAcrossSites(option.text("", "submissionHelper.debugFlag")),
 		libraryPackage: sharedAcrossSites(option.text("", "submissionHelper.libraryPackage")),
-		foldOnPaste: option.boolean(true, "submissionHelper.foldOnPaste"),
+		foldOnPaste: option.boolean(false, "submissionHelper.foldOnPaste"),
 	},
 	async start(services) {
 		const {options, judge, editors, localRunner, paste, translate, submissionForm} = services;
@@ -80,11 +80,6 @@ export const submissionHelper = defineFeature({
 		};
 		const fallbackOptions: FallbackOptions = {debugFlag: options.debugFlag.trim(), libraryPackage: options.libraryPackage.trim()};
 		const lookup = {delayMs: EDITOR_SETUP_DELAY_MS};
-		const fold = (editor: CodeEditor): void => {
-			const language = languageOf(editor);
-			const lines = language ? languageSupport(language.family).foldStartLines?.(editor.getValue()) : undefined;
-			if (lines) editor.foldLines(lines);
-		};
 		void editors.locate(target, lookup).then((editor) => {
 			if (editor) form.observe(editor);
 		});
@@ -107,7 +102,7 @@ export const submissionHelper = defineFeature({
 				const key = form.contextKey(editor);
 				const code = editor.getValue();
 				setTimeout(() => {
-					if (key === form.contextKey(editor) && editor.getValue() === code) fold(editor);
+					if (key === form.contextKey(editor) && editor.getValue() === code) editor.foldTopLevel();
 				}, FOLD_DELAY_MS);
 			},
 		});

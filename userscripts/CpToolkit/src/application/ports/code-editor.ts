@@ -26,8 +26,8 @@ export interface CodeEditor {
 
 	onChange(listener: () => void): void;
 
-	/** 指定した行(0 始まり)から始まるブロックを折りたたむ。 */
-	foldLines(lines: readonly number[]): void;
+	/** いちばん外側のブロック(とコメント)だけを折りたたむ。入れ子のブロックは折りたたまない。 */
+	foldTopLevel(): void;
 
 	/** カーソルを含む、まだ折りたたんでいない最も内側のブロックを折りたたむ。エディタが扱えなければ false。 */
 	foldAtCursor?(): boolean;

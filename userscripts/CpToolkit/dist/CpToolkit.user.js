@@ -480,6 +480,244 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return `${base}?${params.toString()}`;
 	}
 
+	// ../shared/src/utils.ts
+	function normalizeNewlines(text) {
+		return text.replace(
+			/\r\n?/g,
+			`
+`,
+		);
+	}
+
+	var IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+	function isIdentifier(name) {
+		return IDENTIFIER.test(name);
+	}
+
+	// ../shared/src/debug-flag.ts
+	function lineEnd(source, from) {
+		const match = /[\r\n]/g;
+		match.lastIndex = from;
+		return match.exec(source)?.index ?? source.length;
+	}
+
+	function afterNewline(source, index) {
+		return (
+			index +
+			(source.startsWith(
+				`\r
+`,
+				index,
+			)
+				? 2
+				: 1)
+		);
+	}
+
+	var lineComment =
+		(marker, continued = false) =>
+		(source, at) => {
+			if (!source.startsWith(marker, at)) return null;
+			let end = lineEnd(source, at);
+			while (continued && end < source.length && source[end - 1] === "\\")
+				end = lineEnd(source, afterNewline(source, end));
+			return {end, literal: false};
+		};
+	var blockComment = (open, close) => (source, at) => {
+		if (!source.startsWith(open, at)) return null;
+		const end = source.indexOf(close, at + open.length);
+		return {end: end < 0 ? source.length : end + close.length, literal: false};
+	};
+	var quoted =
+		(quote, {escapes = true, multiline = false} = {}) =>
+		(source, at) => {
+			if (!source.startsWith(quote, at)) return null;
+			for (let i = at + quote.length; i < source.length; i++) {
+				if (escapes && source[i] === "\\") i++;
+				else if (
+					!multiline &&
+					(source[i] ===
+						`
+` ||
+						source[i] === "\r")
+				)
+					return {end: i, literal: true};
+				else if (source.startsWith(quote, i)) return {end: i + quote.length, literal: true};
+			}
+			return {end: source.length, literal: true};
+		};
+	var rawQuoted = (open, closeOf) => (source, at) => {
+		const match = open.exec(source.slice(at, at + 40));
+		if (!match || match.index !== 0) return null;
+		const close = closeOf(match);
+		const end = source.indexOf(close, at + match[0].length);
+		return {end: end < 0 ? source.length : end + close.length, literal: true};
+	};
+	var numberLiteral = (source, at) => {
+		if (!/[0-9]/.test(source[at] ?? "") || /[\w$]/.test(source[at - 1] ?? "")) return null;
+		let end = at + 1;
+		while (end < source.length && /[\w']/.test(source[end])) end++;
+		return {end, literal: false};
+	};
+	var rustChar = (source, at) => {
+		const match = /^'(?:\\(?:u\{[0-9a-fA-F]+\}|x[0-9a-fA-F]{2}|.)|[^'\\\r\n])'/u.exec(source.slice(at, at + 12));
+		return match ? {end: at + match[0].length, literal: true} : null;
+	};
+
+	function pythonStringEnd(source, start) {
+		const quote = source[start];
+		const delimiter = source.startsWith(quote.repeat(3), start) ? quote.repeat(3) : quote;
+		const formatted = /^(?:f|fr|rf)$/i.test(
+			source.slice(Math.max(0, start - 2), start).match(/[a-z]+$/i)?.[0] ?? "",
+		);
+		let braces = 0;
+		for (let i = start + delimiter.length; i < source.length; i++) {
+			const ch = source[i];
+			if (ch === "\\") {
+				i += source.startsWith(
+					`\r
+`,
+					i + 1,
+				)
+					? 2
+					: 1;
+			} else if (braces > 0) {
+				if (ch === "'" || ch === '"') i = pythonStringEnd(source, i) - 1;
+				else if (ch === "#") i = lineEnd(source, i) - 1;
+				else if (ch === "{") braces++;
+				else if (ch === "}") braces--;
+			} else if (source.startsWith(delimiter, i)) {
+				return i + delimiter.length;
+			} else if (formatted && ch === "{") {
+				if (source[i + 1] === "{") i++;
+				else braces = 1;
+			}
+		}
+		return source.length;
+	}
+
+	var pythonString = (source, at) => {
+		return source[at] === "'" || source[at] === '"' ? {end: pythonStringEnd(source, at), literal: true} : null;
+	};
+	var C_FAMILY_DECLARATION = (flag) =>
+		new RegExp(
+			String.raw`^([ \t]*(?:(?:static|const|constexpr|constinit|inline|volatile|extern)[ \t]+)*(?:bool|_Bool|auto)[ \t]+${flag}[ \t]*=[ \t]*)(true|false)[ \t]*;`,
+		);
+	var C_SCANNERS = [numberLiteral, lineComment("//", true), blockComment("/*", "*/"), quoted('"'), quoted("'")];
+	var DEBUG_FLAG_SYNTAXES = {
+		python3: {
+			scanners: [lineComment("#"), pythonString],
+			declaration: (flag) =>
+				new RegExp(String.raw`^(${flag}[ \t]*(?::[ \t]*bool[ \t]*)?=[ \t]*)(True|False)[ \t]*;?[ \t]*$`),
+			literals: ["False", "True"],
+			scope: "indent",
+		},
+		c: {
+			scanners: C_SCANNERS,
+			declaration: C_FAMILY_DECLARATION,
+			literals: ["false", "true"],
+			scope: "braces",
+			preprocessor: true,
+		},
+		cpp: {
+			scanners: [rawQuoted(/R"([^\s\\()]{0,16})\(/, (match) => `)${match[1]}"`), ...C_SCANNERS],
+			declaration: C_FAMILY_DECLARATION,
+			literals: ["false", "true"],
+			scope: "braces",
+			preprocessor: true,
+		},
+		go: {
+			scanners: [
+				lineComment("//"),
+				blockComment("/*", "*/"),
+				quoted('"'),
+				quoted("'"),
+				quoted("`", {escapes: false, multiline: true}),
+			],
+			declaration: (flag) =>
+				new RegExp(
+					String.raw`^([ \t]*(?:const|var)[ \t]+${flag}(?:[ \t]+bool)?[ \t]*=[ \t]*)(true|false)[ \t]*;?[ \t]*(?:$|//)`,
+				),
+			literals: ["false", "true"],
+			scope: "braces",
+		},
+		rust: {
+			scanners: [
+				lineComment("//"),
+				blockComment("/*", "*/"),
+				rawQuoted(/b?r(#*)"/, (match) => `"${match[1]}`),
+				quoted('"', {multiline: true}),
+				rustChar,
+			],
+			declaration: (flag) =>
+				new RegExp(
+					String.raw`^([ \t]*(?:pub(?:\([^)]*\))?[ \t]+)?(?:const|static)[ \t]+${flag}[ \t]*:[ \t]*bool[ \t]*=[ \t]*)(true|false)[ \t]*;`,
+				),
+			literals: ["false", "true"],
+			scope: "braces",
+		},
+	};
+	var DEBUG_FLAG_FAMILIES = Object.keys(DEBUG_FLAG_SYNTAXES);
+
+	function masked(source, scanners) {
+		const parts = [];
+		for (let i = 0; i < source.length;) {
+			let token = null;
+			for (const scanner of scanners) {
+				token = scanner(source, i);
+				if (token) break;
+			}
+			if (!token || token.end <= i) {
+				parts.push(source[i++]);
+				continue;
+			}
+			const text = source.slice(i, token.end);
+			if (token.literal) {
+				let mask = text.replace(/[^\r\n]/g, " ");
+				mask = "@" + mask.slice(1);
+				parts.push(mask);
+			} else {
+				parts.push(/^[0-9]/.test(text) ? text : text.replace(/[^\r\n]/g, " "));
+			}
+			i = token.end;
+		}
+		return parts.join("");
+	}
+
+	function rewriteDebugFlag(source, flag, debug, family) {
+		const syntax = DEBUG_FLAG_SYNTAXES[family];
+		if (!syntax || !isIdentifier(flag)) return source;
+		const code = masked(source, syntax.scanners);
+		const pattern = syntax.declaration(flag);
+		let depth = 0;
+		let continued = false;
+		let found = null;
+		for (let lineStart = 0; lineStart < code.length;) {
+			const end = lineEnd(code, lineStart);
+			const line = code.slice(lineStart, end);
+			const preprocessor = syntax.preprocessor === true && line.trimStart().startsWith("#");
+			if (!continued && !preprocessor && depth === 0) {
+				const declaration = pattern.exec(line);
+				if (declaration) {
+					if (found) return null;
+					const start = lineStart + declaration[1].length;
+					found = {start, end: start + declaration[2].length};
+				}
+			}
+			if (!preprocessor && (syntax.scope === "indent" || !continued)) {
+				for (const ch of line) {
+					if ("([{".includes(ch)) depth++;
+					else if (")]}".includes(ch)) depth--;
+				}
+			}
+			continued = line.endsWith("\\");
+			lineStart = end < code.length ? afterNewline(code, end) : end + 1;
+		}
+		if (!found) return source;
+		return source.slice(0, found.start) + syntax.literals[debug ? 1 : 0] + source.slice(found.end);
+	}
+
 	// ../shared/src/easy-test-judge.ts
 	var FLOAT_PATTERN = /^[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?$/;
 
@@ -568,15 +806,6 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			if (part === "*") break;
 		}
 		return tokens[index]?.text === ";" ? {name, end: index} : null;
-	}
-
-	// ../shared/src/utils.ts
-	function normalizeNewlines(text) {
-		return text.replace(
-			/\r\n?/g,
-			`
-`,
-		);
 	}
 
 	// ../shared/src/java-imports.ts
@@ -3878,10 +4107,10 @@ a:focus > .cp-settings-entry {
 		"submissionHelper.transformFailed": "Local Runner could not transform the code",
 		"submissionHelper.diagnostics": "Full diagnostics",
 		"submissionHelper.debugFlag":
-			"Java variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)",
+			"Debug variable to set to false without Local Runner (e.g. DEBUG; leave empty to keep it)",
 		"submissionHelper.libraryPackage":
 			"Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)",
-		"submissionHelper.foldOnPaste": "Fold Java classes and comments after pasting",
+		"submissionHelper.foldOnPaste": "Fold the outermost blocks and comments after pasting",
 		"easyTest.submitChanged":
 			"Submission canceled because the source, task, language or runner changed. The test results are still available.",
 		"easyTest.title": "Easy Test+",
@@ -4138,10 +4367,10 @@ a:focus > .cp-settings-entry {
 		"submissionHelper.transformFailed": "Local Runner で変換できませんでした",
 		"submissionHelper.diagnostics": "診断の全文",
 		"submissionHelper.debugFlag":
-			"Local Runner がないときに false にする Java の変数の名前（例：DEBUG。空欄なら変えない）",
+			"Local Runner がないときに false にするデバッグ用の変数の名前（例：DEBUG。空欄なら変えない）",
 		"submissionHelper.libraryPackage":
 			"Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）",
-		"submissionHelper.foldOnPaste": "貼り付け後に Java のクラスとコメントを折りたたむ",
+		"submissionHelper.foldOnPaste": "貼り付け後に、いちばん外側のブロックとコメントを折りたたむ",
 		"easyTest.submitChanged":
 			"テスト中に提出内容または実行環境が変わったため、提出を取り消しました。結果はテスト欄で確認できます。",
 		"easyTest.title": "Easy Test+",
@@ -5709,16 +5938,18 @@ ${reason}`
 			this.editor.getSession().on("change", listener);
 		}
 
-		foldLines(lines) {
+		foldTopLevel() {
 			const session = this.editor.getSession();
-			const folded = new Set(session.getAllFolds().map((fold) => fold.start.row));
-			for (const line of lines) {
-				if (folded.has(line)) continue;
+			const rows = session.getLength();
+			for (let row = 0; row < rows; row++) {
+				if (session.getFoldWidget(row) !== "start") continue;
+				const range = session.getFoldWidgetRange(row);
+				if (!range || range.end.row <= row) continue;
 				try {
-					const range = session.getFoldWidget(line) ? session.getFoldWidgetRange(line) : null;
-					if (range) session.addFold("...", range);
+					session.addFold("...", range);
 				} catch {
 				}
+				row = range.end.row;
 			}
 		}
 
@@ -5811,22 +6042,8 @@ ${reason}`
 			this.model.onDidChangeContent(listener);
 		}
 
-		foldLines(lines) {
-			const action = this.editor.getAction("editor.fold");
-			if (!action) return;
-			const position = this.editor.getPosition();
-			(async () => {
-				try {
-					for (const line of lines) {
-						this.editor.setPosition({lineNumber: line + 1, column: 1});
-						await action.run();
-					}
-				} finally {
-					this.editor.setPosition(position);
-				}
-			})().catch(() => {
-				return;
-			});
+		foldTopLevel() {
+			this.runAction("editor.foldLevel1");
 		}
 
 		foldAtCursor() {
@@ -5911,7 +6128,7 @@ ${reason}`
 			if (this.element instanceof HTMLTextAreaElement) this.element.readOnly = false;
 		}
 
-		foldLines() {
+		foldTopLevel() {
 		}
 
 		onChange(listener) {
@@ -5952,7 +6169,7 @@ ${reason}`
 			onLanguageChange: (listener) => richEditor(target)?.onLanguageChange?.(listener),
 			isReadOnly: () => current()?.isReadOnly() ?? true,
 			setWritable: () => current()?.setWritable(),
-			foldLines: (lines) => current()?.foldLines(lines),
+			foldTopLevel: () => current()?.foldTopLevel(),
 			foldAtCursor: () => current()?.foldAtCursor?.() ?? false,
 			unfoldAtCursor: () => current()?.unfoldAtCursor?.() ?? false,
 			onChange: (listener) => current()?.onChange(listener),
@@ -10321,29 +10538,20 @@ ${efficient_layout_default}`);
 		return `${code.slice(0, index)}${next}${code.slice(index + current.length)}`;
 	}
 
-	// CpToolkit/src/domain/source/fold-lines.ts
-	var FOLDABLE_TYPE_PATTERN =
-		/^\s*(?:(?:public|protected|private|abstract|final|static|sealed|non-sealed|strictfp)\s+)*(?:class|interface|enum|record|@interface)\b/;
-	var BLOCK_COMMENT_PATTERN = /^\s*\/\*/;
-
-	function findFoldStartLines(source) {
-		return source
-			.split(
-				`
-`,
-			)
-			.flatMap((line, index) => {
-				return FOLDABLE_TYPE_PATTERN.test(line) || BLOCK_COMMENT_PATTERN.test(line) ? [index] : [];
-			});
-	}
-
 	// CpToolkit/src/application/source/submission-transform.ts
+	var debugFlagSupport = (family) => ({
+		fallback(code, {debugFlag}) {
+			if (debugFlag === "") return {sourceCode: code, issue: null};
+			const sourceCode = rewriteDebugFlag(code, debugFlag, false, family);
+			return sourceCode === null ? {sourceCode: code, issue: "ambiguousDebugFlag"} : {sourceCode, issue: null};
+		},
+	});
 	var LANGUAGE_SUPPORT = {
+		...Object.fromEntries(DEBUG_FLAG_FAMILIES.map((family) => [family, debugFlagSupport(family)])),
 		java: {
 			fallback: (code, {debugFlag}) => transformJavaForSubmission(code, {debugFlag}),
 			needsLocalRunner: (code, {libraryPackage}) => libraryPackage !== "" && importsPackage(code, libraryPackage),
 			unresolvedImports,
-			foldStartLines: findFoldStartLines,
 		},
 	};
 
@@ -10383,6 +10591,7 @@ ${efficient_layout_default}`);
 		if (!fallback) return {sourceCode: code, via: "none", failure: null};
 		const {sourceCode, issue} = fallback(code, options);
 		const reasons = {
+			ambiguousDebugFlag: "More than one declaration of the debug flag was found outside blocks.",
 			mainNotFound: "No supported Java main method was found.",
 			ambiguousMain: "More than one Java entry point was found.",
 			nameCollision: "Renaming the entry class would cause a name collision.",
@@ -10459,7 +10668,7 @@ ${efficient_layout_default}`);
 		options: {
 			debugFlag: sharedAcrossSites(option.text("", "submissionHelper.debugFlag")),
 			libraryPackage: sharedAcrossSites(option.text("", "submissionHelper.libraryPackage")),
-			foldOnPaste: option.boolean(true, "submissionHelper.foldOnPaste"),
+			foldOnPaste: option.boolean(false, "submissionHelper.foldOnPaste"),
 		},
 		async start(services) {
 			const {options, judge, editors, localRunner, paste, translate, submissionForm} = services;
@@ -10483,13 +10692,6 @@ ${efficient_layout_default}`);
 				libraryPackage: options.libraryPackage.trim(),
 			};
 			const lookup = {delayMs: EDITOR_SETUP_DELAY_MS};
-			const fold = (editor) => {
-				const language = languageOf(editor);
-				const lines = language
-					? languageSupport(language.family).foldStartLines?.(editor.getValue())
-					: undefined;
-				if (lines) editor.foldLines(lines);
-			};
 			editors.locate(target, lookup).then((editor) => {
 				if (editor) form.observe(editor);
 			});
@@ -10511,7 +10713,7 @@ ${efficient_layout_default}`);
 					const key = form.contextKey(editor);
 					const code = editor.getValue();
 					setTimeout(() => {
-						if (key === form.contextKey(editor) && editor.getValue() === code) fold(editor);
+						if (key === form.contextKey(editor) && editor.getValue() === code) editor.foldTopLevel();
 					}, FOLD_DELAY_MS);
 				},
 			});

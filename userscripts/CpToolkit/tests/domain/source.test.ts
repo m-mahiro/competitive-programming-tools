@@ -1,6 +1,5 @@
 import {describe, expect, test} from "bun:test";
 import {fillVariables, insertFooter, insertHeader, isWholeCode, replaceBlock, toComment} from "@domain/source/comment";
-import {findFoldStartLines} from "@domain/source/fold-lines";
 import {withoutPublicTypes} from "@domain/source/java-public";
 
 describe("ヘッダーとフッター", () => {
@@ -58,13 +57,6 @@ describe("ヘッダーとフッター", () => {
 		expect(replaceBlock("// a\ncode\n", "// a\n", "# a\n", false)).toBe("# a\ncode\n");
 		expect(replaceBlock("x\ny\nx\n", "x\n", "z\n", true)).toBe("x\ny\nz\n");
 		expect(replaceBlock("code\n", "// a\n", "", false)).toBeNull();
-	});
-});
-
-describe("Java の折りたたみ", () => {
-	test("型の宣言とコメントの開始行を返す", () => {
-		const source = ["/* a */", "import java.util.*;", "public final class Main {", "\tvoid f() {}", "}", "record P() {}"].join("\n");
-		expect(findFoldStartLines(source)).toEqual([0, 2, 5]);
 	});
 });
 

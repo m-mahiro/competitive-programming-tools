@@ -56,7 +56,7 @@ function createContext(localRunner: LocalRunnerClient = offline) {
 			onPaste = listener;
 		},
 		onChange: () => undefined,
-		foldLines: () => undefined,
+		foldTopLevel: () => undefined,
 	};
 	const site = {
 		id: "atcoder",

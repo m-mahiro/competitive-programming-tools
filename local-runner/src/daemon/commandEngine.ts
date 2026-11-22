@@ -5,7 +5,7 @@ import path from "node:path";
 import {stripAnsi} from "../utils/color";
 import {formatCompileSummary} from "../utils/formatter";
 import {ensureHeaderUnit} from "./headerUnit";
-import {canRewriteDebugFlag, DEBUG_FLAG_FAMILIES, rewriteDebugFlag} from "./debugFlag";
+import {canRewriteDebugFlag, DEBUG_FLAG_FAMILIES, rewriteDebugFlag} from "@atcoder-tools/shared";
 import {CanceledError, type ProcessOutcome, runCommand, runMeasured} from "./processRunner";
 
 /** コンパイルと実行をコマンドで行う言語。設定の languages から作る。 */

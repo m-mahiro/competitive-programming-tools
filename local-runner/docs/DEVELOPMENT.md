@@ -63,7 +63,7 @@ CLI の AtCoder タスク ID の復元は `cli/taskScreenName.ts` が行い、�
 
 `commandEngine.ts` は設定を直接読まず、言語の定義と上限を引数で受け取ります。テストは、PATH の `python3` と `cc` で言語を定義して動かします。
 
-コマンドで動かす言語のデバッグ用の変数(`debugFlag`)は `debugFlag.ts` が書き換えます。言語ごとの違いはコメントと文字列の書き方と宣言の形だけで、`DEBUG_FLAG_SYNTAXES` に登録すると言語を足せます。足したら、[設定](SETTINGS.md)の対応する言語の表も直します。
+コマンドで動かす言語のデバッグ用の変数(`debugFlag`)は、共通のコードの `shared/src/debug-flag.ts` が書き換えます。CP Toolkit も、Local Runner がないときの変換で同じものを使います。言語ごとの違いはコメントと文字列の書き方と宣言の形だけで、`DEBUG_FLAG_SYNTAXES` に登録すると言語を足せます。足したら、[設定](SETTINGS.md)の対応する言語の表と、CP Toolkit の提出補助の文書も直します。
 
 - コンパイルの結果は、言語、コンパイルの引数、ソースから決めた `programId` で使い回します。保存は `/dev/shm` の作業フォルダで、サーバーを起動し直しても残っていれば使います(WSL を再起動すると消える)。
 - コンパイルの記録は、Java も含めて `[Compile] Lang=<言語> Status=<OK|NG|CACHED|CANCELED> Time=<時間> Id=<programId>` の形にそろえます。`CACHED` は、コンパイルせずに前の結果を使ったことを、`CANCELED` は新しいソースが届いて中断したことを表します。実行の記録は `[Run] Lang=<言語> Mode=<経路> Status=... Wait=... Exec=... Total=...` で残します。`Wait` はサーバーが実行の要求を受け取ってから実行が始まるまで(コンパイル待ちと、実行の順番待ちを含む)、`Exec` は実行そのもの、`Total` は結果が出るまでの時間です。

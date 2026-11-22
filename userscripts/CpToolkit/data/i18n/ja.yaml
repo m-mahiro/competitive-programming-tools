@@ -235,9 +235,9 @@ submissionHelper.localRunnerGuide: Local Runner に接続できなかったの�
 submissionHelper.unresolvedImports: 見つからない import があります
 submissionHelper.transformFailed: Local Runner で変換できませんでした
 submissionHelper.diagnostics: 診断の全文
-submissionHelper.debugFlag: Local Runner がないときに false にする Java の変数の名前（例：DEBUG。空欄なら変えない）
+submissionHelper.debugFlag: Local Runner がないときに false にするデバッグ用の変数の名前（例：DEBUG。空欄なら変えない）
 submissionHelper.libraryPackage: Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）
-submissionHelper.foldOnPaste: 貼り付け後に Java のクラスとコメントを折りたたむ
+submissionHelper.foldOnPaste: 貼り付け後に、いちばん外側のブロックとコメントを折りたたむ
 
 easyTest.submitChanged: テスト中に提出内容または実行環境が変わったため、提出を取り消しました。結果はテスト欄で確認できます。
 easyTest.title: Easy Test+

@@ -37,7 +37,7 @@ describe("submissionHelper", () => {
 				paste = listener;
 			},
 			onChange: () => undefined,
-			foldLines: mock(() => undefined),
+			foldTopLevel: mock(() => undefined),
 		};
 		return {editor, paste: (pasted = value) => paste(pasted)};
 	}

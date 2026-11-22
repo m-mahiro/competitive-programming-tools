@@ -62,17 +62,20 @@ class AceCodeEditor implements CodeEditor {
 		this.editor.getSession().on("change", listener);
 	}
 
-	foldLines(lines: readonly number[]): void {
+	foldTopLevel(): void {
 		const session = this.editor.getSession();
-		const folded = new Set(session.getAllFolds().map((fold) => fold.start.row));
-		for (const line of lines) {
-			if (folded.has(line)) continue;
+		const rows = session.getLength();
+		for (let row = 0; row < rows; row++) {
+			if (session.getFoldWidget(row) !== "start") continue;
+			const range = session.getFoldWidgetRange(row) as AceFold | null;
+			if (!range || range.end.row <= row) continue;
 			try {
-				const range = session.getFoldWidget(line) ? session.getFoldWidgetRange(line) : null;
-				if (range) session.addFold("...", range);
+				session.addFold("...", range);
 			} catch {
-				// 既存の折りたたみと重なる行は飛ばす
+				// すでに折りたたんであるブロックはそのままにする
 			}
+			// ブロックの中は入れ子なので飛ばす
+			row = range.end.row;
 		}
 	}
 
@@ -161,20 +164,8 @@ class MonacoCodeEditor implements CodeEditor {
 		this.model.onDidChangeContent(listener);
 	}
 
-	foldLines(lines: readonly number[]): void {
-		const action = this.editor.getAction("editor.fold");
-		if (!action) return;
-		const position = this.editor.getPosition();
-		void (async () => {
-			try {
-				for (const line of lines) {
-					this.editor.setPosition({lineNumber: line + 1, column: 1});
-					await action.run();
-				}
-			} finally {
-				this.editor.setPosition(position);
-			}
-		})().catch(() => undefined);
+	foldTopLevel(): void {
+		this.runAction("editor.foldLevel1");
 	}
 
 	foldAtCursor(): boolean {
@@ -239,7 +230,7 @@ class NativeSourceEditor implements CodeEditor {
 	identity(): object { return this.view ?? this.element; }
 	isReadOnly(): boolean { return this.element instanceof HTMLTextAreaElement && (this.element.readOnly || this.element.disabled); }
 	setWritable(): void { if (this.element instanceof HTMLTextAreaElement) this.element.readOnly = false; }
-	foldLines(): void {}
+	foldTopLevel(): void {}
 	onChange(listener: () => void): void { this.element.addEventListener("input", listener); }
 	onPaste(listener: Parameters<CodeEditor["onPaste"]>[0]): void {
 		this.element.addEventListener("paste", (event) => {
@@ -270,7 +261,7 @@ function findEditor(target: SubmissionTarget): CodeEditor | null {
 		onLanguageChange: (listener) => richEditor(target)?.onLanguageChange?.(listener),
 		isReadOnly: () => current()?.isReadOnly() ?? true,
 		setWritable: () => current()?.setWritable(),
-		foldLines: (lines) => current()?.foldLines(lines),
+		foldTopLevel: () => current()?.foldTopLevel(),
 		foldAtCursor: () => current()?.foldAtCursor?.() ?? false,
 		unfoldAtCursor: () => current()?.unfoldAtCursor?.() ?? false,
 		onChange: (listener) => current()?.onChange(listener),

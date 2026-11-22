@@ -234,9 +234,9 @@ submissionHelper.localRunnerGuide: Could not connect to Local Runner, so only th
 submissionHelper.unresolvedImports: Some imports could not be found
 submissionHelper.transformFailed: Local Runner could not transform the code
 submissionHelper.diagnostics: Full diagnostics
-submissionHelper.debugFlag: Java variable to set to false when Local Runner is unavailable (e.g. DEBUG; empty to leave it)
+submissionHelper.debugFlag: "Debug variable to set to false without Local Runner (e.g. DEBUG; leave empty to keep it)"
 submissionHelper.libraryPackage: Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)
-submissionHelper.foldOnPaste: Fold Java classes and comments after pasting
+submissionHelper.foldOnPaste: "Fold the outermost blocks and comments after pasting"
 
 easyTest.submitChanged: Submission canceled because the source, task, language or runner changed. The test results are still available.
 easyTest.title: Easy Test+
