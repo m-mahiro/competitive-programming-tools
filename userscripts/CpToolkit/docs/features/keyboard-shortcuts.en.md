@@ -15,7 +15,7 @@
 
 ### Submitting and testing
 
-- If you press the submit key while the [submission helper](java-submit.en.md) is transforming pasted code, the code is submitted after the transform finishes.
+- If you press the submit key while the [submission helper](submission-helper.en.md) is transforming pasted code, the code is submitted after the transform finishes.
 - Folding folds the innermost block around the cursor (such as `{}` or a comment) that is not folded yet. The unfold key opens the fold on the cursor line. Any language works. This does not work in the yukicoder editor.
 - The test keys work on pages where [Easy Test+](easy-test.en.md) is enabled.
 

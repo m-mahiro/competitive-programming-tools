@@ -65,3 +65,8 @@ export function addTooltip(anchor: Tooltip["anchor"], text: Tooltip["text"]): vo
 	}
 	tooltips.push({anchor, text});
 }
+
+/** 登録をすべて外す。テストで、前のテストの登録を持ち越さないために使う。 */
+export function clearTooltips(): void {
+	tooltips.length = 0;
+}

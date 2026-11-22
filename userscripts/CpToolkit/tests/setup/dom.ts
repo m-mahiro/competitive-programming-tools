@@ -1,6 +1,7 @@
 import {beforeEach} from "bun:test";
 import {GlobalRegistrator} from "@happy-dom/global-registrator";
 import {clearShortcuts} from "@ui/shortcuts";
+import {clearTooltips} from "@ui/tooltip/tooltip";
 
 const INITIAL_URL = "https://atcoder.jp/contests/abc420/tasks/abc420_a";
 
@@ -12,6 +13,7 @@ beforeEach(() => {
 	document.body.replaceChildren();
 	localStorage.clear();
 	history.replaceState(null, "", INITIAL_URL);
-	// キー操作の登録はページ全体で1つなので、前のテストの登録を持ち越さない
+	// キー操作とツールチップの登録はページ全体で1つなので、前のテストの登録を持ち越さない
 	clearShortcuts();
+	clearTooltips();
 });

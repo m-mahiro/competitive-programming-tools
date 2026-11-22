@@ -958,32 +958,13 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	var EASY_TEST_KEYS_OFF = {testAndSubmit: "none", testAll: "none", toggleEasyTest: "none"};
 
 	function migrateToVersion2(settings) {
-		const helper = settings.features["java-submit"] ?? {};
-		const {addHeader, headerName, removePackage, renameClass, fixDebug, ...remaining} = helper.options ?? {};
-		const helperDisabled = helper.enabled === false;
-		const features = {
-			...settings.features,
-			"java-submit": {...helper, enabled: helper.enabled ?? true, options: remaining},
-		};
-		const comments = settings.features["source-comments"];
-		const commentOptions = {...comments?.options};
-		if (commentOptions.runnerHeader === undefined && (helperDisabled || addHeader === false))
-			commentOptions.runnerHeader = "none";
-		if (commentOptions.runnerHeaderName === undefined && typeof headerName === "string" && headerName !== "") {
-			commentOptions.runnerHeaderName = headerName;
-		}
-		if (comments || Object.keys(commentOptions).length > 0)
-			features["source-comments"] = {...comments, options: commentOptions};
 		const easyTest = settings.features["easy-test"];
-		const {keyboardShortcuts, ...easyTestOptions} = easyTest?.options ?? {};
-		if (easyTest) features["easy-test"] = {...easyTest, options: easyTestOptions};
-		const disabledKeys = {
-			...(helperDisabled ? {submit: "none"} : {}),
-			...(keyboardShortcuts === false ? EASY_TEST_KEYS_OFF : {}),
-		};
-		if (Object.keys(disabledKeys).length > 0) {
+		if (!easyTest) return settings;
+		const {keyboardShortcuts, ...easyTestOptions} = easyTest.options ?? {};
+		const features = {...settings.features, "easy-test": {...easyTest, options: easyTestOptions}};
+		if (keyboardShortcuts === false) {
 			const shortcuts = settings.features["keyboard-shortcuts"];
-			features["keyboard-shortcuts"] = {...shortcuts, options: {...disabledKeys, ...shortcuts?.options}};
+			features["keyboard-shortcuts"] = {...shortcuts, options: {...EASY_TEST_KEYS_OFF, ...shortcuts?.options}};
 		}
 		return {...settings, features};
 	}
@@ -1129,12 +1110,12 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		listeners = new Set();
 		store;
 
-		constructor(store, {installedBefore = false} = {}) {
+		constructor(store) {
 			this.store = store;
 			const stored = store.get(STORAGE_KEY);
 			const raw = typeof stored === "string" ? safeJsonParse(stored, null) : stored;
 			const fresh = raw === null || raw === undefined;
-			this.settings = fresh && !installedBefore ? createDefaultSettings() : parseSettings(fresh ? {} : raw);
+			this.settings = fresh ? createDefaultSettings() : parseSettings(raw);
 			const storedVersion =
 				raw && typeof raw === "object" && !Array.isArray(raw) && "version" in raw ? raw.version : undefined;
 			if (storedVersion !== this.settings.version) store.set(STORAGE_KEY, this.settings);
@@ -1291,10 +1272,6 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 
 		constructor(dependencies) {
 			this.dependencies = dependencies;
-		}
-
-		hasCheckedBefore() {
-			return this.dependencies.state.get(STATE_KEY) !== undefined;
 		}
 
 		status() {
@@ -10415,7 +10392,7 @@ ${efficient_layout_default}`);
 		return {sourceCode, via: "fallback", failure: issue ? {diagnostics: reasons[issue], items: []} : null};
 	}
 
-	// CpToolkit/src/features/java-submit/index.ts
+	// CpToolkit/src/features/submission-helper/index.ts
 	var FOLD_DELAY_MS = 100;
 	var PASTE_ORDER = 10;
 	var LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
@@ -10463,7 +10440,7 @@ ${efficient_layout_default}`);
 	}
 
 	var submissionHelper = defineFeature({
-		id: "java-submit",
+		id: "submission-helper",
 		title: "submissionHelper.title",
 		description: "submissionHelper.description",
 		category: "category.execution",
@@ -13172,7 +13149,7 @@ ${wide_layout_default}`);
 			allowedHosts: updateCatalog.connect,
 			intervalHours: updateCatalog.checkIntervalHours,
 		});
-		const settings = new SettingsService(store, {installedBefore: updates.hasCheckedBefore()});
+		const settings = new SettingsService(store);
 		importLegacySettings(new LocalStorageLegacyInbox(), settings);
 		const page = matchPage(judges, location.href);
 		const siteSettings = settings.forSite(page?.judge.id ?? null);

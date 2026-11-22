@@ -1,12 +1,12 @@
 # 提出補助
 
-[機能一覧へ戻る](../../README.md#4-機能一覧) ・ [English](java-submit.en.md)
+[機能一覧へ戻る](../../README.md#4-機能一覧) ・ [English](submission-helper.en.md)
 
 > 貼り付けたコードを提出用に変換します。
 
 **この機能は既定で OFF です。設定画面で有効にしてください。**
 
-<p><img src="../images/java-submit.png" alt="Local Runner で変換したコード"><br><sub>Local Runner で変換した Java のコード。クラス名は <code>Main</code> になり、<code>lib</code> の import はコメントに変わり、使ったライブラリのクラスが末尾に入って折りたたまれます。</sub></p>
+<p><img src="../images/submission-helper.png" alt="Local Runner で変換したコード"><br><sub>Local Runner で変換した Java のコード。クラス名は <code>Main</code> になり、<code>lib</code> の import はコメントに変わり、使ったライブラリのクラスが末尾に入って折りたたまれます。</sub></p>
 
 ## 使い方
 
@@ -17,7 +17,7 @@
 - 提出用のヘッダーは[コードのヘッダーとフッター](source-comments.md)が付けます。
 - 変換とヘッダーの取得中に提出を押すと、完了まで待ちます。待機中に問題・言語・本文が変わった場合や変換に失敗した場合は、提出を取り消します。見つからない import の名前や最初のエラーを通知し、「診断の全文」から詳細を確認できます。
 
-<p><img src="../images/java-submit-imports.png" alt="見つからない import の通知"><br><sub>見つからない import があると、名前を通知します。「診断の全文」で詳細を開けます。</sub></p>
+<p><img src="../images/submission-helper-imports.png" alt="見つからない import の通知"><br><sub>見つからない import があると、名前を通知します。「診断の全文」で詳細を開けます。</sub></p>
 
 ## Java
 

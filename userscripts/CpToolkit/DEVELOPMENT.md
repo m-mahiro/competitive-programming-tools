@@ -95,7 +95,7 @@ app ──► features ──► application ──► catalog ──► domain 
 | 全体の規則、データ、配布物                | `tests/architecture.test.ts`、`tests/data.test.ts`、`tests/bundle.test.ts` |
 
 - サービスの代役は `tests/support/fakes.ts`、画面の操作(待つ、キーを押す、カーソルを乗せる)は `tests/support/dom.ts` に置き、各ファイルで作り直しません。
-- DOM、`localStorage`、URL、キー操作の登録は、`tests/setup/dom.ts` がテストごとに元に戻します。各ファイルで片付けを書かず、前のテストの状態に頼りません。
+- DOM、`localStorage`、URL、キー操作とツールチップの登録は、`tests/setup/dom.ts` がテストごとに元に戻します。各ファイルで片付けを書かず、前のテストの状態に頼りません。
 
 ## データ
 

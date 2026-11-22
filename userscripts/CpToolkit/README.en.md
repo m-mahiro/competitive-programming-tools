@@ -221,7 +221,7 @@ All features are enabled from the start, except those marked <sub>off by default
 <td>Run sample tests from the task page and submit when they all pass.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.en.md"><strong>Submission helper</strong></a> <sub>off by default</sub>&emsp;</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-helper.en.md"><strong>Submission helper</strong></a> <sub>off by default</sub>&emsp;</td>
 <td>Prepare pasted code for submission.</td>
 </tr>
 <tr>

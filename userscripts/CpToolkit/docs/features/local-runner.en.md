@@ -6,7 +6,7 @@
 
 ## How it works
 
-- [Easy Test+](easy-test.en.md) uses this connection to run code. The [submission helper](java-submit.en.md) uses it to prepare submissions, and [Code header and footer](source-comments.en.md) uses it for the submission header.
+- [Easy Test+](easy-test.en.md) uses this connection to run code. The [submission helper](submission-helper.en.md) uses it to prepare submissions, and [Code header and footer](source-comments.en.md) uses it for the submission header.
 - Set the URL of your own server. You can use [Local Runner](../../../../local-runner/README.md) or any server that implements the same API. Local Runner needs a separate installation.
 - If you run Local Runner on your computer with its default settings, use `http://localhost:8080` as the server URL.
 

@@ -38,16 +38,13 @@ export class SettingsService implements FeatureSettingsStore {
 	private readonly listeners = new Set<() => void>();
 	private readonly store: KeyValueStore;
 
-	/**
-	 * 保存した設定が無いとき、installedBefore なら設定を変えずに使っていた人として、最初の形式から移行する。
-	 * そうでなければ新しい利用者として、今の既定値で始める。
-	 */
-	constructor(store: KeyValueStore, {installedBefore = false}: {installedBefore?: boolean} = {}) {
+	/** 保存した設定が無ければ、今の既定値で始める。古い形式の設定は今の形式へ移行して保存し直す。 */
+	constructor(store: KeyValueStore) {
 		this.store = store;
 		const stored = store.get(STORAGE_KEY);
 		const raw = typeof stored === "string" ? safeJsonParse<unknown>(stored, null) : stored;
 		const fresh = raw === null || raw === undefined;
-		this.settings = fresh && !installedBefore ? createDefaultSettings() : parseSettings(fresh ? {} : raw);
+		this.settings = fresh ? createDefaultSettings() : parseSettings(raw);
 		const storedVersion = raw && typeof raw === "object" && !Array.isArray(raw) && "version" in raw ? raw.version : undefined;
 		// 新しい利用者の設定も保存しておき、次に既定値を変えるときに、その時点の利用者として移行できるようにする
 		if (storedVersion !== this.settings.version) store.set(STORAGE_KEY, this.settings);

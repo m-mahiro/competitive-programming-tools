@@ -6,7 +6,7 @@
 
 ## 使い方
 
-- [Easy Test+](easy-test.md) での実行と、[提出補助](java-submit.md) での提出用の変換、[コードのヘッダーとフッター](source-comments.md) での提出用のヘッダーに使う共通設定です。
+- [Easy Test+](easy-test.md) での実行と、[提出補助](submission-helper.md) での提出用の変換、[コードのヘッダーとフッター](source-comments.md) での提出用のヘッダーに使う共通設定です。
 - 接続先には、自分のサーバーの URL を指定します。[Local Runner](../../../../local-runner/README.md) か、同じ API に対応するサーバーを使えます。Local Runner は別途導入が必要です。
 - 手元で Local Runner を既定の設定で起動した場合は、接続先に `http://localhost:8080` を使います。
 

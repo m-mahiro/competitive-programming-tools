@@ -31,8 +31,7 @@ export function bootstrap(): void {
 		allowedHosts: updateCatalog.connect,
 		intervalHours: updateCatalog.checkIntervalHours,
 	});
-	// 設定を一度も変えずに使っていた人は設定を保存していないので、更新の確認の記録で見分ける
-	const settings = new SettingsService(store, {installedBefore: updates.hasCheckedBefore()});
+	const settings = new SettingsService(store);
 	importLegacySettings(new LocalStorageLegacyInbox(), settings);
 	const page = matchPage(judges, location.href);
 	const siteSettings = settings.forSite(page?.judge.id ?? null);

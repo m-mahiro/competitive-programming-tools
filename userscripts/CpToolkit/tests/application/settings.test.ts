@@ -85,21 +85,18 @@ describe("SettingsService", () => {
 	});
 
 	test("文字列で保存された旧設定も移行して一度だけ保存する", () => {
-		store.set("settings", JSON.stringify({version: 1, features: {"java-submit": {options: {headerName: "license"}}}}));
+		store.set("settings", JSON.stringify({version: 1, features: {"easy-test": {options: {keyboardShortcuts: false}}}}));
 		new SettingsService(store);
 		const migrated = store.get("settings");
-		expect(migrated).toMatchObject({version: 2, features: {"source-comments": {options: {runnerHeaderName: "license"}}}});
+		expect(migrated).toMatchObject({version: 2, features: {"keyboard-shortcuts": {options: {testAll: "none"}}}});
 		new SettingsService(store);
 		expect(store.get("settings")).toBe(migrated);
 	});
 
-	test("設定を保存していない新しい利用者は今の既定値で始め、以前から使っていた人は移行する", () => {
+	test("設定を保存していなければ今の既定値で始め、その形式で保存する", () => {
 		const fresh = new MemoryStore();
-		expect(new SettingsService(fresh).isEnabled("java-submit", false)).toBe(false);
-		expect(fresh.get("settings")).toMatchObject({version: 2});
-		const before = new MemoryStore();
-		expect(new SettingsService(before, {installedBefore: true}).isEnabled("java-submit", false)).toBe(true);
-		expect(before.get("settings")).toMatchObject({version: 2, features: {"java-submit": {enabled: true}}});
+		expect(new SettingsService(fresh).isEnabled("submission-helper", false)).toBe(false);
+		expect(fresh.get("settings")).toEqual({version: 2, features: {}});
 	});
 
 	test("他のタブでの変更を反映する", () => {

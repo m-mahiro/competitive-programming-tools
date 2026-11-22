@@ -221,7 +221,7 @@ Tampermonkey の「設定を開く」、または AtCoder のヘッダーにあ�
 <td>問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.md"><strong>提出補助</strong></a> <sub>既定で OFF</sub>&emsp;</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/submission-helper.md"><strong>提出補助</strong></a> <sub>既定で OFF</sub>&emsp;</td>
 <td>貼り付けたコードを提出用に変換します。</td>
 </tr>
 <tr>

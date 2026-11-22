@@ -1,12 +1,12 @@
 # Submission helper
 
-[Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](java-submit.md)
+[Back to the feature list](../../README.en.md#4-feature-list) ・ [日本語](submission-helper.md)
 
 > Prepare pasted code for submission.
 
 **This feature is off by default. Turn it on in settings.**
 
-<p><img src="../images/java-submit.png" alt="Code converted with Local Runner"><br><sub>Java code converted with Local Runner. The class is renamed to <code>Main</code>, the <code>lib</code> imports become comments, and the library classes in use are added at the end and folded.</sub></p>
+<p><img src="../images/submission-helper.png" alt="Code converted with Local Runner"><br><sub>Java code converted with Local Runner. The class is renamed to <code>Main</code>, the <code>lib</code> imports become comments, and the library classes in use are added at the end and folded.</sub></p>
 
 ## How it works
 
@@ -17,7 +17,7 @@
 - The submission header is added by [Code header and footer](source-comments.en.md).
 - Submitting during a transform or header request waits for preparation. An edit, a task or language change, or a failed transform cancels the pending submission. The notification identifies unresolved imports or the first error. Open “Full diagnostics” for details.
 
-<p><img src="../images/java-submit-imports.png" alt="Notification for imports that could not be found"><br><sub>Imports that could not be found are listed in a notification. Open “Full diagnostics” for details.</sub></p>
+<p><img src="../images/submission-helper-imports.png" alt="Notification for imports that could not be found"><br><sub>Imports that could not be found are listed in a notification. Open “Full diagnostics” for details.</sub></p>
 
 ## Java
 

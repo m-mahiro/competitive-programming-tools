@@ -12,7 +12,6 @@ import {
 } from "@application/source/submission-transform";
 import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
 
-// 機能の id は、保存した設定を引き継ぐため、Java だけを扱っていたころの名前のままにする。提出と折りたたみのキーはショートカットキーの機能が持つ
 const FOLD_DELAY_MS = 100;
 const PASTE_ORDER = 10;
 const LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
@@ -50,7 +49,7 @@ function notifyTransformProblem(
 }
 
 export const submissionHelper = defineFeature({
-	id: "java-submit",
+	id: "submission-helper",
 	title: "submissionHelper.title",
 	description: "submissionHelper.description",
 	category: "category.execution",

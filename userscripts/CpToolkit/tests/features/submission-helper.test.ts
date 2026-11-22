@@ -4,7 +4,7 @@ import type {CodeEditor} from "@application/ports/code-editor";
 import type {JudgeSite} from "@application/ports/judge-site";
 import {PastePipeline} from "@application/source/paste-pipeline";
 import type {JudgeLanguage} from "@domain/execution/result";
-import {submissionHelper} from "@features/java-submit/index";
+import {submissionHelper} from "@features/submission-helper/index";
 import {keyboardShortcuts} from "@features/keyboard-shortcuts/index";
 import {createFakeServices, FakeHttpClient} from "../support/fakes";
 import {pressKey, shadowRoots, wait} from "../support/dom";

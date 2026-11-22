@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {migrateLegacySettingsFile, SETTINGS_FORMAT} from "./migration/settingsFile";
+import {VERSION} from "./version";
 import {
 	isHeaderName,
 	loadSettings,
@@ -96,7 +97,8 @@ export const CLI_CONFIG = {
 	submitPostRetryMax: 5,
 	submitPostRetryBaseMs: 1200,
 	defaultLanguageId: "6056",
-	userAgent: "AtCoder-JavaCodeSubmitter-CLI/1.0",
+	// 更新の確認(update/release.ts)と同じ名前で名乗る
+	userAgent: `local-runner/${VERSION}`,
 	// サンプルキャッシュ: パース済みサンプルを ~/.atcoder/cache/samples/<task>.json に保存する。
 	// サンプルは確定後不変なので TTL なし。
 	sampleCacheEnabled: SETTINGS.atcoder.sampleCache,
