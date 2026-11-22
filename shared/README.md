@@ -10,6 +10,7 @@
 | `local-runner.ts`    | Local Runner HTTP API の型、`isStaleProgramResponse`、`toEasyTestStatus`                     |
 | `easy-test-judge.ts` | Easy Test 互換の出力比較（trim / split / 誤差許容）                                          |
 | `java-transform.ts`  | Local Runner がないときの Java ソースの字句変換                                              |
+| `java-lex.ts`        | 簡易変換と import の検出で共通して使う Java の字句とソース位置                                |
 | `java-imports.ts`    | Java の import の判定（`importsPackage`、`unresolvedImports`）                               |
 | `json.ts`            | `safeJsonParse`、`parseStoredObject`                                                         |
 | `query.ts`           | `buildQueryString`                                                                           |

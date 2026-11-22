@@ -1,7 +1,10 @@
 /** Java の提出を補助するための、サイトごとの情報。 */
 export type SubmissionTarget = {
-	readonly editor: "ace" | "monaco";
+	readonly editor: "ace" | "monaco" | "codemirror";
 	readonly editorElements: readonly string[];
+	readonly textarea?: string;
+	readonly taskSelect?: string;
+	readonly commentMount?: string;
 	readonly shortcut: string;
 	readonly submitButtons: readonly string[];
 	/** セレクタだけでは特定できない場合に、表示文言で探す。 */

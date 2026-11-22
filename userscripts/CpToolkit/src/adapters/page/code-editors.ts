@@ -1,9 +1,14 @@
 import {sleep} from "@atcoder-tools/shared";
 import type {SubmissionTarget} from "@domain/page/route";
 import type {CodeEditor, CodeEditorLocator, EditorLookup} from "@application/ports/code-editor";
-import {type AceEditor, type MonacoEditor, pageGlobals} from "./globals";
+import {type AceEditor, type CodeMirrorContent, type CodeMirrorView, type MonacoEditor, pageGlobals} from "./globals";
 
-const JAVA_MODE_PATTERN = /(^|\/)java$/i;
+const EDITOR_FAMILIES: Readonly<Record<string, string>> = {
+	python: "python3", csharp: "csharp", sh: "bash", shell: "bash",
+	golang: "go", kotlin: "kotlin", java: "java", cpp: "cpp", c: "c",
+	javascript: "javascript", typescript: "typescript", rust: "rust", ruby: "ruby",
+	php: "php", swift: "swift", scala: "scala", haskell: "haskell", ocaml: "ocaml",
+};
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MIN_PASTED_LENGTH = 30;
 
@@ -23,8 +28,22 @@ class AceCodeEditor implements CodeEditor {
 	}
 
 	isJava(): boolean {
-		// 言語を選んでいないなどでモードが分からないときは、Java として扱わない
-		return JAVA_MODE_PATTERN.test(this.editor.getSession().getMode().$id ?? "");
+		return this.languageFamily() === "java";
+	}
+
+	languageFamily(): string | null {
+		const mode = this.editor.getSession().getMode().$id?.split("/").at(-1) ?? "";
+		return EDITOR_FAMILIES[mode] ?? null;
+	}
+
+	commentFamily(): string | null {
+		return this.editor.getSession().getMode().$id === "ace/mode/c_cpp" ? "cpp" : this.languageFamily();
+	}
+
+	identity(): object { return this.editor.getSession(); }
+
+	onLanguageChange(listener: () => void): void {
+		this.editor.getSession().on("changeMode", listener);
 	}
 
 	isReadOnly(): boolean {
@@ -35,8 +54,8 @@ class AceCodeEditor implements CodeEditor {
 		this.editor.setReadOnly(false);
 	}
 
-	onPaste(listener: (pasted: string) => void): void {
-		this.editor.on("paste", ({text}) => setTimeout(() => listener(text)));
+	onPaste(listener: Parameters<CodeEditor["onPaste"]>[0]): void {
+		this.editor.on("paste", ({text}) => listener(text, sleep(0)));
 	}
 
 	onChange(listener: () => void): void {
@@ -83,9 +102,17 @@ class MonacoCodeEditor implements CodeEditor {
 		return this.model.getLanguageId() === "java";
 	}
 
-	isReadOnly(): boolean {
-		return false;
+	languageFamily(): string | null {
+		return EDITOR_FAMILIES[this.model.getLanguageId()] ?? null;
 	}
+
+	isReadOnly(): boolean {
+		return this.editor.getRawOptions?.().readOnly ?? false;
+	}
+
+	identity(): object | null { return this.editor.getModel(); }
+
+	onLanguageChange(listener: () => void): void { this.editor.onDidChangeModelLanguage?.(listener); }
 
 	setWritable(): void {
 	}
@@ -123,19 +150,93 @@ class MonacoCodeEditor implements CodeEditor {
 	}
 }
 
-function findEditor(target: SubmissionTarget): CodeEditor | null {
+function richEditor(target: SubmissionTarget): CodeEditor | null {
 	const page = pageGlobals();
 	if (target.editor === "monaco") {
-		const [editor] = page.monaco?.editor.getEditors() ?? [];
+		const writable = (page.monaco?.editor.getEditors() ?? []).filter((editor) => editor.getModel() && !editor.getRawOptions?.().readOnly);
+		const editor = writable.find((candidate) => candidate.getDomNode?.()?.closest("form")) ?? (writable.length === 1 ? writable[0] : null);
 		return editor?.getModel() ? new MonacoCodeEditor(editor) : null;
 	}
 	const element = target.editorElements.map((selector) => document.querySelector(selector)).find((found) => found);
+	if (target.editor === "codemirror") {
+		const content = page.document?.querySelector<CodeMirrorContent>(target.editorElements.join(","));
+		const view = content?.cmTile?.view;
+		return view ? new NativeSourceEditor(content, view) : null;
+	}
 	if (!page.ace || !element) return null;
 	try {
 		return new AceCodeEditor(page.ace.edit(element));
 	} catch {
 		return null;
 	}
+}
+
+class NativeSourceEditor implements CodeEditor {
+	constructor(element: Element, view?: CodeMirrorView) {
+		this.element = element;
+		this.view = view;
+	}
+
+	private readonly element: Element;
+	private readonly view: CodeMirrorView | undefined;
+
+	getValue(): string {
+		return this.view?.state.doc.toString() ?? (this.element as HTMLTextAreaElement).value;
+	}
+
+	setValue(value: string): void {
+		if (this.view) this.view.dispatch({changes: {from: 0, to: this.view.state.doc.length, insert: value}});
+		else {
+			(this.element as HTMLTextAreaElement).value = value;
+			this.element.dispatchEvent(new Event("input", {bubbles: true}));
+		}
+	}
+
+	isJava(): boolean { return false; }
+	identity(): object { return this.view ?? this.element; }
+	isReadOnly(): boolean { return this.element instanceof HTMLTextAreaElement && (this.element.readOnly || this.element.disabled); }
+	setWritable(): void { if (this.element instanceof HTMLTextAreaElement) this.element.readOnly = false; }
+	foldLines(): void {}
+	onChange(listener: () => void): void { this.element.addEventListener("input", listener); }
+	onPaste(listener: Parameters<CodeEditor["onPaste"]>[0]): void {
+		this.element.addEventListener("paste", (event) => {
+			if (event instanceof ClipboardEvent && event.clipboardData) listener(event.clipboardData.getData("text/plain"), sleep(0));
+		});
+	}
+}
+
+/** リッチエディタとテキスト欄を切り替えられるページ。操作ごとに実際の入力先を読む。 */
+function findEditor(target: SubmissionTarget): CodeEditor | null {
+	if (!target.textarea) return richEditor(target);
+	const textareaSelector = target.textarea;
+	const selector = [...target.editorElements, textareaSelector].join(",");
+	const current = (): CodeEditor | null => {
+		const plain = document.querySelector<HTMLTextAreaElement>(textareaSelector);
+		if (plain && (plain === document.activeElement || plain.offsetParent !== null
+			|| document.querySelector(".btn-toggle-editor.active"))) return new NativeSourceEditor(plain);
+		return richEditor(target) ?? (plain && new NativeSourceEditor(plain));
+	};
+	if (!current()) return null;
+	return {
+		getValue: () => current()?.getValue() ?? "",
+		setValue: (value) => current()?.setValue(value),
+		isJava: () => current()?.isJava() ?? false,
+		languageFamily: () => current()?.languageFamily?.() ?? null,
+		commentFamily: () => current()?.commentFamily?.() ?? null,
+		identity: () => current()?.identity?.() ?? null,
+		onLanguageChange: (listener) => richEditor(target)?.onLanguageChange?.(listener),
+		isReadOnly: () => current()?.isReadOnly() ?? true,
+		setWritable: () => current()?.setWritable(),
+		foldLines: (lines) => current()?.foldLines(lines),
+		onChange: (listener) => current()?.onChange(listener),
+		onPaste(listener) {
+			document.addEventListener("paste", (event) => {
+				if (event.target instanceof Element && event.target.closest(selector) && event.clipboardData) {
+					listener(event.clipboardData.getData("text/plain"), sleep(0));
+				}
+			}, true);
+		},
+	};
 }
 
 export class PageCodeEditorLocator implements CodeEditorLocator {

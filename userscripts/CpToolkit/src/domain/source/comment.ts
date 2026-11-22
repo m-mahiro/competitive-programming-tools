@@ -1,4 +1,4 @@
-import {includesSubmissionHeader} from "@atcoder-tools/shared";
+import {normalizeNewlines} from "@atcoder-tools/shared";
 
 export type CommentSyntax = {
 	readonly line?: string;
@@ -14,7 +14,6 @@ export type CommentStyle = "line" | "block";
 
 const SHEBANG_PATTERN = /^#![^\n]*\n/;
 const VARIABLE_PATTERN = /\{(\w+)\}/g;
-const LINE_BREAK_PATTERN = /\r\n?/g;
 
 /** `{name}` を値に置き換える。値のない名前はそのまま残す。 */
 export function fillVariables(text: string, values: Readonly<Record<string, string>>): string {
@@ -35,29 +34,32 @@ export function toComment(text: string, {line, open, close}: CommentSyntax, styl
 
 /** 貼り付けでコード全体が置き換わったか判定する。 */
 export function isWholeCode(code: string, pasted: string): boolean {
-	return code.trim() === pasted.replace(LINE_BREAK_PATTERN, "\n").trim();
+	return normalizeNewlines(code).trim() === normalizeNewlines(pasted).trim();
 }
 
-export function insertHeader(code: string, block: string, {preamble}: CommentSyntax): string {
+export function headerOffset(code: string, {preamble}: CommentSyntax): number {
 	const head = SHEBANG_PATTERN.exec(code) ?? (preamble === undefined ? null : new RegExp(preamble).exec(code));
-	const offset = head?.[0].length ?? 0;
+	return head?.[0].length ?? 0;
+}
+
+export function insertHeader(code: string, block: string, syntax: CommentSyntax): string {
+	const offset = headerOffset(code, syntax);
 	return `${code.slice(0, offset)}${block}${code.slice(offset)}`;
 }
 
-/** Local Runner のヘッダーを先頭に置く。すでにそのヘッダーを含むコードには重ねない。 */
-export function insertRunnerHeader(code: string, header: string, syntax: CommentSyntax): string {
-	if (includesSubmissionHeader(code, header)) return code;
-	return insertHeader(code, `${header}\n\n`, syntax);
+export function footerOffset(code: string, {trailer}: CommentSyntax): number {
+	return (trailer === undefined ? null : new RegExp(trailer).exec(code))?.index ?? code.length;
 }
 
-export function insertFooter(code: string, block: string, {trailer}: CommentSyntax): string {
-	const end = (trailer === undefined ? null : new RegExp(trailer).exec(code))?.index ?? code.length;
+export function insertFooter(code: string, block: string, syntax: CommentSyntax): string {
+	const end = footerOffset(code, syntax);
 	const body = code.slice(0, end).trimEnd();
 	return `${body}${body ? "\n" : ""}${block}${code.slice(end)}`;
 }
 
 /** 挿入した部分を置き換える。編集されて見つからなければ null を返す。 */
-export function replaceBlock(code: string, current: string, next: string, fromEnd: boolean): string | null {
-	const index = fromEnd ? code.lastIndexOf(current) : code.indexOf(current);
-	return index < 0 ? null : `${code.slice(0, index)}${next}${code.slice(index + current.length)}`;
+export function replaceBlock(code: string, current: string, next: string, fromEnd: boolean, syntax: CommentSyntax = {}): string | null {
+	const index = fromEnd ? footerOffset(code, syntax) - current.length : headerOffset(code, syntax);
+	if (index < 0 || !current || !code.startsWith(current, index) || (index > 0 && code[index - 1] !== "\n")) return null;
+	return `${code.slice(0, index)}${next}${code.slice(index + current.length)}`;
 }

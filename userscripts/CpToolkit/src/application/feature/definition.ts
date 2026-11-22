@@ -1,6 +1,6 @@
 import type {RouteId} from "@catalog/judges";
 import type {MessageKey, Translate} from "@catalog/messages";
-import type {JudgeDefinition} from "@domain/page/route";
+import type {JudgeDefinition, SubmissionTarget} from "@domain/page/route";
 import {normalizeOptions, type OptionSet, type OptionValues} from "@domain/settings/option";
 import type {LocalRunnerClient} from "@application/execution/local-runner";
 import type {RunnerCatalogService} from "@application/execution/runner-catalog";
@@ -18,6 +18,7 @@ import type {
 	StatementConverter,
 	Ticker
 } from "@application/ports/services";
+import type {SubmissionForm} from "@application/ports/submission-form";
 import type {PastePipeline} from "@application/source/paste-pipeline";
 
 export type Disposer = () => void;
@@ -49,6 +50,8 @@ export type FeatureServices = {
 	readonly ratingGraph: RatingGraph;
 	/** EasyTest が対応するサイトなら、そのサイトの操作を返す。 */
 	readonly judgeSite: () => Promise<JudgeSite | null>;
+	/** 提出欄の操作。同じ提出欄なら同じものを返す。 */
+	readonly submissionForm: (target: SubmissionTarget) => Promise<SubmissionForm>;
 	readonly openSettings: () => void;
 };
 

@@ -30,6 +30,9 @@ navigationLists:
 submission:
   editor: ace
   editorElements: ['#editor']
+  textarea: '#plain-textarea'
+  commentMount: '.editor-buttons'
+  taskSelect: '#select-task'
   shortcut: Ctrl+Shift+Enter
   submitButtons: ['#submit']
 

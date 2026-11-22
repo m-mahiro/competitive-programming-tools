@@ -10,12 +10,19 @@ export interface CodeEditor {
 
 	isJava(): boolean;
 
+	/** エディタが区別できる言語の種類。 */
+	languageFamily?(): string | null;
+	/** 言語の処理系は特定できない場合にも、共通のコメント記法を使えることがある。 */
+	commentFamily?(): string | null;
+	identity?(): object | null;
+	onLanguageChange?(listener: () => void): void;
+
 	isReadOnly(): boolean;
 
 	setWritable(): void;
 
-	/** 貼り付けが反映されたあとに、貼り付けた文字列を渡して呼ぶ。 */
-	onPaste(listener: (pasted: string) => void): void;
+	/** 貼り付けた文字列を渡す。エディタへの挿入前に通知する場合は、その完了を待つ Promise も渡す。 */
+	onPaste(listener: (pasted: string, inserted?: Promise<void>) => void): void;
 
 	onChange(listener: () => void): void;
 

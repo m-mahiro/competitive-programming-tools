@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, mock, test} from "bun:test";
+import {judges} from "@catalog/judges";
 import type {JudgeLanguage} from "@domain/execution/result";
 import {LocalRunnerClient} from "@application/execution/local-runner";
 import type {CodeEditor} from "@application/ports/code-editor";
@@ -28,6 +29,7 @@ const offline = new LocalRunnerClient(new FakeHttpClient(() => ({status: 500, te
 function runnerWithHeader(header: string | null) {
 	const http = new FakeHttpClient(({body}) => {
 		const {mode} = JSON.parse(String(body)) as {mode: string};
+		if (mode === "status") return {status: 200, text: JSON.stringify({status: "running", version: "2.0.0"})};
 		const response = mode === "list"
 			? [{language: "Java", compilerName: "java", label: "Java", family: "java"}]
 			: {status: "success", header};
@@ -98,9 +100,11 @@ function createContext(localRunner: LocalRunnerClient = offline) {
 			onPaste(pasted);
 			await flush();
 		},
-		changeLanguage(next: JudgeLanguage | null) {
+		async changeLanguage(next: JudgeLanguage | null) {
 			language = next;
 			onLanguageChange();
+			// Local Runner のヘッダーを付ける設定では、書き直しを待ってから確かめる
+			await flush();
 		},
 	};
 }
@@ -165,6 +169,77 @@ afterEach(() => {
 });
 
 describe("sourceComments", () => {
+	test("Local Runner のヘッダーを付けない設定では、問い合わせない", async () => {
+		const {client, http} = runnerWithHeader("// server");
+		const context = await open({runnerHeader: "none"}, client);
+		await context.pasteCode("class Main {}\n");
+		expect(context.code()).toBe("class Main {}\n");
+		expect(http.requests).toHaveLength(0);
+	});
+
+	for (const [id, form] of [
+		["atcoder", '<div class="editor-buttons"></div><button id="submit"></button>'],
+		["codeforces", '<form class="submitForm"><select name="programTypeId"><option value="1">Java 24</option></select><button class="submit"></button></form>'],
+		["yukicoder", '<button id="toggle_source_editor"></button><form id="submit_form"><input type="submit"></form>'],
+		["aoj", '<div class="editorFooter"><button class="submitBtn"></button></div>'],
+		["paiza", '<select id="language_id"><option value="15">Java 24</option></select><button id="handin"></button>'],
+		["libraryChecker", '<form><button type="submit">Submit</button></form>'],
+	] as const) {
+		test(`${id} の提出欄でヘッダーとフッターを設定できる`, async () => {
+			document.body.innerHTML = form;
+			const judge = judges.find((item) => item.id === id)!;
+			const {client, http} = runnerWithHeader("// server");
+			const context = createContext(client);
+			const judgeSite = mock(context.services.judgeSite);
+			await sourceComments.run({runnerHeader: "above"}, createFakeServices({...context.services, judge, judgeSite}));
+			await flush();
+			document.querySelector<HTMLButtonElement>("button.btn-default")!.click();
+			setText(0, "top");
+			setText(1, "end");
+			await context.pasteCode("class Main {}\n");
+			expect(context.code()).toBe("// server\n\n// top\nclass Main {}\n// end\n");
+			expect(http.requests.map(({body}) => JSON.parse(body!).mode)).toEqual(["list", "status", "header"]);
+			if (id === "codeforces") expect(judgeSite).not.toHaveBeenCalled();
+		});
+	}
+
+	test("先頭と末尾以外の同じ文字列を設定変更で書き換えない", async () => {
+		const context = await open();
+		toggle(slot(0).commentOut, false);
+		setText(0, "print(1)");
+		await context.pasteCode("x=2\nprint(1)\nprint(x)\n");
+		setText(0, "print(9)");
+		expect(context.code()).toBe("print(9)\nx=2\nprint(1)\nprint(x)\n");
+	});
+
+	test("同じ先頭行の別コメントは、複数行の Runner ヘッダーと区別する", async () => {
+		const context = await open({runnerHeader: "above"}, runnerWithHeader("/*\nlicense\n*/").client);
+		await context.pasteCode("/*\nmy note\n*/\nclass Main {}\n");
+		expect(context.code()).toBe("/*\nlicense\n*/\n\n/*\nmy note\n*/\nclass Main {}\n");
+	});
+
+	test("ヘッダー取得中に言語を変更したら元の言語のヘッダーを書かない", async () => {
+		const waiting = Promise.withResolvers<void>();
+		const started = Promise.withResolvers<void>();
+		const client = runnerWithHeader("// old").client;
+		client.header = async () => { started.resolve(); await waiting.promise; return "// Java"; };
+		const context = await open({runnerHeader: "above"}, client);
+		await context.pasteCode("print(1)");
+		await started.promise;
+		await context.changeLanguage(python);
+		waiting.resolve();
+		await flush();
+		expect(context.code()).toBe("print(1)");
+	});
+
+	test("ヘッダーの両側が CRLF でも全文として扱い、再適用で重ねない", async () => {
+		const context = await open();
+		setText(0, "header");
+		await context.pasteCode("a\r\nb\r\n");
+		expect(context.code()).toBe("// header\na\nb\n");
+		await context.pasteCode(context.code());
+		expect(context.code()).toBe("// header\na\nb\n");
+	});
 	test("貼り付けたコードの先頭と末尾へ、単一行コメントを追記する", async () => {
 		const context = await open();
 		setText(0, "https://example.com/a\nhttps://example.com/b");
@@ -192,7 +267,7 @@ describe("sourceComments", () => {
 	});
 
 	test("Local Runner のヘッダーで始まるコードには重ねて付けない", async () => {
-		const context = await open(undefined, runnerWithHeader("// server").client);
+		const context = await open({runnerHeader: "above"}, runnerWithHeader("// server").client);
 		await context.pasteCode("// server\n\nclass Main {}\n");
 		expect(context.code()).toBe("// server\n\nclass Main {}\n");
 	});
@@ -220,10 +295,10 @@ describe("sourceComments", () => {
 		setText(1, "footer");
 		await context.pasteCode("code\n");
 
-		context.changeLanguage(python);
+		await context.changeLanguage(python);
 		expect(context.code()).toBe("# header\ncode\n# footer\n");
 
-		context.changeLanguage(java);
+		await context.changeLanguage(java);
 		expect(context.code()).toBe("// header\ncode\n// footer\n");
 	});
 
@@ -232,18 +307,18 @@ describe("sourceComments", () => {
 		setText(0, "header");
 		await context.pasteCode("code\n");
 
-		context.changeLanguage(text);
+		await context.changeLanguage(text);
 		expect(context.code()).toBe("// header\ncode\n");
 		expect(panelRoot().querySelector<HTMLElement>(".comment-warning")?.hidden).toBe(false);
 
-		context.changeLanguage(python);
+		await context.changeLanguage(python);
 		expect(context.code()).toBe("# header\ncode\n");
 		expect(panelRoot().querySelector<HTMLElement>(".comment-warning")?.hidden).toBe(true);
 	});
 
 	test("単一行コメントのない言語では行ごとに囲む", async () => {
 		const context = await open();
-		context.changeLanguage(ocaml);
+		await context.changeLanguage(ocaml);
 		setText(0, "a\nb");
 		await context.pasteCode("code\n");
 		expect(context.code()).toBe("(* a *)\n(* b *)\ncode\n");
@@ -256,7 +331,7 @@ describe("sourceComments", () => {
 		await context.pasteCode("code\n");
 		expect(context.code()).toBe("/* written by hand */\ncode\n");
 
-		context.changeLanguage(python);
+		await context.changeLanguage(python);
 		expect(context.code()).toBe("/* written by hand */\ncode\n");
 	});
 
@@ -305,7 +380,7 @@ describe("sourceComments", () => {
 		await context.pasteCode("code\n");
 		context.setCode("// edited\ncode\n");
 
-		context.changeLanguage(python);
+		await context.changeLanguage(python);
 		expect(context.code()).toBe("// edited\ncode\n");
 	});
 
@@ -415,7 +490,7 @@ describe("sourceComments", () => {
 
 	test("書けない言語では通知でも知らせる", async () => {
 		const context = await open();
-		context.changeLanguage(text);
+		await context.changeLanguage(text);
 		setText(0, "header");
 		await context.pasteCode("code\n");
 

@@ -36,6 +36,7 @@ function toCommandLanguage(name: string, settings: CommandLanguageSettings, comm
 	const compile = settings.compile ?? [];
 	return {
 		name,
+		family: settings.family,
 		command,
 		sourceFile: settings.sourceFile,
 		compile: compile.length > 0 ? compile : null,

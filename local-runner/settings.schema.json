@@ -5,6 +5,11 @@
 	"type": "object",
 	"additionalProperties": false,
 	"properties": {
+		"settingsVersion": {
+			"description": "Local Runner が保存する設定形式の版。",
+			"type": "integer",
+			"enum": [2]
+		},
 		"$schema": {
 			"type": "string"
 		},

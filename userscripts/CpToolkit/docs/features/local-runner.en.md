@@ -10,6 +10,8 @@
 - Set the URL of your own server. You can use [Local Runner](../../../../local-runner/README.md) or any server that implements the same API. Local Runner needs a separate installation.
 - If you run Local Runner on your computer with its default settings, use `http://localhost:8080` as the server URL.
 
+Local Runner 1.x supports Easy Test+. To prepare submissions and fetch headers, install Local Runner 2.0.0 or later. CP Toolkit checks the server version before requesting either operation.
+
 ## Detailed settings
 
 Open this feature’s “Detailed settings” in CP Toolkit.
@@ -28,7 +30,8 @@ Open this feature’s “Detailed settings” in CP Toolkit.
 | `list`       | Easy Test+             | None                                                      | An array of `{language, compilerName, label}`. `language` is a language name (e.g. `Java`, `C++`, `Python`), and entries of the same family as the submission language become candidate environments. `label` is the name shown on screen |
 | `precompile` | Easy Test+             | `sourceCode`, `compilerName`, `debug`                     | `{status: "accepted"}`. Compiles the code being edited in advance. Respond at once, without waiting for the result                                                                                                                        |
 | `run`        | Easy Test+             | `sourceCode`, `stdin`, `compilerName`, `debug`            | `status`, `exitCode`, `stdout`, `stderr`, `time` (ms), `memory` (cumulative allocation in KB; 0 hides it), `peakMemory` (optional; peak usage in KB)                                                                                      |
-| `transform`  | Submission helper      | `sourceCode`, `compilerName`, `header`, `debug`, `validate` | `status` (`success` or `compileError`), `sourceCode` (transformed code), `diagnostics`, `diagnosticItems`. CP Toolkit sends `header` as `false` |
+| `transform` | Submission helper | `sourceCode`, `compilerName`, `header: false`, `debug: false`, `validate: true` | `status` (`success` or `compileError`), `sourceCode`, `diagnostics`, `diagnosticItems` and `inlinedClasses`. An import diagnostic can include `importName`. |
+| `status` | Submission helper and headers | None | `{status: "running", version: "2.0.0"}`, with the running server’s version. |
 | `header`     | Code header and footer | `compilerName`, `header`                                  | `{status: "success", header}`. `header` is the text to put at the top of the submission, or `null` when none is set. A request `header` of `true` means the language default, and a string means the header with that name |
 
 - `compilerName` is the value returned by `list`. A server that handles several languages uses it to pick one.

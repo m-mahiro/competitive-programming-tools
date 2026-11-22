@@ -189,7 +189,7 @@ function assertCompleteLanguages(settings: Settings, file: string): void {
 
 /** 既定値に設定ファイルを重ねた設定を返す。 */
 export function loadSettings(file: string): Settings {
-	const {$schema: _schema, ...user} = readUserSettings(file);
+	const {$schema: _schema, settingsVersion: _version, ...user} = readUserSettings(file);
 	const settings = mergeSettings(DEFAULT_SETTINGS, user) as Settings;
 	assertCompleteLanguages(settings, file);
 	return settings;

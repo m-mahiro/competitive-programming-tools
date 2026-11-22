@@ -72,6 +72,39 @@ describe("LocalRunnerClient", () => {
 		const client = new LocalRunnerClient(http, () => "http://localhost:8080");
 		expect(await client.run("code", "")).toEqual(output as never);
 	});
+	test("壊れた一覧のあとは次の要求で取り直す", async () => {
+		let calls = 0;
+		const http = new FakeHttpClient(() => ++calls === 1 ? {status: 200, text: "{"} : JSON_OK([]));
+		const client = new LocalRunnerClient(http, () => "http://localhost");
+		await expect(client.list()).rejects.toThrow("Invalid JSON");
+		expect(await client.list()).toEqual([]);
+		expect(calls).toBe(2);
+	});
+
+	test("準備要求を送ったあとの切断はオフラインの簡易変換へ戻さない", async () => {
+		const http = new FakeHttpClient(({body}) => {
+			if (JSON.parse(String(body)).mode === "status") return JSON_OK({status: "running", version: "2.0.0"});
+			return {status: 0, text: ""};
+		});
+		const client = new LocalRunnerClient(http, () => "http://localhost");
+		await expect(client.transform("source")).rejects.toMatchObject({status: -1});
+		await expect(client.header("java", true)).rejects.toMatchObject({status: -1});
+	});
+
+	test("1.x では実行を許し、提出用 API には送信せず更新を案内する", async () => {
+		const modes: string[] = [];
+		const http = new FakeHttpClient(({body}) => {
+			const {mode} = JSON.parse(String(body));
+			modes.push(mode);
+			return JSON_OK(mode === "status" ? {status: "running", version: "1.1.0"} : output);
+		});
+		const client = new LocalRunnerClient(http, () => "http://localhost");
+		await expect(client.header("java", true)).rejects.toMatchObject({notify: true});
+		await expect(client.transform("source")).rejects.toMatchObject({notify: false});
+		await client.run("source", "");
+		expect(modes).toEqual(["status", "run"]);
+	});
+
 });
 
 describe("RunnerCatalogService", () => {

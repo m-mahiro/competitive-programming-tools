@@ -189,11 +189,20 @@ ratingGraph.showRecent: recent
 
 
 localRunner.title: Local Runner integration
-localRunner.description: Set the server used by Easy Test+ and the Java submission helper.
+localRunner.description: Set the server for Easy Test+, submission transforms and headers.
 localRunner.url: Server URL
 
+submissionHelper.submitChanged: Submission canceled because preparation could not finish.
+submissionHelper.fallbackFailed: The browser could not safely transform this source.
+keyboardShortcuts.title: Keyboard shortcuts
+keyboardShortcuts.description: Submit, open the settings and more with keys you choose.
+keyboardShortcuts.submit: Submit (empty for the site default, none to turn it off)
+keyboardShortcuts.fold: Fold Java classes and comments (none to turn it off)
+keyboardShortcuts.openSettings: Open the CP Toolkit settings (none to turn it off)
+keyboardShortcuts.share: Open a post to X for the current page (empty to turn it off)
+keyboardShortcuts.invalidKey: This key combination is not valid (e.g. Ctrl+Shift+Enter, Alt+S).
 submissionHelper.title: Submission helper
-submissionHelper.description: Prepare pasted code for submission and submit with a keyboard shortcut.
+submissionHelper.description: Prepare pasted code for submission.
 submissionHelper.localRunnerRequired: "Expanding {package}.* needs Local Runner"
 submissionHelper.localRunnerGuide: Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.
 submissionHelper.unresolvedImports: Some imports could not be found
@@ -203,6 +212,7 @@ submissionHelper.debugFlag: Java variable to set to false when Local Runner is u
 submissionHelper.libraryPackage: Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)
 submissionHelper.foldOnPaste: Fold Java classes and comments after pasting
 
+easyTest.submitChanged: Submission canceled because the source, task, language or runner changed. The test results are still available.
 easyTest.title: Easy Test+
 easyTest.description: Run sample tests from the task page and submit when they all pass.
 easyTest.precompile: Precompile edited code with Local Runner
@@ -214,6 +224,7 @@ easyTest.testAndSubmit: Test & Submit
 easyTest.cancelSubmit: Cancel Submission
 easyTest.testAll: Test All Samples
 easyTest.restore: Restore Last Code
+easyTest.autoRunner: Automatic
 easyTest.environment: Environment
 easyTest.noEnvironment: No environment available
 easyTest.standardInput: Standard input

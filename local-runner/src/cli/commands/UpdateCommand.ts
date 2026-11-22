@@ -57,6 +57,8 @@ export class UpdateCommand implements Command {
 			return 0;
 		}
 		console.log(color.colorizeWarning(`Local Runner ${release.version} is available (installed: ${VERSION}).`, "cli"));
+		const majorChange = release.version.split(".")[0] !== VERSION.split(".")[0];
+		console.log(majorChange ? "Major update: review the release migration notes before installing." : "No major-version migration is required.");
 		if (option === "--check") {
 			console.log("Run update to install it.");
 			return 0;

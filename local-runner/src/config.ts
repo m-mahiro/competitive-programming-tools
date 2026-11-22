@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
-import {migrateLegacySettingsFile} from "./migration/settingsFile";
+import {migrateLegacySettingsFile, SETTINGS_FORMAT} from "./migration/settingsFile";
 import {
 	isHeaderName,
 	loadSettings,
@@ -44,7 +44,9 @@ const SETTINGS_SCHEMA_FILE = path.join(PROJECT_ROOT, "local-runner", "settings.s
 /** 設定を読む。内容が正しくなければ、理由を表示して終了する。以前の形式のファイルは、読む前に今の形式へ書き換える。 */
 function loadSettingsOrExit(): Settings {
 	try {
-		migrateLegacySettingsFile(SETTINGS_FILE);
+		if (migrateLegacySettingsFile(SETTINGS_FILE)) {
+			console.error("Migrated Local Runner settings to format 2. To switch DEBUG automatically, set debugFlag for the language.");
+		}
 		return loadSettings(SETTINGS_FILE);
 	} catch (error) {
 		if (!(error instanceof SettingsError)) throw error;
@@ -67,7 +69,7 @@ export function updateUserSettings(mutate: (user: UserSettings) => void): void {
 	mutate(user);
 	const relative = path.relative(path.dirname(SETTINGS_FILE), SETTINGS_SCHEMA_FILE).replaceAll("\\", "/");
 	const schemaReference = $schema ?? (relative.startsWith(".") ? relative : `./${relative}`);
-	writeUserSettings(SETTINGS_FILE, {$schema: schemaReference, ...user});
+	writeUserSettings(SETTINGS_FILE, {$schema: schemaReference, ...user, settingsVersion: SETTINGS_FORMAT});
 }
 
 // 提出先の Java バージョン。これより新しい JDK では javac の --release で揃える。

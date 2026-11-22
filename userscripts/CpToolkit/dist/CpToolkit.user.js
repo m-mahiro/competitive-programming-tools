@@ -2,10 +2,10 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        2.2.0
-// @description    入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全26機能をまとめた UserScript です。機能ごとに ON/OFF できます。
-// @description:en 26 individually configurable features for competitive programming, primarily on AtCoder, including side-by-side samples, verdict notifications and a Tasks dropdown.
-// @description:ja 入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全26機能をまとめた UserScript です。機能ごとに ON/OFF できます。
+// @version        3.0.0
+// @description    入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全27機能をまとめた UserScript です。機能ごとに ON/OFF できます。
+// @description:en 27 individually configurable features for competitive programming, primarily on AtCoder, including side-by-side samples, verdict notifications and a Tasks dropdown.
+// @description:ja 入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全27機能をまとめた UserScript です。機能ごとに ON/OFF できます。
 // @author         nsubaru
 // @license        MIT AND Apache-2.0 AND 0BSD
 // @homepageURL    https://github.com/nsubaru11/competitive-programming-tools/tree/main/userscripts/CpToolkit
@@ -523,6 +523,53 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return {status: judgedStatus, output, expectedOutput: expected};
 	}
 
+	// ../shared/src/java-lex.ts
+	var JAVA_LEXEME =
+		/\s+|\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$)|"""(?:\\[\s\S]|(?!""")[^\\])*?(?:"""|$)|"(?:\\[\s\S]|[^"\\\n])*(?:"|$)|'(?:\\[\s\S]|[^'\\\n])*(?:'|$)|[\p{ID_Start}\p{Sc}\p{Pc}$][\p{ID_Continue}\p{Sc}\p{Pc}$]*|\.\.\.|::|[^\s]/gu;
+	var PAIRS = {")": "(", "]": "[", "}": "{"};
+	var JAVA_IDENTIFIER = /^[\p{ID_Start}\p{Sc}\p{Pc}$][\p{ID_Continue}\p{Sc}\p{Pc}$]*$/u;
+
+	function scanJava(source) {
+		const tokens = [];
+		const stack = [];
+		let complete = !/\\u+[\da-fA-F]{4}/.test(source);
+		for (const m of source.matchAll(JAVA_LEXEME)) {
+			const text = m[0];
+			if (text.startsWith("/*") && !text.endsWith("*/")) complete = false;
+			if (/^\s/u.test(text) || text.startsWith("//") || text.startsWith("/*")) continue;
+			const token = {text, start: m.index, end: m.index + text.length, pair: -1};
+			if (text.startsWith('"') || text.startsWith("'")) {
+				const delimiter = text.startsWith('"""') ? '"""' : text[0];
+				if (text.length < 2 * delimiter.length || !text.endsWith(delimiter)) complete = false;
+			} else if (text === "(" || text === "[" || text === "{") {
+				stack.push(tokens.length);
+			} else if (Object.hasOwn(PAIRS, text)) {
+				const open = stack.pop();
+				if (open === undefined || tokens[open].text !== PAIRS[text]) complete = false;
+				else {
+					token.pair = open;
+					tokens[open].pair = tokens.length;
+				}
+			}
+			tokens.push(token);
+		}
+		return {tokens, complete: complete && stack.length === 0};
+	}
+
+	function qualifiedName(tokens, start) {
+		let index = start;
+		if (!JAVA_IDENTIFIER.test(tokens[index]?.text ?? "")) return null;
+		let name = tokens[index++].text;
+		while (tokens[index]?.text === ".") {
+			const part = tokens[index + 1]?.text ?? "";
+			if (part !== "*" && !JAVA_IDENTIFIER.test(part)) return null;
+			name += "." + part;
+			index += 2;
+			if (part === "*") break;
+		}
+		return tokens[index]?.text === ";" ? {name, end: index} : null;
+	}
+
 	// ../shared/src/utils.ts
 	function normalizeNewlines(text) {
 		return text.replace(
@@ -532,252 +579,315 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		);
 	}
 
-	var IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
-	function isIdentifier(name) {
-		return IDENTIFIER.test(name);
-	}
-
-	// ../shared/src/java-transform.ts
-	var State = {Normal: 0, LineComment: 1, BlockComment: 2, String: 3, Char: 4, TextBlock: 5};
-	var TEXT_BLOCK_QUOTE = '"""';
-
-	function createMaskedCode(text) {
-		const out = [];
-		let state = State.Normal;
-		let isEscape = false;
-		const mask = (c) =>
-			c ===
-			`
-`
-				? `
-`
-				: " ";
-		for (let i = 0, len = text.length; i < len; i++) {
-			const c = text[i],
-				n = i + 1 < len ? text[i + 1] : "";
-			if (state === State.TextBlock) {
-				if (isEscape) {
-					isEscape = false;
-					out.push(mask(c));
-				} else if (c === "\\") {
-					isEscape = true;
-					out.push(" ");
-				} else if (text.startsWith(TEXT_BLOCK_QUOTE, i)) {
-					out.push("   ");
-					i += 2;
-					state = State.Normal;
-				} else {
-					out.push(mask(c));
-				}
-			} else if (state === State.LineComment) {
-				out.push(mask(c));
-				if (
-					c ===
-					`
-`
-				)
-					state = State.Normal;
-			} else if (state === State.BlockComment) {
-				if (c === "*" && n === "/") {
-					out.push(" ", " ");
-					i++;
-					state = State.Normal;
-				} else {
-					out.push(mask(c));
-				}
-			} else if (state === State.String || state === State.Char) {
-				const closeChar = state === State.String ? '"' : "'";
-				if (isEscape) {
-					isEscape = false;
-					out.push(" ");
-				} else if (c === "\\") {
-					isEscape = true;
-					out.push(" ");
-				} else if (c === closeChar) {
-					state = State.Normal;
-					out.push(" ");
-				} else {
-					out.push(mask(c));
-				}
-			} else {
-				if (c === "/" && n === "/") {
-					out.push(" ", " ");
-					i++;
-					state = State.LineComment;
-				} else if (c === "/" && n === "*") {
-					out.push(" ", " ");
-					i++;
-					state = State.BlockComment;
-				} else if (text.startsWith(TEXT_BLOCK_QUOTE, i)) {
-					out.push("   ");
-					i += 2;
-					state = State.TextBlock;
-				} else if (c === '"') {
-					state = State.String;
-					out.push(" ");
-				} else if (c === "'") {
-					state = State.Char;
-					out.push(" ");
-				} else {
-					out.push(c);
-				}
+	// ../shared/src/java-imports.ts
+	function importRanges(source) {
+		const {tokens} = scanJava(source);
+		const result = [];
+		for (let i = 0; i < tokens.length; i++) {
+			const token = tokens[i];
+			if (token.text === "{") break;
+			if (token.pair > i) {
+				i = token.pair;
+				continue;
+			}
+			if (token.text !== "import") continue;
+			const declaration = qualifiedName(tokens, i + (tokens[i + 1]?.text === "static" ? 2 : 1));
+			if (declaration) {
+				result.push({name: declaration.name, start: token.start, end: tokens[declaration.end].end});
+				i = declaration.end;
 			}
 		}
-		return out.join("");
+		return result;
 	}
 
-	function findMatchingBrace(maskedText, openBraceIdx) {
-		let depth = 1;
-		for (let i = openBraceIdx + 1; i < maskedText.length; i++) {
-			if (maskedText[i] === "{") depth++;
-			else if (maskedText[i] === "}" && --depth === 0) return i;
+	function importsPackage(code, packageName) {
+		return importRanges(normalizeNewlines(code)).some(({name}) => name.startsWith(packageName + "."));
+	}
+
+	function diagnosticOffset(lineStarts, source, diagnostic) {
+		const start = lineStarts[diagnostic.line - 1];
+		if (start === undefined || diagnostic.column <= 0) return -1;
+		let column = 1;
+		for (
+			let offset = start;
+			offset < source.length &&
+			source[offset] !==
+				`
+`;
+			offset++
+		) {
+			if (column === diagnostic.column) return offset;
+			column += source[offset] === "\t" ? 8 - ((column - 1) % 8) : 1;
+			if (column > diagnostic.column) return -1;
 		}
 		return -1;
 	}
 
-	function braceDepths(maskedText) {
-		const depths = new Int32Array(maskedText.length + 1);
-		let depth = 0;
-		for (let i = 0; i < maskedText.length; i++) {
-			depths[i] = depth;
-			if (maskedText[i] === "{") depth++;
-			else if (maskedText[i] === "}") depth--;
+	function unresolvedImports(code, diagnostics) {
+		const source = normalizeNewlines(code);
+		const imports = importRanges(source);
+		const found = new Set();
+		const starts = [0];
+		for (let i = 0; i < source.length; i++)
+			if (
+				source[i] ===
+				`
+`
+			)
+				starts.push(i + 1);
+		for (const item of diagnostics) {
+			if (item.kind !== "ERROR" || !/^compiler\.err\.(?:doesnt\.exist$|cant\.resolve(?:\.|$))/.test(item.code))
+				continue;
+			if (item.importName) {
+				found.add(item.importName);
+				continue;
+			}
+			const offset = diagnosticOffset(starts, source, item);
+			const range = imports.find(({start, end}) => start <= offset && offset < end);
+			if (range) found.add(range.name);
 		}
-		depths[maskedText.length] = depth;
-		return depths;
+		const inSourceOrder = imports.map(({name}) => name).filter((name) => found.has(name));
+		return [...new Set([...inSourceOrder, ...found])];
 	}
 
-	function isQualified(maskedText, index) {
-		let i = index - 1;
-		while (i >= 0 && /\s/.test(maskedText[i])) i--;
-		return maskedText[i] === "." && maskedText[i - 1] !== ".";
+	// ../shared/src/java-transform.ts
+	var TYPE_KEYWORDS = new Set(["class", "interface", "record", "enum"]);
+	var NOT_TYPE_WORDS = new Set([
+		...TYPE_KEYWORDS,
+		"new",
+		"return",
+		"throw",
+		"case",
+		"instanceof",
+		"extends",
+		"implements",
+		"import",
+		"package",
+	]);
+	var MODIFIERS = new Set([
+		"public",
+		"protected",
+		"private",
+		"static",
+		"final",
+		"abstract",
+		"native",
+		"synchronized",
+		"strictfp",
+	]);
+
+	function declaresStringParameter(tokens, index) {
+		let previous = index - 1;
+		while (previous >= 0 && tokens[previous].text === ",") {
+			previous -= 2;
+		}
+		if (tokens[previous]?.text !== "<") return false;
+		const before = tokens[previous - 1]?.text;
+		return (
+			TYPE_KEYWORDS.has(tokens[previous - 2]?.text) || MODIFIERS.has(before) || ["{", ";", "}"].includes(before)
+		);
 	}
 
-	var TYPE_DECLARATION_REGEX = /\b(class|interface|enum|record)\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+	function withoutAnnotations(tokens, start, end) {
+		const words = [];
+		for (let i = start; i < end; i++) {
+			if (tokens[i].text !== "@") {
+				words.push(tokens[i].text);
+				continue;
+			}
+			i++;
+			while (tokens[i + 1]?.text === ".") i += 2;
+			if (tokens[i + 1]?.text === "(") i = tokens[i + 1].pair;
+		}
+		return words;
+	}
 
-	function findTypes(maskedText, depths) {
+	function topLevelTypes(tokens) {
 		const types = [];
-		for (const m of maskedText.matchAll(TYPE_DECLARATION_REGEX)) {
-			if (isQualified(maskedText, m.index)) continue;
-			const openBraceIdx = maskedText.indexOf("{", m.index + m[0].length);
-			if (openBraceIdx === -1) continue;
-			const closeBraceIdx = findMatchingBrace(maskedText, openBraceIdx);
-			if (closeBraceIdx === -1) continue;
-			types.push({keyword: m[1], name: m[2], depth: depths[m.index], openBraceIdx, closeBraceIdx});
+		for (let i = 0; i < tokens.length; i++) {
+			const token = tokens[i];
+			if (token.pair > i) {
+				i = token.pair;
+				continue;
+			}
+			if (
+				!TYPE_KEYWORDS.has(token.text) ||
+				tokens[i - 1]?.text === "." ||
+				!JAVA_IDENTIFIER.test(tokens[i + 1]?.text ?? "")
+			)
+				continue;
+			const nameIndex = i + 1;
+			let open = nameIndex + 1;
+			while (open < tokens.length && tokens[open].text !== "{") {
+				open = Math.max(open, tokens[open].pair) + 1;
+			}
+			if (open === tokens.length) break;
+			types.push({nameIndex, open, close: tokens[open].pair, kind: token.text});
+			i = tokens[open].pair;
 		}
 		return types;
 	}
 
-	var ANNOTATION = String.raw`@[\w.]+(?:\s*\([^)]*\))?`;
-	var MAIN_METHOD_REGEX = new RegExp(
-		String.raw`((?:(?:public|static|final|synchronized|strictfp|${ANNOTATION})\s+)+)void\s+main\s*\(\s*` +
-			String.raw`(?:(?:final|${ANNOTATION})\s+)*String\s*(?:\[\s*]|\.\.\.|\s+[A-Za-z_$][\w$]*\s*\[\s*])`,
-		"g",
-	);
-
-	function declaresMain(type, mains, depths) {
-		return mains.some(
-			(m) =>
-				m.index > type.openBraceIdx &&
-				m.index < type.closeBraceIdx &&
-				depths[m.index] === type.depth + 1 &&
-				/\bstatic\b/.test(m[1]) &&
-				(type.keyword === "interface" || /\bpublic\b/.test(m[1])),
+	function isMainParameter(tokens, start, end, stringShadowed) {
+		const words = withoutAnnotations(tokens, start, end).filter((word) => word !== "final");
+		if (words.slice(0, 4).join("") === "java.lang.") words.splice(0, 4);
+		else if (stringShadowed) return false;
+		if (words.shift() !== "String") return false;
+		if (words[0] === "...") return words.length === 2 && JAVA_IDENTIFIER.test(words[1]);
+		if (words.length !== 3) return false;
+		return (
+			(words[0] === "[" && words[1] === "]" && JAVA_IDENTIFIER.test(words[2])) ||
+			(JAVA_IDENTIFIER.test(words[0]) && words[1] === "[" && words[2] === "]")
 		);
 	}
 
-	function findMainType(maskedText, depths) {
-		const mains = [...maskedText.matchAll(MAIN_METHOD_REGEX)];
-		const declaring = findTypes(maskedText, depths).filter(
-			(type) => type.depth === 0 && declaresMain(type, mains, depths),
-		);
-		return declaring.length === 1 ? declaring[0] : (declaring.find((type) => type.name === "Main") ?? null);
+	function declaresMain(tokens, type, stringShadowed) {
+		let memberStart = type.open + 1;
+		for (let i = memberStart; i < type.close; i++) {
+			const token = tokens[i];
+			if (token.text === "void" && tokens[i + 1]?.text === "main" && tokens[i + 2]?.text === "(") {
+				const modifiers = withoutAnnotations(tokens, memberStart, i);
+				if (
+					modifiers.includes("static") &&
+					(modifiers.includes("public") || (type.kind === "interface" && !modifiers.includes("private"))) &&
+					isMainParameter(tokens, i + 3, tokens[i + 2].pair, stringShadowed)
+				)
+					return true;
+			}
+			if (token.pair > i) i = token.pair;
+			if (token.text === "{" || token.text === ";") memberStart = i + 1;
+		}
+		return false;
 	}
 
-	function removePackageDeclaration(maskedCode, currentCode) {
-		const m = /\bpackage\s+[A-Za-z_][A-Za-z0-9_.]*\s*;/.exec(maskedCode);
-		if (!m) return currentCode;
-		let end = m.index + m[0].length;
-		if (
-			currentCode[end] ===
-			`
+	function addRenameEdits(tokens, type, packageName, edits) {
+		const name = tokens[type.nameIndex].text;
+		if (name === "Main") return null;
+		const declaredAsValue = tokens.some((token, i) => {
+			if (token.text !== name || i === type.nameIndex) return false;
+			const before = tokens[i - 1]?.text ?? "";
+			const afterType =
+				before === "]" || before === ">" || (JAVA_IDENTIFIER.test(before) && !NOT_TYPE_WORDS.has(before));
+			return afterType && ["=", ";", ",", ")", ":"].includes(tokens[i + 1]?.text ?? "");
+		});
+		for (let i = 0; i < tokens.length; i++) {
+			const token = tokens[i];
+			const prev = tokens[i - 1]?.text;
+			if (token.text === "Main" && (prev !== "." || (insideImport(tokens, i) && tokens[i + 1]?.text === ";")))
+				return "nameCollision";
+			if (token.text !== name) continue;
+			if (prev === ".") {
+				const owner = tokens[i - 2]?.text;
+				const ownMember = owner === "this" || (owner === name && tokens[i - 3]?.text !== ".");
+				if (ownMember) edits.push({start: token.start, end: token.end, text: "Main"});
+				else if ((packageName && qualifiedPrefix(tokens, i) === packageName) || declaredAsValue)
+					return "ambiguousReference";
+				continue;
+			}
+			edits.push({start: token.start, end: token.end, text: "Main"});
+		}
+		return null;
+	}
+
+	function insideImport(tokens, index) {
+		for (let i = index - 1; i >= 0 && ![";", "{", "}"].includes(tokens[i].text); i--) {
+			if (tokens[i].text === "import") return true;
+		}
+		return false;
+	}
+
+	function qualifiedPrefix(tokens, index) {
+		const parts = [];
+		for (let i = index - 1; i >= 1 && tokens[i].text === "." && JAVA_IDENTIFIER.test(tokens[i - 1].text); i -= 2)
+			parts.unshift(tokens[i - 1].text);
+		return parts.join(".");
+	}
+
+	function addDebugEdit(tokens, type, flag, edits) {
+		for (let i = type.open + 1; i < type.close; i++) {
+			if (tokens[i].pair > i) {
+				i = tokens[i].pair;
+				continue;
+			}
+			if (
+				tokens[i].text !== "boolean" ||
+				!JAVA_IDENTIFIER.test(tokens[i + 1]?.text ?? "") ||
+				tokens[i + 2]?.text === "("
+			)
+				continue;
+			for (let j = i + 1; j < type.close; j++) {
+				const token = tokens[j];
+				if (token.text === ";" || token.text === "{") break;
+				if (token.pair > j) {
+					j = token.pair;
+					continue;
+				}
+				if (
+					(j === i + 1 || tokens[j - 1].text === ",") &&
+					token.text === flag &&
+					tokens[j + 1]?.text === "=" &&
+					tokens[j + 2]?.text === "true" &&
+					[",", ";"].includes(tokens[j + 3]?.text)
+				) {
+					edits.push({start: tokens[j + 2].start, end: tokens[j + 2].end, text: "false"});
+					return;
+				}
+			}
+		}
+	}
+
+	function transformJavaForSubmission(originalCode, options = {}) {
+		const source = normalizeNewlines(originalCode);
+		const {tokens, complete} = scanJava(source);
+		const failure = (issue) => ({sourceCode: originalCode, issue});
+		if (!complete) return failure("unsupportedSyntax");
+		const edits = [];
+		let packageName = "";
+		let stringShadowed = false;
+		for (let i = 0; i < tokens.length; i++) {
+			const word = tokens[i].text;
+			if (word === "package") {
+				const declaration = qualifiedName(tokens, i + 1);
+				if (!declaration || declaration.name.endsWith(".*")) return failure("unsupportedSyntax");
+				packageName = declaration.name;
+				const end = tokens[declaration.end].end;
+				edits.push({
+					start: tokens[i].start,
+					end:
+						source[end] ===
+						`
 `
-		)
-			end++;
-		return currentCode.slice(0, m.index) + currentCode.slice(end);
-	}
-
-	function unqualifiedOccurrences(maskedText, name) {
-		return [...maskedText.matchAll(new RegExp(String.raw`\b${name}\b`, "g"))]
-			.map((m) => m.index)
-			.filter((index) => !isQualified(maskedText, index));
-	}
-
-	function renameClassToMain(maskedCode, currentCode) {
-		const type = findMainType(maskedCode, braceDepths(maskedCode));
-		if (!type || type.name === "Main" || unqualifiedOccurrences(maskedCode, "Main").length > 0) return currentCode;
-		let code = currentCode;
-		for (const start of unqualifiedOccurrences(maskedCode, type.name).reverse()) {
-			code = code.slice(0, start) + "Main" + code.slice(start + type.name.length);
+							? end + 1
+							: end,
+					text: "",
+				});
+			}
+			if (word === "import") {
+				const declaration = qualifiedName(tokens, i + (tokens[i + 1]?.text === "static" ? 2 : 1));
+				if (declaration?.name.endsWith(".String") && declaration.name !== "java.lang.String")
+					stringShadowed = true;
+			}
+			if (word === "String" && (TYPE_KEYWORDS.has(tokens[i - 1]?.text) || declaresStringParameter(tokens, i)))
+				stringShadowed = true;
 		}
-		return code;
-	}
-
-	function disableDebugFlag(maskedCode, currentCode, flag) {
-		if (!isIdentifier(flag)) return currentCode;
-		const depths = braceDepths(maskedCode);
-		const type = findMainType(maskedCode, depths);
-		if (!type) return currentCode;
-		const starts = [...maskedCode.matchAll(new RegExp(String.raw`\bboolean\s+${flag}\s*=\s*true\b`, "g"))]
-			.filter(
-				(m) =>
-					m.index > type.openBraceIdx && m.index < type.closeBraceIdx && depths[m.index] === type.depth + 1,
-			)
-			.map((m) => m.index + m[0].length - "true".length);
-		let code = currentCode;
-		for (const start of starts.reverse()) code = code.slice(0, start) + "false" + code.slice(start + "true".length);
-		return code;
-	}
-
-	function modifyJavaCode(originalCode, options = {}) {
-		let code = normalizeNewlines(originalCode);
-		code = removePackageDeclaration(createMaskedCode(code), code);
-		code = renameClassToMain(createMaskedCode(code), code);
-		if (options.debugFlag) code = disableDebugFlag(createMaskedCode(code), code, options.debugFlag);
-		return code.replace(/^(?:[\t ]*\n)+/, "");
-	}
-
-	// ../shared/src/java-imports.ts
-	var IMPORT_LINE = /^\s*import\s+(?:static\s+)?([\w$]+(?:\s*\.\s*[\w$]+)*(?:\s*\.\s*\*)?)\s*;/;
-
-	function importedNames(code) {
-		const names = new Map();
-		createMaskedCode(code)
-			.split(
-				`
-`,
-			)
-			.forEach((line, index) => {
-				const name = IMPORT_LINE.exec(line)?.[1];
-				if (name) names.set(index + 1, name.replace(/\s+/g, ""));
-			});
-		return names;
-	}
-
-	function importsPackage(code, packageName) {
-		const prefix = `${packageName}.`;
-		return [...importedNames(code).values()].some((name) => name.startsWith(prefix));
-	}
-
-	function unresolvedImports(code, diagnostics) {
-		const names = importedNames(code);
-		const found = new Set();
-		for (const diagnostic of diagnostics) {
-			const name = diagnostic.kind === "ERROR" ? names.get(diagnostic.line) : undefined;
-			if (name) found.add(name);
+		const candidates = topLevelTypes(tokens).filter((type) => declaresMain(tokens, type, stringShadowed));
+		const type =
+			candidates.length === 1
+				? candidates[0]
+				: candidates.find(({nameIndex}) => tokens[nameIndex].text === "Main");
+		if (!type) return failure(candidates.length === 0 ? "mainNotFound" : "ambiguousMain");
+		const issue = addRenameEdits(tokens, type, packageName, edits);
+		if (issue) return failure(issue);
+		if (options.debugFlag) addDebugEdit(tokens, type, options.debugFlag, edits);
+		const result = [];
+		let cursor = 0;
+		for (const edit of edits.sort((a, b) => a.start - b.start)) {
+			if (edit.start < cursor) return failure("ambiguousReference");
+			result.push(source.slice(cursor, edit.start), edit.text);
+			cursor = edit.end;
 		}
-		return [...found];
+		result.push(source.slice(cursor));
+		return {sourceCode: result.join(""), issue: null};
 	}
 
 	// ../shared/src/json.ts
@@ -806,21 +916,20 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	}
 
 	// ../shared/src/local-runner.ts
-	function includesSubmissionHeader(code, header) {
-		const firstLine =
-			header.split(
-				`
-`,
-				1,
-			)[0] ?? "";
+	function includesSubmissionHeader(code, header, offset = 0) {
+		if (!header.trim()) return true;
+		const end = offset + header.length;
 		return (
-			firstLine !== "" &&
-			code
-				.split(
+			code.startsWith(header, offset) &&
+			(end === code.length ||
+				code[end] ===
 					`
+` ||
+				code.startsWith(
+					`\r
 `,
-				)
-				.includes(firstLine)
+					end,
+				))
 		);
 	}
 
@@ -907,9 +1016,37 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		}
 	}
 
+	// CpToolkit/src/domain/settings/migrations.ts
+	function migrateToVersion2(settings) {
+		const helper = settings.features["java-submit"] ?? {};
+		const {addHeader, headerName, removePackage, renameClass, fixDebug, ...remaining} = helper.options ?? {};
+		const helperDisabled = helper.enabled === false;
+		const features = {
+			...settings.features,
+			"java-submit": {...helper, enabled: helper.enabled ?? true, options: remaining},
+		};
+		const comments = settings.features["source-comments"];
+		const commentOptions = {...comments?.options};
+		if (commentOptions.runnerHeader === undefined && (helperDisabled || addHeader === false))
+			commentOptions.runnerHeader = "none";
+		if (commentOptions.runnerHeaderName === undefined && typeof headerName === "string" && headerName !== "") {
+			commentOptions.runnerHeaderName = headerName;
+		}
+		if (comments || Object.keys(commentOptions).length > 0)
+			features["source-comments"] = {...comments, options: commentOptions};
+		if (helperDisabled) {
+			const shortcuts = settings.features["keyboard-shortcuts"];
+			features["keyboard-shortcuts"] = {
+				...shortcuts,
+				options: {submit: "none", fold: "none", ...shortcuts?.options},
+			};
+		}
+		return {...settings, features};
+	}
+
 	// CpToolkit/src/domain/settings/settings.ts
-	var CURRENT_SETTINGS_VERSION = 1;
-	var MIGRATIONS = {};
+	var CURRENT_SETTINGS_VERSION = 2;
+	var MIGRATIONS = {1: migrateToVersion2};
 
 	function createDefaultSettings() {
 		return {version: CURRENT_SETTINGS_VERSION, features: {}};
@@ -924,10 +1061,11 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	}
 
 	function parseSettings(raw) {
+		if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return createDefaultSettings();
 		const {version, features} = parseStoredObject(raw);
 		const entries = Object.entries(parseStoredObject(features));
 		let settings = {
-			version: typeof version === "number" ? version : CURRENT_SETTINGS_VERSION,
+			version: typeof version === "number" && Number.isSafeInteger(version) && version >= 0 ? version : 1,
 			features: Object.fromEntries(entries.map(([id, value]) => [id, parseFeatureSettings(value)])),
 		};
 		while (settings.version < CURRENT_SETTINGS_VERSION) {
@@ -951,9 +1089,15 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		listeners = new Set();
 		store;
 
-		constructor(store) {
+		constructor(store, {installedBefore = false} = {}) {
 			this.store = store;
-			this.settings = parseSettings(store.get(STORAGE_KEY));
+			const stored = store.get(STORAGE_KEY);
+			const raw = typeof stored === "string" ? safeJsonParse(stored, null) : stored;
+			const fresh = raw === null || raw === undefined;
+			this.settings = fresh && !installedBefore ? createDefaultSettings() : parseSettings(fresh ? {} : raw);
+			const storedVersion =
+				raw && typeof raw === "object" && !Array.isArray(raw) && "version" in raw ? raw.version : undefined;
+			if (storedVersion !== this.settings.version) store.set(STORAGE_KEY, this.settings);
 			store.subscribeRemote(STORAGE_KEY, (value) => this.replace(parseSettings(value)));
 		}
 
@@ -1086,6 +1230,10 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 
 		constructor(dependencies) {
 			this.dependencies = dependencies;
+		}
+
+		hasCheckedBefore() {
+			return this.dependencies.state.get(STATE_KEY) !== undefined;
 		}
 
 		status() {
@@ -3221,6 +3369,9 @@ a:focus > .cp-settings-entry {
 		submission: {
 			editor: "ace",
 			editorElements: ["#editor"],
+			textarea: "#plain-textarea",
+			commentMount: ".editor-buttons",
+			taskSelect: "#select-task",
 			shortcut: "Ctrl+Shift+Enter",
 			submitButtons: ["#submit"],
 		},
@@ -3280,8 +3431,16 @@ a:focus > .cp-settings-entry {
 		submission: {
 			editor: "ace",
 			editorElements: ["#editor"],
+			textarea:
+				'.submit-form textarea[name="source"], .submitForm textarea[name="source"], form._SubmitPage_submitForm textarea[name="source"], textarea[data-cp-easy-test-source]',
+			taskSelect: '[name="submittedProblemIndex"], [name="problemIndex"]',
 			shortcut: "Ctrl+Shift+Enter",
-			submitButtons: [".submit-form .submit", ".submitForm .submit", 'input[type="submit"].submit'],
+			submitButtons: [
+				".submit-form .submit",
+				".submitForm .submit",
+				'input[type="submit"].submit',
+				'form._SubmitPage_submitForm button[type="submit"]',
+			],
 		},
 	};
 	// CpToolkit/data/judges/library-checker.yaml
@@ -3337,6 +3496,14 @@ a:focus > .cp-settings-entry {
 			problem: "^/problems/",
 		},
 		navigationLists: [],
+		submission: {
+			editor: "codemirror",
+			editorElements: [".cm-source-editor .cm-content"],
+			textarea: "#source",
+			commentMount: "#toggle_source_editor",
+			shortcut: "",
+			submitButtons: ['#submit_form input[type="submit"]'],
+		},
 	};
 
 	// CpToolkit/src/catalog/judges.ts
@@ -3532,10 +3699,19 @@ a:focus > .cp-settings-entry {
 		"ratingGraph.showAll": "all",
 		"ratingGraph.showRecent": "recent",
 		"localRunner.title": "Local Runner integration",
-		"localRunner.description": "Set the server used by Easy Test+ and the Java submission helper.",
+		"localRunner.description": "Set the server for Easy Test+, submission transforms and headers.",
 		"localRunner.url": "Server URL",
+		"submissionHelper.submitChanged": "Submission canceled because preparation could not finish.",
+		"submissionHelper.fallbackFailed": "The browser could not safely transform this source.",
+		"keyboardShortcuts.title": "Keyboard shortcuts",
+		"keyboardShortcuts.description": "Submit, open the settings and more with keys you choose.",
+		"keyboardShortcuts.submit": "Submit (empty for the site default, none to turn it off)",
+		"keyboardShortcuts.fold": "Fold Java classes and comments (none to turn it off)",
+		"keyboardShortcuts.openSettings": "Open the CP Toolkit settings (none to turn it off)",
+		"keyboardShortcuts.share": "Open a post to X for the current page (empty to turn it off)",
+		"keyboardShortcuts.invalidKey": "This key combination is not valid (e.g. Ctrl+Shift+Enter, Alt+S).",
 		"submissionHelper.title": "Submission helper",
-		"submissionHelper.description": "Prepare pasted code for submission and submit with a keyboard shortcut.",
+		"submissionHelper.description": "Prepare pasted code for submission.",
 		"submissionHelper.localRunnerRequired": "Expanding {package}.* needs Local Runner",
 		"submissionHelper.localRunnerGuide":
 			"Could not connect to Local Runner, so only the basic transform was applied. Submitting this code will cause a compile error. See the link for setup instructions.",
@@ -3547,6 +3723,8 @@ a:focus > .cp-settings-entry {
 		"submissionHelper.libraryPackage":
 			"Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)",
 		"submissionHelper.foldOnPaste": "Fold Java classes and comments after pasting",
+		"easyTest.submitChanged":
+			"Submission canceled because the source, task, language or runner changed. The test results are still available.",
 		"easyTest.title": "Easy Test+",
 		"easyTest.description": "Run sample tests from the task page and submit when they all pass.",
 		"easyTest.precompile": "Precompile edited code with Local Runner",
@@ -3558,6 +3736,7 @@ a:focus > .cp-settings-entry {
 		"easyTest.cancelSubmit": "Cancel Submission",
 		"easyTest.testAll": "Test All Samples",
 		"easyTest.restore": "Restore Last Code",
+		"easyTest.autoRunner": "Automatic",
 		"easyTest.environment": "Environment",
 		"easyTest.noEnvironment": "No environment available",
 		"easyTest.standardInput": "Standard input",
@@ -3754,10 +3933,19 @@ a:focus > .cp-settings-entry {
 		"ratingGraph.showAll": "all",
 		"ratingGraph.showRecent": "recent",
 		"localRunner.title": "Local Runner との連携",
-		"localRunner.description": "Easy Test+ と Java の提出補助で使うサーバーの接続先を設定します。",
+		"localRunner.description": "提出補助、ヘッダーの取得、Easy Test+ で使うサーバーの接続先を設定します。",
 		"localRunner.url": "接続先の URL",
+		"submissionHelper.submitChanged": "提出準備が完了しなかったため、提出を取り消しました。",
+		"submissionHelper.fallbackFailed": "ブラウザで安全に変換できませんでした。",
+		"keyboardShortcuts.title": "ショートカットキー",
+		"keyboardShortcuts.description": "提出や設定画面を開く操作を、好きなキーで行えます。",
+		"keyboardShortcuts.submit": "提出する（空欄ならサイトの既定、none で使わない）",
+		"keyboardShortcuts.fold": "Java のクラスとコメントを折りたたむ（none で使わない）",
+		"keyboardShortcuts.openSettings": "CP Toolkit の設定を開く（none で使わない）",
+		"keyboardShortcuts.share": "表示中のページを X に投稿する画面を開く（空欄なら使わない）",
+		"keyboardShortcuts.invalidKey": "キーの書き方が正しくありません（例：Ctrl+Shift+Enter、Alt+S）。",
 		"submissionHelper.title": "提出補助",
-		"submissionHelper.description": "貼り付けたコードを提出用に変換し、ショートカットで提出できます。",
+		"submissionHelper.description": "貼り付けたコードを提出用に変換します。",
 		"submissionHelper.localRunnerRequired": "{package}.* の展開には Local Runner が必要です",
 		"submissionHelper.localRunnerGuide":
 			"Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。",
@@ -3769,6 +3957,8 @@ a:focus > .cp-settings-entry {
 		"submissionHelper.libraryPackage":
 			"Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）",
 		"submissionHelper.foldOnPaste": "貼り付け後に Java のクラスとコメントを折りたたむ",
+		"easyTest.submitChanged":
+			"テスト中に提出内容または実行環境が変わったため、提出を取り消しました。結果はテスト欄で確認できます。",
 		"easyTest.title": "Easy Test+",
 		"easyTest.description": "問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。",
 		"easyTest.precompile": "Local Runner で編集中のコードを事前にコンパイルする",
@@ -3780,6 +3970,7 @@ a:focus > .cp-settings-entry {
 		"easyTest.cancelSubmit": "提出を中止",
 		"easyTest.testAll": "Test All Samples",
 		"easyTest.restore": "Restore Last Code",
+		"easyTest.autoRunner": "自動",
 		"easyTest.environment": "実行環境",
 		"easyTest.noEnvironment": "実行環境がありません",
 		"easyTest.standardInput": "標準入力",
@@ -3871,14 +4062,49 @@ a:focus > .cp-settings-entry {
 	}
 
 	// CpToolkit/src/application/execution/local-runner.ts
+	var METADATA_TIMEOUT_MS = 3000;
+	var VERSION_CACHE_MS = 1e4;
 	var TRANSFORM_TIMEOUT_MS = 30000;
+
+	function object(value) {
+		return typeof value === "object" && value !== null && !Array.isArray(value);
+	}
+
+	function strings(value) {
+		return Array.isArray(value) && value.every((item) => typeof item === "string");
+	}
+
+	function compiler(value) {
+		return (
+			object(value) &&
+			typeof value.language === "string" &&
+			typeof value.compilerName === "string" &&
+			typeof value.label === "string" &&
+			(value.family === undefined || typeof value.family === "string") &&
+			(value.match === undefined || strings(value.match))
+		);
+	}
+
+	function diagnostic(value) {
+		return (
+			object(value) &&
+			typeof value.kind === "string" &&
+			typeof value.line === "number" &&
+			typeof value.column === "number" &&
+			typeof value.code === "string" &&
+			typeof value.message === "string" &&
+			(value.importName === undefined || typeof value.importName === "string")
+		);
+	}
 
 	class LocalRunnerError extends Error {
 		status;
+		notify;
 
-		constructor(message, status) {
+		constructor(message, status, notify = true) {
 			super(message);
 			this.status = status;
+			this.notify = notify;
 		}
 	}
 
@@ -3886,6 +4112,8 @@ a:focus > .cp-settings-entry {
 		http;
 		endpoint;
 		compilers = null;
+		version = null;
+		warnedVersion = "";
 
 		constructor(http, endpoint) {
 			this.http = http;
@@ -3896,36 +4124,112 @@ a:focus > .cp-settings-entry {
 			return this.endpoint() !== null;
 		}
 
-		list() {
+		list(refresh = false) {
 			const url = this.endpoint();
-			if (this.compilers && this.compilers.url === url) return this.compilers.list;
-			const list = this.post({mode: "list"});
-			if (url !== null) this.compilers = {url, list};
+			if (this.compilers?.url === url && (!refresh || !this.compilers.settled)) return this.compilers.list;
+			const list = this.post({mode: "list"}, METADATA_TIMEOUT_MS).then((value) => {
+				if (!Array.isArray(value) || !value.every(compiler))
+					throw new LocalRunnerError("Invalid Local Runner compiler list.", 200);
+				return value;
+			});
+			if (url !== null) {
+				const cached = {url, list, settled: false};
+				this.compilers = cached;
+				list.then(
+					() => {
+						cached.settled = true;
+					},
+					() => {
+						if (this.compilers === cached) this.compilers = null;
+					},
+				);
+			}
 			return list;
+		}
+
+		async requireSubmissionApi() {
+			const url = this.endpoint();
+			if (url === null) throw new LocalRunnerError("Local Runner is not configured.", 0);
+			if (this.version?.url !== url || Date.now() >= this.version.expires) {
+				const value = this.post({mode: "status"}, METADATA_TIMEOUT_MS).then((info) => {
+					if (
+						!object(info) ||
+						info.status !== "running" ||
+						typeof info.version !== "string" ||
+						!/^\d+\.\d+\.\d+$/.test(info.version)
+					) {
+						throw new LocalRunnerError("Invalid Local Runner version response.", 200);
+					}
+					return info.version;
+				});
+				const cached = {url, expires: Date.now() + VERSION_CACHE_MS, value};
+				this.version = cached;
+				value.catch(() => {
+					if (this.version === cached) this.version = null;
+				});
+			}
+			const version = await this.version.value;
+			if (url !== this.endpoint()) throw new LocalRunnerError("Local Runner endpoint changed.", -1);
+			if (Number(version.split(".")[0]) < 2) {
+				const key = url + "/" + version;
+				const notify = this.warnedVersion !== key;
+				this.warnedVersion = key;
+				throw new LocalRunnerError(
+					`Local Runner ${version}: update to 2.0.0 or later to prepare submissions and attach headers.`,
+					400,
+					notify,
+				);
+			}
+			this.warnedVersion = "";
 		}
 
 		async compilerFor(language) {
 			return orderLocalCompilers(await this.list(), language)[0]?.compilerName ?? null;
 		}
 
-		transform(sourceCode, compilerName) {
+		async transform(sourceCode, compilerName) {
+			await this.requireSubmissionApi();
 			const request = {
 				mode: "transform",
 				sourceCode,
 				...(compilerName !== undefined && {compilerName}),
 				debug: false,
-				validate: false,
+				validate: true,
 				header: false,
 			};
-			return this.post(request, TRANSFORM_TIMEOUT_MS);
+			const response = await this.post(request, TRANSFORM_TIMEOUT_MS);
+			if (
+				!object(response) ||
+				(response.status !== "success" && response.status !== "compileError") ||
+				typeof response.sourceCode !== "string" ||
+				typeof response.diagnostics !== "string" ||
+				!Array.isArray(response.diagnosticItems) ||
+				!response.diagnosticItems.every(diagnostic) ||
+				!strings(response.inlinedClasses)
+			)
+				throw new LocalRunnerError("Invalid Local Runner transform response.", 200);
+			return {
+				status: response.status,
+				sourceCode: response.sourceCode,
+				diagnostics: response.diagnostics,
+				diagnosticItems: response.diagnosticItems,
+				inlinedClasses: response.inlinedClasses,
+			};
 		}
 
 		async header(compilerName, header) {
-			const response = await this.post({
-				mode: "header",
-				...(compilerName !== undefined && {compilerName}),
-				header,
-			});
+			await this.requireSubmissionApi();
+			const response = await this.post(
+				{mode: "header", ...(compilerName !== undefined && {compilerName}), header},
+				METADATA_TIMEOUT_MS,
+			);
+			if (
+				!object(response) ||
+				response.status !== "success" ||
+				(response.header !== null && typeof response.header !== "string")
+			) {
+				throw new LocalRunnerError("Invalid Local Runner header response.", 200);
+			}
 			return response.header;
 		}
 
@@ -3951,6 +4255,7 @@ a:focus > .cp-settings-entry {
 		async post(request, timeoutMs) {
 			const url = this.endpoint();
 			if (url === null) throw new LocalRunnerError("Local Runner is not configured.", 0);
+			const lostConnection = request.mode === "transform" || request.mode === "header" ? -1 : 0;
 			let response;
 			try {
 				response = await this.http.send({
@@ -3961,20 +4266,29 @@ a:focus > .cp-settings-entry {
 					timeoutMs,
 				});
 			} catch (error) {
-				this.compilers = null;
-				throw error;
+				if (this.compilers?.url === url) this.compilers = null;
+				if (this.version?.url === url) this.version = null;
+				throw new LocalRunnerError(error instanceof Error ? error.message : String(error), lostConnection);
 			}
 			if (response.status < 200 || response.status >= 300) {
-				this.compilers = null;
-				const reason = safeJsonParse(response.text, {}).stderr;
+				if (this.compilers?.url === url) this.compilers = null;
+				if (this.version?.url === url) this.version = null;
+				const reason = safeJsonParse(response.text, null)?.stderr;
 				const detail =
 					typeof reason === "string" && reason
 						? `
 ${reason}`
 						: "";
-				throw new LocalRunnerError(`Local Runner returned ${response.status}.${detail}`, response.status);
+				throw new LocalRunnerError(
+					`Local Runner returned ${response.status}.${detail}`,
+					response.status || lostConnection,
+				);
 			}
-			return JSON.parse(response.text);
+			try {
+				return JSON.parse(response.text);
+			} catch {
+				throw new LocalRunnerError("Invalid JSON from Local Runner.", response.status);
+			}
 		}
 	}
 
@@ -4049,9 +4363,19 @@ ${reason}`
 		steps = [];
 		watching = false;
 		editors;
+		generation = 0;
+		pending = null;
 
 		constructor(editors) {
 			this.editors = editors;
+		}
+
+		get busy() {
+			return this.pending !== null;
+		}
+
+		settled() {
+			return this.pending ?? Promise.resolve(true);
 		}
 
 		add(target, lookup, step) {
@@ -4060,27 +4384,55 @@ ${reason}`
 			if (this.watching) return;
 			this.watching = true;
 			this.editors.locate(target, lookup).then((editor) => {
-				editor?.onPaste(
-					(pasted) =>
-						void this.run(editor, pasted).catch(() => {
-							return;
-						}),
-				);
+				if (editor) editor.onPaste((pasted, inserted) => void this.start(editor, pasted, this.steps, inserted));
+				else this.watching = false;
 			});
 		}
 
-		async run(editor, pasted) {
-			const original = editor.getValue();
-			const changedBy = [];
-			let code = original;
-			for (const step of this.steps) {
-				const next = await step.transform(code, {editor, pasted, original});
-				if (next !== code) changedBy.push(step);
-				code = next;
-			}
-			if (code === original || editor.getValue() !== original) return;
-			editor.setValue(code);
-			for (const step of changedBy) step.applied?.(editor);
+		apply(editor, step) {
+			return this.start(editor, editor.getValue(), [step]);
+		}
+
+		start(editor, pasted, steps, inserted) {
+			const generation = ++this.generation;
+			steps = [...steps];
+			const model = editor.identity?.();
+			const keys = steps.map((step) => step.contextKey?.(editor));
+			const run = async () => {
+				if (inserted) await inserted;
+				const original = editor.getValue();
+				const originalLF = normalizeNewlines(original);
+				const isCurrent = () =>
+					generation === this.generation &&
+					normalizeNewlines(editor.getValue()) === originalLF &&
+					editor.identity?.() === model &&
+					steps.every((step, index) => step.contextKey?.(editor) === keys[index]);
+				const committed = [];
+				let code = original;
+				for (const step of steps) {
+					if (!isCurrent()) return false;
+					const next = await step.transform(code, {
+						editor,
+						pasted,
+						original,
+						isCurrent,
+						onCommit: (action) => committed.push(action),
+					});
+					if (next !== code && step.applied) committed.push(() => step.applied?.(editor));
+					code = next;
+				}
+				if (!isCurrent()) return false;
+				if (code !== original) editor.setValue(normalizeNewlines(code));
+				for (const action of committed) action();
+				return true;
+			};
+			const pending = run()
+				.catch(() => false)
+				.finally(() => {
+					if (generation === this.generation) this.pending = null;
+				});
+			this.pending = pending;
+			return pending;
 		}
 	}
 
@@ -4641,7 +4993,7 @@ ${reason}`
 	}
 
 	// CpToolkit/src/adapters/judges/codeforces.ts
-	var LANGUAGE_SELECT = "select[name='programTypeId']";
+	var CODEFORCES_LANGUAGE_SELECT = "select[name='programTypeId']";
 
 	function readSampleBlock(pre) {
 		const lines = pre.querySelectorAll(".test-example-line");
@@ -4669,14 +5021,26 @@ ${reason}`
 
 		constructor(bridge) {
 			super(bridge);
+			this.textarea.dataset.cpEasyTestSource = "";
 			Object.assign(this.textarea.style, {fontFamily: "monospace", width: "100%", minHeight: "5em"});
 			document.querySelector(".submitForm")?.append(this.buttons);
-			document.getElementById("pageContent")?.append(this.textarea);
-			this.fileInput?.addEventListener("change", () => {
-				this.fileInput?.files?.[0]?.text().then((text) => {
-					this.textarea.value = text;
+			if (!this.fastSubmitEditor) document.getElementById("pageContent")?.append(this.textarea);
+			const input = this.fileInput;
+			if (input) {
+				this.textarea.addEventListener("input", () => this.attachFile(this.textarea.value, input));
+				input.addEventListener("change", () => {
+					const file = input.files?.[0];
+					this.textarea.value = "";
+					if (file)
+						file.text()
+							.then((text) => {
+								if (input.files?.[0] === file) this.textarea.value = text;
+							})
+							.catch(() => {
+								return;
+							});
 				});
-			});
+			}
 		}
 
 		get mounts() {
@@ -4688,7 +5052,7 @@ ${reason}`
 		}
 
 		get languageSelect() {
-			return document.querySelector(LANGUAGE_SELECT);
+			return document.querySelector(CODEFORCES_LANGUAGE_SELECT);
 		}
 
 		get fileInput() {
@@ -4707,9 +5071,14 @@ ${reason}`
 		setSourceCode(code) {
 			this.textarea.value = code;
 			this.fastSubmitEditor?.setValue(code);
+			const input = this.fileInput;
+			if (input) this.attachFile(code, input);
+		}
+
+		attachFile(code, input) {
 			const files = new DataTransfer();
-			files.items.add(new File([code], "prog.txt", {type: "text/plain"}));
-			if (this.fileInput) this.fileInput.files = files.files;
+			if (code) files.items.add(new File([code], "prog.txt", {type: "text/plain"}));
+			input.files = files.files;
 		}
 
 		submit() {
@@ -4769,10 +5138,31 @@ ${reason}`
 			const frame = document.createElement("iframe");
 			frame.src = `/contest/${url[1]}/submit`;
 			frame.style.display = "none";
-			document.body.append(frame);
-			await new Promise((resolve) => frame.addEventListener("load", resolve, {once: true}));
-			const form = frame.contentDocument?.querySelector("._SubmitPage_submitForm");
-			if (!form) return null;
+			const loaded = await new Promise((resolve) => {
+				const timer = setTimeout(() => resolve(false), 1e4);
+				frame.addEventListener(
+					"load",
+					() => {
+						clearTimeout(timer);
+						resolve(true);
+					},
+					{once: true},
+				);
+				frame.addEventListener(
+					"error",
+					() => {
+						clearTimeout(timer);
+						resolve(false);
+					},
+					{once: true},
+				);
+				document.body.append(frame);
+			});
+			const form = loaded && frame.contentDocument?.querySelector("._SubmitPage_submitForm");
+			if (!form) {
+				frame.remove();
+				return null;
+			}
 			const problem = form.elements.namedItem("problemIndex");
 			if (problem) {
 				problem.value = url[2] ?? "";
@@ -4791,7 +5181,7 @@ ${reason}`
 		}
 
 		submit() {
-			this.form.submit();
+			this.form.requestSubmit();
 		}
 
 		async samples() {
@@ -4900,7 +5290,26 @@ ${reason}`
 	}
 
 	// CpToolkit/src/adapters/page/code-editors.ts
-	var JAVA_MODE_PATTERN = /(^|\/)java$/i;
+	var EDITOR_FAMILIES = {
+		python: "python3",
+		csharp: "csharp",
+		sh: "bash",
+		shell: "bash",
+		golang: "go",
+		kotlin: "kotlin",
+		java: "java",
+		cpp: "cpp",
+		c: "c",
+		javascript: "javascript",
+		typescript: "typescript",
+		rust: "rust",
+		ruby: "ruby",
+		php: "php",
+		swift: "swift",
+		scala: "scala",
+		haskell: "haskell",
+		ocaml: "ocaml",
+	};
 	var DEFAULT_TIMEOUT_MS = 30000;
 	var MIN_PASTED_LENGTH = 30;
 
@@ -4920,7 +5329,24 @@ ${reason}`
 		}
 
 		isJava() {
-			return JAVA_MODE_PATTERN.test(this.editor.getSession().getMode().$id ?? "");
+			return this.languageFamily() === "java";
+		}
+
+		languageFamily() {
+			const mode = this.editor.getSession().getMode().$id?.split("/").at(-1) ?? "";
+			return EDITOR_FAMILIES[mode] ?? null;
+		}
+
+		commentFamily() {
+			return this.editor.getSession().getMode().$id === "ace/mode/c_cpp" ? "cpp" : this.languageFamily();
+		}
+
+		identity() {
+			return this.editor.getSession();
+		}
+
+		onLanguageChange(listener) {
+			this.editor.getSession().on("changeMode", listener);
 		}
 
 		isReadOnly() {
@@ -4932,7 +5358,7 @@ ${reason}`
 		}
 
 		onPaste(listener) {
-			this.editor.on("paste", ({text}) => setTimeout(() => listener(text)));
+			this.editor.on("paste", ({text}) => listener(text, sleep(0)));
 		}
 
 		onChange(listener) {
@@ -4978,8 +5404,20 @@ ${reason}`
 			return this.model.getLanguageId() === "java";
 		}
 
+		languageFamily() {
+			return EDITOR_FAMILIES[this.model.getLanguageId()] ?? null;
+		}
+
 		isReadOnly() {
-			return false;
+			return this.editor.getRawOptions?.().readOnly ?? false;
+		}
+
+		identity() {
+			return this.editor.getModel();
+		}
+
+		onLanguageChange(listener) {
+			this.editor.onDidChangeModelLanguage?.(listener);
 		}
 
 		setWritable() {
@@ -5019,21 +5457,125 @@ ${reason}`
 		}
 	}
 
-	function findEditor(target) {
+	function richEditor(target) {
 		const page = pageGlobals();
 		if (target.editor === "monaco") {
-			const [editor] = page.monaco?.editor.getEditors() ?? [];
+			const writable = (page.monaco?.editor.getEditors() ?? []).filter(
+				(editor) => editor.getModel() && !editor.getRawOptions?.().readOnly,
+			);
+			const editor =
+				writable.find((candidate) => candidate.getDomNode?.()?.closest("form")) ??
+				(writable.length === 1 ? writable[0] : null);
 			return editor?.getModel() ? new MonacoCodeEditor(editor) : null;
 		}
 		const element = target.editorElements
 			.map((selector) => document.querySelector(selector))
 			.find((found) => found);
+		if (target.editor === "codemirror") {
+			const content = page.document?.querySelector(target.editorElements.join(","));
+			const view = content?.cmTile?.view;
+			return view ? new NativeSourceEditor(content, view) : null;
+		}
 		if (!page.ace || !element) return null;
 		try {
 			return new AceCodeEditor(page.ace.edit(element));
 		} catch {
 			return null;
 		}
+	}
+
+	class NativeSourceEditor {
+		constructor(element, view) {
+			this.element = element;
+			this.view = view;
+		}
+
+		element;
+		view;
+
+		getValue() {
+			return this.view?.state.doc.toString() ?? this.element.value;
+		}
+
+		setValue(value) {
+			if (this.view) this.view.dispatch({changes: {from: 0, to: this.view.state.doc.length, insert: value}});
+			else {
+				this.element.value = value;
+				this.element.dispatchEvent(new Event("input", {bubbles: true}));
+			}
+		}
+
+		isJava() {
+			return false;
+		}
+
+		identity() {
+			return this.view ?? this.element;
+		}
+
+		isReadOnly() {
+			return this.element instanceof HTMLTextAreaElement && (this.element.readOnly || this.element.disabled);
+		}
+
+		setWritable() {
+			if (this.element instanceof HTMLTextAreaElement) this.element.readOnly = false;
+		}
+
+		foldLines() {
+		}
+
+		onChange(listener) {
+			this.element.addEventListener("input", listener);
+		}
+
+		onPaste(listener) {
+			this.element.addEventListener("paste", (event) => {
+				if (event instanceof ClipboardEvent && event.clipboardData)
+					listener(event.clipboardData.getData("text/plain"), sleep(0));
+			});
+		}
+	}
+
+	function findEditor(target) {
+		if (!target.textarea) return richEditor(target);
+		const textareaSelector = target.textarea;
+		const selector = [...target.editorElements, textareaSelector].join(",");
+		const current = () => {
+			const plain = document.querySelector(textareaSelector);
+			if (
+				plain &&
+				(plain === document.activeElement ||
+					plain.offsetParent !== null ||
+					document.querySelector(".btn-toggle-editor.active"))
+			)
+				return new NativeSourceEditor(plain);
+			return richEditor(target) ?? (plain && new NativeSourceEditor(plain));
+		};
+		if (!current()) return null;
+		return {
+			getValue: () => current()?.getValue() ?? "",
+			setValue: (value) => current()?.setValue(value),
+			isJava: () => current()?.isJava() ?? false,
+			languageFamily: () => current()?.languageFamily?.() ?? null,
+			commentFamily: () => current()?.commentFamily?.() ?? null,
+			identity: () => current()?.identity?.() ?? null,
+			onLanguageChange: (listener) => richEditor(target)?.onLanguageChange?.(listener),
+			isReadOnly: () => current()?.isReadOnly() ?? true,
+			setWritable: () => current()?.setWritable(),
+			foldLines: (lines) => current()?.foldLines(lines),
+			onChange: (listener) => current()?.onChange(listener),
+			onPaste(listener) {
+				document.addEventListener(
+					"paste",
+					(event) => {
+						if (event.target instanceof Element && event.target.closest(selector) && event.clipboardData) {
+							listener(event.clipboardData.getData("text/plain"), sleep(0));
+						}
+					},
+					true,
+				);
+			},
+		};
 	}
 
 	class PageCodeEditorLocator {
@@ -5067,6 +5609,129 @@ ${reason}`
 			clearTimeout(timer);
 			return found;
 		}
+	}
+
+	// CpToolkit/src/adapters/page/submission-form.ts
+	function findSubmitButton({submitButtons, labeledSubmit}) {
+		for (const selector of submitButtons) {
+			const button = document.querySelector(selector);
+			if (button) return button;
+		}
+		if (!labeledSubmit) return null;
+		const candidates = [...document.querySelectorAll(labeledSubmit.selector)];
+		for (const label of labeledSubmit.labels) {
+			const button = candidates.find((candidate) => {
+				const text = candidate instanceof HTMLInputElement ? candidate.value : candidate.textContent;
+				return text?.trim().toLowerCase().includes(label);
+			});
+			if (button) return button;
+		}
+		return null;
+	}
+
+	function codeforcesTaskUri(selected) {
+		if (!/^[a-z]\d*$/i.test(selected)) return null;
+		const contest = /^(.*\/(?:contest|gym)\/\d+)\/submit\/?$/.exec(location.pathname);
+		return contest ? `${location.origin}${contest[1]}/problem/${selected}` : null;
+	}
+
+	async function createSubmissionForm(target, {judgeId, bridge, judgeSite}) {
+		const site = judgeId === "atcoder" || judgeId === "yukicoder" ? await judgeSite() : null;
+		const codeforcesLanguage = () => {
+			return judgeId === "codeforces" ? document.querySelector(CODEFORCES_LANGUAGE_SELECT) : null;
+		};
+		const taskControl = () => (target.taskSelect ? document.querySelector(target.taskSelect) : null);
+		const task = () => {
+			if (site) return site.taskUri();
+			const selected = taskControl()?.value;
+			if (!selected) return location.href;
+			return (
+				(judgeId === "codeforces" ? codeforcesTaskUri(selected) : null) ??
+				`${location.href.split("#")[0]}#${encodeURIComponent(selected)}`
+			);
+		};
+		const language = (editor) => {
+			if (site) return site.language();
+			const select = codeforcesLanguage();
+			if (select) return selectedLanguageOf(select);
+			const family = editor.languageFamily?.() ?? (editor.isJava() ? "java" : null);
+			return family ? {id: family, label: family, family} : null;
+		};
+		let changes = 0;
+		const listeners = new Set();
+		const observed = new WeakSet();
+		const changed = () => {
+			changes++;
+			for (const listener of listeners) listener();
+		};
+		window.addEventListener("popstate", changed);
+		window.addEventListener("hashchange", changed);
+		site?.onLanguageChange(changed);
+		for (const element of [
+			codeforcesLanguage(),
+			...(target.taskSelect ? document.querySelectorAll(target.taskSelect) : []),
+		]) {
+			if (element) bridge.onChange(element, changed);
+		}
+		let holding = false;
+		return {
+			task,
+			language,
+			contextKey(editor) {
+				const selected = language(editor);
+				return JSON.stringify([changes, task(), selected?.id, selected?.family]);
+			},
+			observe(editor, listener) {
+				if (listener) listeners.add(listener);
+				if (!site && !codeforcesLanguage() && !observed.has(editor)) {
+					observed.add(editor);
+					editor.onLanguageChange?.(changed);
+				}
+			},
+			submitButton: () => findSubmitButton(target),
+			holdSubmitWhile(work, onCanceled) {
+				if (holding) return;
+				holding = true;
+				let waiting = false;
+				const defer = (event, resume) => {
+					event.preventDefault();
+					event.stopImmediatePropagation();
+					if (waiting) return;
+					waiting = true;
+					work.settled().then((success) => {
+						waiting = false;
+						if (success) resume();
+						else onCanceled();
+					});
+				};
+				document.addEventListener(
+					"click",
+					(event) => {
+						if (!work.busy || !(event.target instanceof Element)) return;
+						const button = findSubmitButton(target);
+						if (button?.contains(event.target))
+							defer(event, () => {
+								if (button.isConnected) button.click();
+							});
+					},
+					true,
+				);
+				document.addEventListener(
+					"submit",
+					(event) => {
+						if (!work.busy || !(event.target instanceof HTMLFormElement)) return;
+						const form = event.target;
+						if (findSubmitButton(target)?.closest("form") !== form) return;
+						const submitter = event.submitter;
+						defer(event, () => {
+							if (form.isConnected && (!submitter || submitter.isConnected))
+								form.requestSubmit(submitter);
+						});
+					},
+					true,
+				);
+			},
+		};
 	}
 
 	// CpToolkit/src/adapters/page/element-script-loader.ts
@@ -5586,7 +6251,7 @@ ${body}
 
 		async runnersFor(language) {
 			if (!this.client.isAvailable()) return [];
-			const ordered = orderLocalCompilers(await this.client.list(), language);
+			const ordered = orderLocalCompilers(await this.client.list(true), language);
 			const ranked = ordered.some(({match}) => match !== undefined);
 			return ordered.map(
 				({compilerName, label}, index) =>
@@ -7037,6 +7702,15 @@ ${inner}
 			judgeSite ??= createJudgeSite(page?.judge.id, bridge, site);
 			return judgeSite;
 		};
+		const forms = new Map();
+		const getSubmissionForm = (target) => {
+			let form = forms.get(target);
+			if (!form) {
+				form = createSubmissionForm(target, {judgeId: page?.judge.id, bridge, judgeSite: getJudgeSite});
+				forms.set(target, form);
+			}
+			return form;
+		};
 		let providers = null;
 		const getProviders = () => {
 			providers ??= [
@@ -7073,6 +7747,7 @@ ${inner}
 				runnerCatalog.external,
 			),
 			judgeSite: getJudgeSite,
+			submissionForm: getSubmissionForm,
 			openSettings,
 			get statementConverter() {
 				converter ??= new TurndownStatementConverter();
@@ -7318,7 +7993,12 @@ ${inner}
 		runners;
 		state;
 		current = [];
-		languageId;
+
+		get explicit() {
+			const language = this.language();
+			return language ? this.selections()[language.id] : undefined;
+		}
+
 		refreshing = Promise.resolve();
 
 		constructor(language, runners, state) {
@@ -7347,7 +8027,10 @@ ${inner}
 		remember(runnerId) {
 			const language = this.language();
 			if (!language) return;
-			this.state.set(RUNNER_SELECTION_KEY, {...this.selections(), [language.id]: runnerId});
+			const next = {...this.selections()};
+			if (runnerId) next[language.id] = runnerId;
+			else delete next[language.id];
+			this.state.set(RUNNER_SELECTION_KEY, next);
 		}
 
 		selections() {
@@ -7357,14 +8040,10 @@ ${inner}
 		async load(view) {
 			const language = this.language();
 			const candidates = language ? await this.runners.candidates(language) : [];
-			const previous = view.selected();
+			if (this.language()?.id !== language?.id) return;
 			this.current = candidates;
-			const isCandidate = (id) => candidates.some((candidate) => candidate.id === id);
-			const local = candidates.find(({kind}) => kind === "local")?.id;
-			const saved = language ? this.selections()[language.id] : undefined;
-			const kept = language?.id === this.languageId && isCandidate(previous) ? previous : undefined;
-			this.languageId = language?.id;
-			view.show(candidates, local ?? kept ?? (isCandidate(saved) ? saved : candidates[0]?.id));
+			const preferred = candidates.find(({kind}) => kind === "local") ?? candidates[0];
+			view.show(candidates, this.explicit ?? preferred?.id);
 		}
 	}
 
@@ -7404,7 +8083,10 @@ ${inner}
 				...(allowableError === undefined ? {} : {allowableError}),
 				...extra,
 			};
-			return this.runners.test(this.selection.candidates, runnerId, code, testCase, options).finally(() => {
+			const candidates = this.selection.explicit
+				? this.selection.candidates.filter(({id}) => id === runnerId)
+				: this.selection.candidates;
+			return this.runners.test(candidates, runnerId, code, testCase, options).finally(() => {
 				if (--this.active === 0) this.listener.onBusyChange();
 			});
 		}
@@ -8272,11 +8954,11 @@ summary {
 		selection;
 		session;
 		environmentView = {
-			selected: () => this.panel.environment.value,
 			show: (candidates, selected) => this.showEnvironment(candidates, selected),
 		};
 		submitButton;
 		runnable = false;
+		currentRunner = "";
 		site;
 		context;
 
@@ -8304,9 +8986,10 @@ summary {
 
 		start() {
 			injectStyle(result_row_default);
-			this.panel.environment.addEventListener("change", () =>
-				this.selection.remember(this.panel.environment.value),
-			);
+			this.panel.environment.addEventListener("change", () => {
+				this.selection.remember(this.panel.environment.value);
+				this.refreshEnvironment();
+			});
 			this.site.onLanguageChange(() => void this.refreshEnvironment());
 			this.refreshEnvironment();
 			this.placeButtons();
@@ -8430,36 +9113,35 @@ summary {
 
 		showEnvironment(candidates, selected) {
 			const {environment} = this.panel;
-			const signature = candidates.map(
-				({id, label}) => `${id}
-${label}`,
-			).join(`
-`);
-			if (environment.dataset.signature !== signature || candidates.length === 0) {
-				environment.dataset.signature = signature;
-				environment.replaceChildren(
-					...candidates.map(({id, label}) =>
-						h("option", {
-							value: id,
-							textContent: label,
-						}),
-					),
+			const explicit = this.selection.explicit;
+			const automatic = candidates.find(({kind}) => kind === "local") ?? candidates[0];
+			const options = candidates.map(({id, label}) => h("option", {value: id, textContent: label}));
+			if (automatic)
+				options.unshift(
+					h("option", {
+						value: "",
+						textContent: this.context.translate("easyTest.autoRunner") + " — " + automatic.label,
+					}),
 				);
-				if (candidates.length === 0)
-					environment.append(h("option", {textContent: this.context.translate("easyTest.noEnvironment")}));
+			else options.push(h("option", {value: "", textContent: this.context.translate("easyTest.noEnvironment")}));
+			if (explicit && !candidates.some(({id}) => id === explicit)) {
+				options.push(
+					h("option", {
+						value: explicit,
+						textContent: explicit + " — " + this.context.translate("easyTest.noEnvironment"),
+					}),
+				);
 			}
-			if (selected !== undefined) environment.value = selected;
+			environment.replaceChildren(...options);
+			environment.value = explicit ?? "";
+			this.currentRunner = selected ?? "";
 			this.updateRunnable();
 		}
 
 		updateRunnable() {
-			this.setRunnable(this.selection.candidates.length > 0 && !this.session.busy);
-		}
-
-		setRunnable(runnable) {
-			this.runnable = runnable;
-			this.panel.setRunnable(runnable);
-			for (const button of this.buttons) button.classList.toggle("disabled", !runnable);
+			this.runnable = this.site.language() !== null && !this.session.busy;
+			this.panel.setRunnable(this.runnable);
+			for (const button of this.buttons) button.classList.toggle("disabled", !this.runnable);
 			this.showSubmitState();
 		}
 
@@ -8473,17 +9155,62 @@ ${label}`,
 			button.classList.toggle("disabled", !pending && !this.runnable);
 		}
 
-		execute(testCase, options) {
-			const code = this.site.sourceCode();
-			if (code) this.savedCodes.save(this.site.taskUri(), code);
+		snapshot() {
+			const explicit = this.selection.explicit;
+			return {
+				source: this.site.sourceCode(),
+				task: this.site.taskUri(),
+				language: this.site.language()?.id,
+				runner: explicit ?? this.currentRunner,
+				explicit,
+			};
+		}
+
+		matches(snapshot, checkRunner = true) {
+			const current = this.snapshot();
+			return (
+				current.source === snapshot.source &&
+				current.task === snapshot.task &&
+				current.language === snapshot.language &&
+				current.explicit === snapshot.explicit &&
+				(!checkRunner || current.runner === snapshot.runner)
+			);
+		}
+
+		changed() {
+			showToast({
+				title: this.context.translate("easyTest.title"),
+				detail: this.context.translate("easyTest.submitChanged"),
+				tone: "warning",
+				durationMs: ACTION_NOTICE_DURATION_MS,
+			});
+		}
+
+		async prepareRun() {
+			if (!(await this.context.paste.settled()) || !this.hasSource()) return null;
+			const before = this.snapshot();
+			await this.refreshEnvironment();
+			if (!this.matches(before, false)) {
+				this.changed();
+				return null;
+			}
+			if (!this.selection.candidates.some(({id}) => id === this.currentRunner)) {
+				window.alert(this.context.translate("easyTest.noEnvironment"));
+				return null;
+			}
+			return this.snapshot();
+		}
+
+		execute(testCase, options, snapshot) {
+			this.savedCodes.save(snapshot.task, snapshot.source);
 			const view = createResultView(this.context.translate);
 			const tab = this.dock.addTab(`#${this.session.nextNumber()} ${testCase.title}`, view.element, {
 				closable: true,
 			});
 			const result = this.session.start(
 				testCase,
-				code,
-				this.panel.environment.value,
+				snapshot.source,
+				snapshot.runner,
 				this.panel.allowableError(),
 				options,
 			);
@@ -8502,16 +9229,16 @@ ${label}`,
 		}
 
 		async runPanel() {
-			if (!this.hasSource()) return;
-			await this.refreshEnvironment();
+			const snapshot = await this.prepareRun();
+			if (!snapshot) return;
 			const {input, expected} = this.panel;
-			this.execute({title: "Run", input: input.value, output: expected.value || null}, {});
+			this.execute({title: "Run", input: input.value, output: expected.value || null}, {}, snapshot);
 		}
 
 		async runSample(sample) {
-			if (!this.hasSource()) return;
-			await this.refreshEnvironment();
-			const {result, tab} = this.execute(sample, {});
+			const snapshot = await this.prepareRun();
+			if (!snapshot) return;
+			const {result, tab} = this.execute(sample, {}, snapshot);
 			await result;
 			tab.show();
 		}
@@ -8520,16 +9247,18 @@ ${label}`,
 			return this.site.samples().catch(() => []);
 		}
 
-		async runSamples(onClose) {
-			if (!this.hasSource()) return false;
+		async runSamples(snapshot, onClose) {
 			const samples = await this.readSamples();
 			if (samples.length === 0) {
 				window.alert(this.context.translate("easyTest.noSamples"));
 				return false;
 			}
-			await this.refreshEnvironment();
+			if (!this.matches(snapshot)) {
+				this.changed();
+				return false;
+			}
 			const runGroupId = crypto.randomUUID();
-			const executions = samples.map((sample) => this.execute(sample, {runGroupId}));
+			const executions = samples.map((sample) => this.execute(sample, {runGroupId}, snapshot));
 			executions[0]?.tab.select();
 			const row = createResultRow(samples.length, this.context.translate("settings.close"), () => {
 				for (const {tab} of executions) tab.close();
@@ -8542,13 +9271,25 @@ ${label}`,
 		}
 
 		async testAll() {
-			await this.runSamples();
+			const snapshot = await this.prepareRun();
+			if (snapshot) await this.runSamples(snapshot);
 		}
 
 		async testAndSubmit() {
+			let tested = null;
 			await this.session.testAndSubmit(
-				(cancel) => this.runSamples(cancel),
-				() => this.site.submit(),
+				async (cancel) => {
+					tested = await this.prepareRun();
+					return (
+						tested !== null &&
+						(await this.runSamples(tested, cancel)) &&
+						(await this.context.paste.settled())
+					);
+				},
+				() => {
+					if (tested && this.matches(tested)) this.site.submit();
+					else this.changed();
+				},
 			);
 		}
 
@@ -8819,77 +9560,46 @@ ${efficient_layout_default}`);
 		},
 	});
 
-	// CpToolkit/src/domain/source/comment.ts
-	var SHEBANG_PATTERN = /^#![^\n]*\n/;
-	var VARIABLE_PATTERN = /\{(\w+)\}/g;
-	var LINE_BREAK_PATTERN = /\r\n?/g;
+	// CpToolkit/src/domain/settings/shortcut.ts
+	var MODIFIERS2 = ["Ctrl", "Shift", "Alt"];
+	var NAMED_KEYS = {
+		enter: "Enter",
+		escape: "Escape",
+		esc: "Escape",
+		space: " ",
+		tab: "Tab",
+		backspace: "Backspace",
+		delete: "Delete",
+		arrowleft: "ArrowLeft",
+		left: "ArrowLeft",
+		arrowright: "ArrowRight",
+		right: "ArrowRight",
+		arrowup: "ArrowUp",
+		up: "ArrowUp",
+		arrowdown: "ArrowDown",
+		down: "ArrowDown",
+	};
+	var NO_SHORTCUT = "none";
 
-	function fillVariables(text, values) {
-		return text.replace(VARIABLE_PATTERN, (match, name) =>
-			Object.hasOwn(values, name) ? (values[name] ?? match) : match,
-		);
+	function normalizeShortcut(text) {
+		const parts = text.split("+").map((part) => part.trim());
+		const key = parts.pop() ?? "";
+		const modifiers = new Set();
+		for (const part of parts) {
+			const modifier = MODIFIERS2.find((name) => name.toLowerCase() === part.toLowerCase());
+			if (!modifier) return null;
+			modifiers.add(modifier);
+		}
+		const named = NAMED_KEYS[key.toLowerCase()];
+		const normalizedKey =
+			named ??
+			(/^\S$/u.test(key) ? key.toUpperCase() : /^F([1-9]|1[0-2])$/i.test(key) ? key.toUpperCase() : null);
+		if (!normalizedKey) return null;
+		return [...MODIFIERS2.filter((name) => modifiers.has(name)), normalizedKey].join("+");
 	}
 
-	function toComment(text, {line, open, close}, style) {
-		const lines = text.split(`
-`);
-		const canUseBlock = open !== undefined && close !== undefined && !text.includes(close);
-		if (canUseBlock && style === "block")
-			return [open, ...lines, close].join(`
-`);
-		if (line !== undefined)
-			return lines.map((item) => (item ? `${line} ${item}` : line)).join(`
-`);
-		return canUseBlock
-			? lines.map((item) => `${open} ${item} ${close}`).join(`
-`)
-			: null;
-	}
-
-	function isWholeCode(code, pasted) {
-		return (
-			code.trim() ===
-			pasted
-				.replace(
-					LINE_BREAK_PATTERN,
-					`
-`,
-				)
-				.trim()
-		);
-	}
-
-	function insertHeader(code, block, {preamble}) {
-		const head = SHEBANG_PATTERN.exec(code) ?? (preamble === undefined ? null : new RegExp(preamble).exec(code));
-		const offset = head?.[0].length ?? 0;
-		return `${code.slice(0, offset)}${block}${code.slice(offset)}`;
-	}
-
-	function insertRunnerHeader(code, header, syntax) {
-		if (includesSubmissionHeader(code, header)) return code;
-		return insertHeader(
-			code,
-			`${header}
-
-`,
-			syntax,
-		);
-	}
-
-	function insertFooter(code, block, {trailer}) {
-		const end = (trailer === undefined ? null : new RegExp(trailer).exec(code))?.index ?? code.length;
-		const body = code.slice(0, end).trimEnd();
-		return `${body}${
-			body
-				? `
-`
-				: ""
-		}${block}${code.slice(end)}`;
-	}
-
-	function replaceBlock(code, current, next, fromEnd) {
-		const index = fromEnd ? code.lastIndexOf(current) : code.indexOf(current);
-		return index < 0 ? null : `${code.slice(0, index)}${next}${code.slice(index + current.length)}`;
+	function isShortcutSetting(text) {
+		return text === "" || text.toLowerCase() === NO_SHORTCUT || normalizeShortcut(text) !== null;
 	}
 
 	// CpToolkit/src/application/ports/code-editor.ts
@@ -8914,7 +9624,7 @@ ${efficient_layout_default}`);
 	// CpToolkit/src/application/source/submission-transform.ts
 	var LANGUAGE_SUPPORT = {
 		java: {
-			fallback: (code, {debugFlag}) => modifyJavaCode(code, {debugFlag}),
+			fallback: (code, {debugFlag}) => transformJavaForSubmission(code, {debugFlag}),
 			needsLocalRunner: (code, {libraryPackage}) => libraryPackage !== "" && importsPackage(code, libraryPackage),
 			unresolvedImports,
 			foldStartLines: findFoldStartLines,
@@ -8925,15 +9635,10 @@ ${efficient_layout_default}`);
 		return LANGUAGE_SUPPORT[family] ?? {};
 	}
 
-	async function compilerNameOf(localRunner, {family, judgeLanguage}) {
-		if (judgeLanguage) return localRunner.compilerFor(judgeLanguage);
-		return family === "java" ? undefined : null;
-	}
-
 	async function transformSubmission(code, language, localRunner, options) {
 		if (localRunner.isAvailable()) {
 			try {
-				const compilerName = await compilerNameOf(localRunner, language);
+				const compilerName = await localRunner.compilerFor(language);
 				if (compilerName !== null) {
 					const transformed = await localRunner.transform(code, compilerName);
 					if (transformed.status === "success")
@@ -8941,55 +9646,207 @@ ${efficient_layout_default}`);
 					return {
 						sourceCode: code,
 						via: "localRunner",
-						failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems ?? []},
+						failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems},
 					};
 				}
-			} catch {
+			} catch (error) {
+				if (!(error instanceof LocalRunnerError && error.status === 0)) {
+					return {
+						sourceCode: code,
+						via: "localRunner",
+						failure: {
+							diagnostics: error instanceof Error ? error.message : String(error),
+							items: [],
+							notify: !(error instanceof LocalRunnerError) || error.notify,
+						},
+					};
+				}
 			}
 		}
 		const fallback = languageSupport(language.family).fallback;
-		return fallback
-			? {sourceCode: fallback(code, options), via: "fallback", failure: null}
-			: {sourceCode: code, via: "none", failure: null};
+		if (!fallback) return {sourceCode: code, via: "none", failure: null};
+		const {sourceCode, issue} = fallback(code, options);
+		const reasons = {
+			mainNotFound: "No supported Java main method was found.",
+			ambiguousMain: "More than one Java entry point was found.",
+			nameCollision: "Renaming the entry class would cause a name collision.",
+			ambiguousReference: "The browser cannot reliably resolve references to the entry class.",
+			unsupportedSyntax: "This Java syntax requires Local Runner for a safe transform.",
+		};
+		return {sourceCode, via: "fallback", failure: issue ? {diagnostics: reasons[issue], items: []} : null};
+	}
+
+	// CpToolkit/src/features/keyboard-shortcuts/index.ts
+	var SHARE_URL = "https://x.com/intent/post";
+
+	function resolveKey(value, fallback) {
+		if (value.toLowerCase() === NO_SHORTCUT) return null;
+		return normalizeShortcut(value || fallback);
+	}
+
+	var shortcutOption = (defaultValue, label) =>
+		option.text(defaultValue, label, {
+			validate: isShortcutSetting,
+			invalidMessage: "keyboardShortcuts.invalidKey",
+		});
+	var keyboardShortcuts = defineFeature({
+		id: "keyboard-shortcuts",
+		title: "keyboardShortcuts.title",
+		description: "keyboardShortcuts.description",
+		category: "category.execution",
+		defaultEnabled: true,
+		routes: [
+			"atcoder:page",
+			"atcoder:home",
+			"codeforces:page",
+			"aoj:page",
+			"libraryChecker:page",
+			"paiza:page",
+			"yukicoder:problem",
+		],
+		phase: "ready",
+		options: {
+			submit: shortcutOption("", "keyboardShortcuts.submit"),
+			fold: shortcutOption("Ctrl+Shift+M", "keyboardShortcuts.fold"),
+			openSettings: shortcutOption("Ctrl+I", "keyboardShortcuts.openSettings"),
+			share: shortcutOption("", "keyboardShortcuts.share"),
+		},
+		start({options, judge, editors, submissionForm, openSettings}) {
+			const target = judge?.submission;
+			const settingsKey = resolveKey(options.openSettings, "");
+			if (settingsKey)
+				registerShortcut(settingsKey, () => {
+					openSettings();
+					return true;
+				});
+			const shareKey = resolveKey(options.share, "");
+			if (shareKey)
+				registerShortcut(shareKey, () => {
+					const url = `${SHARE_URL}?text=${encodeURIComponent(document.title)}&url=${encodeURIComponent(location.href)}`;
+					window.open(url, "_blank", "noopener");
+					return true;
+				});
+			if (!target) return;
+			let form = null;
+			submissionForm(target).then((ready) => {
+				form = ready;
+			});
+			const submitKey = resolveKey(options.submit, target.shortcut);
+			if (submitKey) {
+				addTooltip(
+					() => form?.submitButton() ?? null,
+					() => submitKey,
+				);
+				registerShortcut(submitKey, () => {
+					const button = form?.submitButton() ?? null;
+					button?.click();
+					return button !== null;
+				});
+			}
+			const foldKey = resolveKey(options.fold, "");
+			if (foldKey) {
+				editors.locate(target, {delayMs: EDITOR_SETUP_DELAY_MS}).then((editor) => {
+					if (!editor) return;
+					registerShortcut(foldKey, () => {
+						const family = form?.language(editor)?.family;
+						const lines = family ? languageSupport(family).foldStartLines?.(editor.getValue()) : undefined;
+						if (!lines) return false;
+						editor.foldLines(lines);
+						return true;
+					});
+				});
+			}
+		},
+	});
+
+	// CpToolkit/src/domain/source/comment.ts
+	var SHEBANG_PATTERN = /^#![^\n]*\n/;
+	var VARIABLE_PATTERN = /\{(\w+)\}/g;
+
+	function fillVariables(text, values) {
+		return text.replace(VARIABLE_PATTERN, (match, name) =>
+			Object.hasOwn(values, name) ? (values[name] ?? match) : match,
+		);
+	}
+
+	function toComment(text, {line, open, close}, style) {
+		const lines = text.split(`
+`);
+		const canUseBlock = open !== undefined && close !== undefined && !text.includes(close);
+		if (canUseBlock && style === "block")
+			return [open, ...lines, close].join(`
+`);
+		if (line !== undefined)
+			return lines.map((item) => (item ? `${line} ${item}` : line)).join(`
+`);
+		return canUseBlock
+			? lines.map((item) => `${open} ${item} ${close}`).join(`
+`)
+			: null;
+	}
+
+	function isWholeCode(code, pasted) {
+		return normalizeNewlines(code).trim() === normalizeNewlines(pasted).trim();
+	}
+
+	function headerOffset(code, {preamble}) {
+		const head = SHEBANG_PATTERN.exec(code) ?? (preamble === undefined ? null : new RegExp(preamble).exec(code));
+		return head?.[0].length ?? 0;
+	}
+
+	function insertHeader(code, block, syntax) {
+		const offset = headerOffset(code, syntax);
+		return `${code.slice(0, offset)}${block}${code.slice(offset)}`;
+	}
+
+	function footerOffset(code, {trailer}) {
+		return (trailer === undefined ? null : new RegExp(trailer).exec(code))?.index ?? code.length;
+	}
+
+	function insertFooter(code, block, syntax) {
+		const end = footerOffset(code, syntax);
+		const body = code.slice(0, end).trimEnd();
+		return `${body}${
+			body
+				? `
+`
+				: ""
+		}${block}${code.slice(end)}`;
+	}
+
+	function replaceBlock(code, current, next, fromEnd, syntax = {}) {
+		const index = fromEnd ? footerOffset(code, syntax) - current.length : headerOffset(code, syntax);
+		if (
+			index < 0 ||
+			!current ||
+			!code.startsWith(current, index) ||
+			(index > 0 &&
+				code[index - 1] !==
+					`
+`)
+		)
+			return null;
+		return `${code.slice(0, index)}${next}${code.slice(index + current.length)}`;
 	}
 
 	// CpToolkit/src/features/java-submit/index.ts
-	var FOLD_SHORTCUT = "Ctrl+Shift+M";
 	var FOLD_DELAY_MS = 100;
 	var PASTE_ORDER = 10;
 	var LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
 
-	function findSubmitButton({submitButtons, labeledSubmit}) {
-		for (const selector of submitButtons) {
-			const button = document.querySelector(selector);
-			if (button) return button;
-		}
-		if (!labeledSubmit) return null;
-		const candidates = [...document.querySelectorAll(labeledSubmit.selector)];
-		for (const label of labeledSubmit.labels) {
-			const button = candidates.find((candidate) => {
-				const text = candidate instanceof HTMLInputElement ? candidate.value : candidate.textContent;
-				return text?.trim().toLowerCase().includes(label);
-			});
-			if (button) return button;
-		}
-		return null;
-	}
-
-	function submissionLanguageOf(site, editor) {
-		const judgeLanguage = site?.language() ?? null;
-		if (judgeLanguage) return judgeLanguage.family ? {family: judgeLanguage.family, judgeLanguage} : null;
-		return editor.isJava() ? {family: "java", judgeLanguage: null} : null;
-	}
-
 	function notifyTransformProblem(code, {family}, {failure, via}, options, translate) {
 		const support = languageSupport(family);
 		if (failure) {
+			if (failure.notify === false) return;
 			const imports = support.unresolvedImports?.(code, failure.items) ?? [];
 			const firstError = failure.items.find((item) => item.kind === "ERROR");
 			showToast({
 				title: translate(
-					imports.length > 0 ? "submissionHelper.unresolvedImports" : "submissionHelper.transformFailed",
+					via === "fallback"
+						? "submissionHelper.fallbackFailed"
+						: imports.length > 0
+							? "submissionHelper.unresolvedImports"
+							: "submissionHelper.transformFailed",
 				),
 				detail:
 					imports.length > 0
@@ -9024,7 +9881,7 @@ ${efficient_layout_default}`);
 		title: "submissionHelper.title",
 		description: "submissionHelper.description",
 		category: "category.execution",
-		defaultEnabled: true,
+		defaultEnabled: false,
 		routes: [
 			"atcoder:task",
 			"atcoder:submit",
@@ -9033,6 +9890,7 @@ ${efficient_layout_default}`);
 			"aoj:page",
 			"libraryChecker:page",
 			"paiza:page",
+			"yukicoder:problem",
 		],
 		phase: "ready",
 		options: {
@@ -9040,50 +9898,58 @@ ${efficient_layout_default}`);
 			libraryPackage: option.text("", "submissionHelper.libraryPackage"),
 			foldOnPaste: option.boolean(true, "submissionHelper.foldOnPaste"),
 		},
-		start({options, judge, judgeSite, editors, localRunner, paste, translate}) {
+		async start(services) {
+			const {options, judge, editors, localRunner, paste, translate, submissionForm} = services;
 			const target = judge?.submission;
 			if (!target) return;
-			registerShortcut(target.shortcut, () => {
-				const button = findSubmitButton(target);
-				button?.click();
-				return button !== null;
-			});
-			addTooltip(
-				() => findSubmitButton(target),
-				() => target.shortcut,
+			const form = await submissionForm(target);
+			form.holdSubmitWhile(paste, () =>
+				showToast({
+					tone: "warning",
+					title: translate("submissionHelper.submitChanged"),
+					detail: "",
+					durationMs: ACTION_NOTICE_DURATION_MS,
+				}),
 			);
-			const site = judgeSite();
+			const languageOf = (editor) => {
+				const language = form.language(editor);
+				return language?.family ? {...language, family: language.family} : null;
+			};
 			const fallbackOptions = {
 				debugFlag: options.debugFlag.trim(),
 				libraryPackage: options.libraryPackage.trim(),
 			};
 			const lookup = {delayMs: EDITOR_SETUP_DELAY_MS};
-			const fold = async (editor) => {
-				const language = submissionLanguageOf(await site, editor);
+			const fold = (editor) => {
+				const language = languageOf(editor);
 				const lines = language
 					? languageSupport(language.family).foldStartLines?.(editor.getValue())
 					: undefined;
 				if (lines) editor.foldLines(lines);
 			};
 			editors.locate(target, lookup).then((editor) => {
-				if (!editor) return;
-				registerShortcut(FOLD_SHORTCUT, () => {
-					fold(editor);
-					return true;
-				});
+				if (editor) form.observe(editor);
 			});
 			paste.add(target, lookup, {
 				order: PASTE_ORDER,
-				async transform(code, {editor, pasted, original}) {
+				contextKey: form.contextKey,
+				async transform(code, {editor, pasted, original, isCurrent}) {
 					if (!isWholeCode(original, pasted)) return code;
-					const language = submissionLanguageOf(await site, editor);
+					const language = languageOf(editor);
 					if (!language) return code;
 					const result = await transformSubmission(code, language, localRunner, fallbackOptions);
+					if (!isCurrent()) return code;
 					notifyTransformProblem(code, language, result, fallbackOptions, translate);
+					if (result.failure) throw new Error(result.failure.diagnostics);
 					return result.sourceCode;
 				},
 				applied(editor) {
-					if (options.foldOnPaste) setTimeout(() => void fold(editor), FOLD_DELAY_MS);
+					if (!options.foldOnPaste) return;
+					const key = form.contextKey(editor);
+					const code = editor.getValue();
+					setTimeout(() => {
+						if (key === form.contextKey(editor) && editor.getValue() === code) fold(editor);
+					}, FOLD_DELAY_MS);
 				},
 			});
 		},
@@ -10115,15 +10981,22 @@ ${efficient_layout_default}`);
 	}
 
 	// CpToolkit/src/features/source-comments/index.ts
-	var PASTE_ORDER2 = 20;
-	var SLOTS = ["header", "footer"];
 	var sourceComments = defineFeature({
 		id: "source-comments",
 		title: "sourceComments.title",
 		description: "sourceComments.description",
 		category: "category.submission",
 		defaultEnabled: true,
-		routes: ["atcoder:task", "atcoder:submit"],
+		routes: [
+			"atcoder:task",
+			"atcoder:submit",
+			"atcoder:customTest",
+			"codeforces:page",
+			"aoj:page",
+			"libraryChecker:page",
+			"paiza:page",
+			"yukicoder:problem",
+		],
 		phase: "ready",
 		options: {
 			style: option.select("line", "sourceComments.style", [
@@ -10137,136 +11010,191 @@ ${efficient_layout_default}`);
 			]),
 			runnerHeaderName: option.text("", "sourceComments.runnerHeaderName"),
 		},
-		async start({options, judge, judgeSite, localRunner, page, paste, state, translate}) {
+		async start(services) {
+			const {options, judge, localRunner, editors, paste, state, translate, submissionForm} = services;
 			const target = judge?.submission;
-			const site = await judgeSite();
-			const editorButtons = document.querySelector(".editor-buttons");
-			if (!target || !site || !editorButtons) return;
+			if (!target) return;
+			const form = await submissionForm(target);
+			const lookup = {delayMs: EDITOR_SETUP_DELAY_MS};
+			const editor = await editors.locate(target, lookup);
+			if (!editor || editor.isReadOnly()) return;
+			const mount = document.querySelector(target.commentMount ?? ".editor-buttons");
+			const button = form.submitButton();
+			if (!mount && !button) return;
+			form.holdSubmitWhile(paste, () =>
+				showToast({
+					tone: "warning",
+					title: translate("submissionHelper.submitChanged"),
+					detail: "",
+					durationMs: ACTION_NOTICE_DURATION_MS,
+				}),
+			);
 			const comments = new SourceComments(state);
 			const defaultMultiline = options.style === "block";
-			const inserted = new Map();
+			const order =
+				options.runnerHeader === "above" ? ["runner", "header", "footer"] : ["header", "runner", "footer"];
+			let inserted = {};
+			let previousSyntax = {};
+			let contentRevision = 0;
+			let applied = false;
 			const syntaxOf = () => {
-				const family = site.language()?.family;
+				const family = form.language(editor)?.family ?? editor.commentFamily?.();
 				return family ? commentSyntaxOf(languageCatalog, family) : null;
 			};
-			const variables = () => {
-				const url = site.taskUri();
-				return {url, task: url.split("/").at(-1) ?? "", contest: contestIdOf(location.pathname) ?? ""};
-			};
 			const render = (slot) => {
-				const {text, commentOut, multiline} = comments.content(slot, site.taskUri());
-				const filled = fillVariables(text.trimEnd(), variables());
+				const url = form.task();
+				const {text, commentOut, multiline} = comments.content(slot, url);
+				const page = new URL(url, location.href);
+				const task = (page.hash.slice(1) || page.pathname).split("/").filter(Boolean).at(-1) ?? "";
+				const contest =
+					contestIdOf(page.pathname) ??
+					(judge?.id === "codeforces"
+						? /\/(?:contest|gym|problemset\/problem)\/(\d+)(?:\/|$)/.exec(page.pathname)?.[1]
+						: undefined);
+				const filled = fillVariables(text.trimEnd(), {url, task, contest: contest ?? ""});
 				if (!filled) return "";
 				if (!commentOut)
 					return `${filled}
 `;
 				const syntax = syntaxOf();
-				const style = (multiline ?? defaultMultiline) ? "block" : "line";
-				const comment = syntax && toComment(filled, syntax, style);
+				const comment = syntax && toComment(filled, syntax, (multiline ?? defaultMultiline) ? "block" : "line");
 				return comment === null
 					? null
 					: `${comment}
 `;
 			};
-			const insertAll = (code) => {
+			const compose = (source, runner, refresh) => {
 				const syntax = syntaxOf() ?? {};
-				let result = code;
-				let writable = true;
-				for (const slot of SLOTS) {
-					const block = render(slot);
-					if (block === null) writable = false;
+				const active = new Set();
+				const original = normalizeNewlines(source);
+				let body = original;
+				for (const slot of order) {
+					const old = inserted[slot];
+					if (!refresh || !old) continue;
+					const rest = replaceBlock(body, old, "", slot === "footer", previousSyntax);
+					if (rest !== null) {
+						active.add(slot);
+						body = rest;
+					}
+				}
+				const blocks = {};
+				let unsupported = false;
+				for (const slot of order) {
+					if (refresh && !active.has(slot) && !(slot === "runner" && !inserted.runner && applied)) continue;
+					let block = slot === "runner" ? runner : render(slot);
+					if (block === null) {
+						unsupported = true;
+						block = refresh ? (inserted[slot] ?? "") : "";
+					}
 					if (!block) continue;
-					if (!result.includes(block)) {
-						result =
-							slot === "header"
-								? insertHeader(result, block, syntax)
-								: insertFooter(result, block, syntax);
-					}
-					inserted.set(slot, block);
+					blocks[slot] = block;
 				}
-				panel.setUnsupported(!writable);
-				return result;
+				for (const slot of refresh ? [] : order) {
+					const block = blocks[slot];
+					if (!block) continue;
+					const rest = replaceBlock(body, block, "", slot === "footer", syntax);
+					if (rest !== null) body = rest;
+					else if (slot === "runner") {
+						const offset = headerOffset(body, syntax);
+						const header = block.trimEnd();
+						if (includesSubmissionHeader(body, header, offset)) {
+							const end = offset + header.length;
+							body =
+								body.slice(0, offset) +
+								body.slice(
+									end +
+										(body[end] ===
+										`
+`
+											? 1
+											: 0),
+								);
+						}
+					}
+				}
+				const head = order
+					.filter((slot) => slot !== "footer")
+					.map((slot) => blocks[slot] ?? "")
+					.join("");
+				if (head) body = insertHeader(body, head, syntax);
+				if (blocks.footer) body = insertFooter(body, blocks.footer, syntax);
+				const code = body === original ? source : body;
+				return {
+					code,
+					commit() {
+						inserted = blocks;
+						previousSyntax = syntax;
+						panel.setUnsupported(unsupported);
+					},
+				};
 			};
-			const refresh = () => {
-				const original = site.sourceCode();
-				let code = original;
-				let writable = true;
-				for (const [slot, current] of inserted) {
-					const next = render(slot);
-					if (next === null) {
-						writable = false;
-						continue;
+			const runnerHeader = async () => {
+				const language = form.language(editor);
+				if (options.runnerHeader === "none" || !language?.family || !localRunner.isAvailable()) return "";
+				const compiler = await localRunner.compilerFor(language);
+				if (!compiler) return "";
+				const header = (await localRunner.header(compiler, options.runnerHeaderName.trim() || true))?.trimEnd();
+				return header
+					? `${normalizeNewlines(header)}
+
+`
+					: "";
+			};
+			const process = async (code, context, refresh) => {
+				let runner = "";
+				try {
+					runner = await runnerHeader();
+				} catch (error) {
+					if (error instanceof LocalRunnerError && error.status !== 0) {
+						if (context.isCurrent() && error.notify !== false)
+							showToast({
+								title: translate("sourceComments.runnerHeaderFailed"),
+								detail: error.message,
+								tone: "warning",
+								durationMs: ACTION_NOTICE_DURATION_MS,
+							});
+						throw error;
 					}
-					const replaced = replaceBlock(code, current, next, slot === "footer");
-					if (replaced === null || !next) inserted.delete(slot);
-					else inserted.set(slot, next);
-					code = replaced ?? code;
+					if (!(error instanceof LocalRunnerError)) throw error;
 				}
-				panel.setUnsupported(!writable);
-				if (code !== original) site.setSourceCode(code);
+				if (!context.isCurrent()) return code;
+				const result = compose(code, runner, refresh);
+				context.onCommit(() => {
+					applied = true;
+					result.commit();
+				});
+				return result.code;
+			};
+			const key = () => JSON.stringify([form.contextKey(editor), contentRevision]);
+			const manual = {order: 20, contextKey: key, transform: (code, ctx) => process(code, ctx, false)};
+			const refresh = () => {
+				contentRevision++;
+				const result = compose(editor.getValue(), inserted.runner ?? "", true);
+				if (result.code !== editor.getValue()) editor.setValue(result.code);
+				result.commit();
 			};
 			const panel = createCommentPanel({
 				comments,
 				translate,
-				task: () => site.taskUri(),
+				task: form.task,
 				defaultMultiline,
 				onChange: refresh,
-				onApply() {
-					refresh();
-					const code = site.sourceCode();
-					insertWithRunnerHeader(code).then((next) => {
-						if (next !== code && site.sourceCode() === code) site.setSourceCode(next);
-					});
+				onApply: () => {
+					paste.apply(editor, manual);
 				},
 			});
-			editorButtons.append(panel.button);
-			site.onLanguageChange(refresh);
-			const taskSelect = document.querySelector("#select-task");
-			if (taskSelect) {
-				page.onChange(taskSelect, () => {
-					panel.reload();
-					refresh();
-				});
-			}
-			const runnerHeader = async () => {
-				const language = site.language();
-				if (options.runnerHeader === "none" || !language || !localRunner.isAvailable()) return null;
-				try {
-					const compilerName = await localRunner.compilerFor(language);
-					if (compilerName === null) return null;
-					return await localRunner.header(compilerName, options.runnerHeaderName.trim() || true);
-				} catch (error) {
-					if (error instanceof LocalRunnerError && error.status !== 0) {
-						showToast({
-							title: translate("sourceComments.runnerHeaderFailed"),
-							detail: error.message,
-							tone: "warning",
-							durationMs: ACTION_NOTICE_DURATION_MS,
-						});
-					}
-					return null;
-				}
-			};
-			const insertWithRunnerHeader = async (code) => {
-				const header = await runnerHeader();
-				if (header === null) return insertAll(code);
-				const syntax = syntaxOf() ?? {};
-				return options.runnerHeader === "above"
-					? insertRunnerHeader(insertAll(code), header, syntax)
-					: insertAll(insertRunnerHeader(code, header, syntax));
-			};
-			paste.add(
-				target,
-				{delayMs: EDITOR_SETUP_DELAY_MS},
-				{
-					order: PASTE_ORDER2,
-					async transform(code, {pasted, original}) {
-						if (!isWholeCode(original, pasted)) return code;
-						inserted.clear();
-						return insertWithRunnerHeader(code);
-					},
-				},
-			);
+			if (mount && !mount.matches("button, input, a, select, textarea, label")) mount.append(panel.button);
+			else (mount ?? button)?.after(panel.button);
+			form.observe(editor, () => {
+				panel.reload();
+				if (applied && options.runnerHeader !== "none") {
+					paste.apply(editor, {...manual, transform: (code, ctx) => process(code, ctx, true)});
+				} else refresh();
+			});
+			paste.add(target, lookup, {
+				...manual,
+				transform: (code, ctx) => (isWholeCode(ctx.original, ctx.pasted) ? process(code, ctx, false) : code),
+			});
 		},
 	});
 
@@ -10559,11 +11487,11 @@ ${statement_highlight_default}`);
 
 	// CpToolkit/src/features/submission-query/index.ts
 	var SUBMISSION_PAGE_TABS = "#main-container > div.row > div:nth-child(2) > ul > li > a";
-	var LANGUAGE_SELECT2 = 'select[name="f.LanguageName"]';
+	var LANGUAGE_SELECT = 'select[name="f.LanguageName"]';
 
 	function selectQueriedLanguage(page) {
 		const language = new URLSearchParams(location.search).get("f.LanguageName");
-		const select = document.querySelector(LANGUAGE_SELECT2);
+		const select = document.querySelector(LANGUAGE_SELECT);
 		if (!language || !select || select.value) return;
 		const option = [...select.options].find(({value}) => value.toLowerCase() === language.toLowerCase());
 		if (!option) return;
@@ -11633,6 +12561,7 @@ ${wide_layout_default}`);
 		tessokuDifficulty,
 		ratingGraph,
 		localRunner,
+		keyboardShortcuts,
 		submissionHelper,
 		easyTest,
 		paizaLanguage,
@@ -11644,7 +12573,6 @@ ${wide_layout_default}`);
 		document.documentElement.dataset.cpToolkit = host.version;
 		const lifecycle = new DocumentLifecycle();
 		const store = new GmKeyValueStore();
-		const settings = new SettingsService(store);
 		const updates = new UpdateChecker({
 			host,
 			http: new GmHttpClient(),
@@ -11652,6 +12580,7 @@ ${wide_layout_default}`);
 			allowedHosts: updateCatalog.connect,
 			intervalHours: updateCatalog.checkIntervalHours,
 		});
+		const settings = new SettingsService(store, {installedBefore: updates.hasCheckedBefore()});
 		importLegacySettings(new LocalStorageLegacyInbox(), settings);
 		const page = matchPage(judges, location.href);
 		let panel = null;

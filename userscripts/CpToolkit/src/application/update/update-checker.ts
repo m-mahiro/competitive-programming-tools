@@ -51,6 +51,11 @@ export class UpdateChecker {
 		this.dependencies = dependencies;
 	}
 
+	/** 前に更新を確かめたことがあるか。起動のたびに確かめるので、以前から使っている環境の目印になる。 */
+	hasCheckedBefore(): boolean {
+		return this.dependencies.state.get(STATE_KEY) !== undefined;
+	}
+
 	/** 記憶している結果。通信しない。 */
 	status(): UpdateStatus {
 		const {host} = this.dependencies;

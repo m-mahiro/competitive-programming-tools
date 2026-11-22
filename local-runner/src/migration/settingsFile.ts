@@ -1,43 +1,73 @@
+import {randomUUID} from "node:crypto";
 import fs from "node:fs";
 import {isPlainObject} from "../settings/schema";
-import {setSetting, type UserSettings, writeUserSettings} from "../settings/settings";
+import {isHeaderName, loadSettings, SettingsError, type UserSettings, writeUserSettings} from "../settings/settings";
 
-function languageEntries(user: UserSettings): UserSettings[] {
-	return isPlainObject(user.languages) ? Object.values(user.languages).filter(isPlainObject) : [];
+/** 1.x は形式番号を保存しない。2.0.0 で最初の番号を付ける。 */
+export const SETTINGS_FORMAT = 2;
+
+function migrateToVersion2(old: UserSettings): UserSettings {
+	const {librarySourceRoot, headerFiles, ...next} = old;
+	if (librarySourceRoot !== undefined) {
+		if (typeof librarySourceRoot !== "string") throw new SettingsError("librarySourceRoot must be a string.");
+		next.languages ??= {};
+		if (!isPlainObject(next.languages)) throw new SettingsError("languages must be an object.");
+		next.languages.java ??= {};
+		if (!isPlainObject(next.languages.java)) throw new SettingsError("languages.java must be an object.");
+		next.languages.java.library ??= librarySourceRoot;
+	}
+	if (headerFiles !== undefined) {
+		if (!isPlainObject(headerFiles)) throw new SettingsError("headerFiles must be an object.");
+		for (const [key, value] of Object.entries(headerFiles)) {
+			if (!isHeaderName(key) || typeof value !== "string") throw new SettingsError(`Invalid headerFiles entry: ${key}.`);
+		}
+		if (next.headers !== undefined && !isPlainObject(next.headers)) throw new SettingsError("headers must be an object.");
+		next.headers = {...headerFiles, ...next.headers};
+	}
+	if (isPlainObject(next.languages)) {
+		for (const [name, entry] of Object.entries(next.languages)) {
+			if (!isPlainObject(entry) || !Object.hasOwn(entry, "debugRewrite")) continue;
+			if (typeof entry.debugRewrite !== "boolean") throw new SettingsError(`languages.${name}.debugRewrite must be a boolean.`);
+			if (entry.debugFlag === undefined && entry.debugRewrite) entry.debugFlag = "DEBUG";
+			delete entry.debugRewrite;
+		}
+	}
+	return {...next, settingsVersion: SETTINGS_FORMAT};
 }
 
-/** 以前の形式の設定ファイルにあった項目。 */
-function hasLegacyItems(user: UserSettings): boolean {
-	return "librarySourceRoot" in user || "headerFiles" in user || languageEntries(user).some((entry) => "debugRewrite" in entry);
-}
-
-/** 読めないファイルは書き換えずに null を返す。誤りは、このあと設定を読むときに知らせる。 */
-function readRawSettings(file: string): UserSettings | null {
+/** 検証済みのファイルを同じフォルダで置き換え、旧ファイルのバックアップを保持する。 */
+export function migrateLegacySettingsFile(file: string): boolean {
+	if (!fs.existsSync(file)) return false;
+	const original = fs.readFileSync(file);
+	let parsed: unknown;
 	try {
-		const parsed: unknown = JSON.parse(fs.readFileSync(file, "utf8").replace(/^\uFEFF/, ""));
-		return isPlainObject(parsed) ? parsed : null;
+		parsed = JSON.parse(original.toString("utf8").replace(/^\uFEFF/, ""));
 	} catch {
-		return null;
+		return false; // loadSettings がファイル名を含む診断を出す。
 	}
-}
-
-/**
- * 以前の形式(librarySourceRoot、headerFiles、言語ごとの debugRewrite)の設定ファイルを、今の形式へ書き換える。
- * 元のファイルは .bak に残す。設定を読む前に呼ぶ。
- */
-export function migrateLegacySettingsFile(file: string): void {
-	const user = readRawSettings(file);
-	if (user === null || !hasLegacyItems(user)) return;
-	const {librarySourceRoot, headerFiles, ...migrated} = user;
-	if (typeof librarySourceRoot === "string") setSetting(migrated, ["languages", "java", "library"], librarySourceRoot);
-	if (isPlainObject(headerFiles)) {
-		for (const [name, headerFile] of Object.entries(headerFiles)) setSetting(migrated, ["headers", name], headerFile);
+	if (!isPlainObject(parsed) || parsed.settingsVersion === SETTINGS_FORMAT) return false;
+	if (parsed.settingsVersion !== undefined && parsed.settingsVersion !== 1) {
+		throw new SettingsError(`Unsupported settingsVersion in ${file}: ${String(parsed.settingsVersion)}.`);
 	}
-	// debugRewrite は名前が DEBUG に決まっていた。書き換える名前を指定する debugFlag にする
-	for (const entry of languageEntries(migrated)) {
-		if (entry.debugRewrite === true) entry.debugFlag = "DEBUG";
-		delete entry.debugRewrite;
+	const temp = `${file}.${randomUUID()}.tmp`;
+	try {
+		writeUserSettings(temp, migrateToVersion2(parsed));
+		loadSettings(temp);
+		fs.chmodSync(temp, fs.statSync(file).mode);
+		if (!fs.readFileSync(file).equals(original)) {
+			throw new SettingsError(`Settings changed during migration: ${file}. Retry with the current settings.`);
+		}
+		try {
+			fs.writeFileSync(`${file}.bak`, original, {flag: "wx", mode: fs.statSync(file).mode});
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+			if (!fs.readFileSync(`${file}.bak`).equals(original)) {
+				fs.writeFileSync(`${file}.${randomUUID()}.bak`, original, {flag: "wx", mode: fs.statSync(file).mode});
+			}
+		}
+		fs.renameSync(temp, file);
+		return true;
+	} finally {
+		fs.rmSync(temp, {force: true});
 	}
-	fs.copyFileSync(file, `${file}.bak`);
-	writeUserSettings(file, migrated);
 }

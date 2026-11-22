@@ -14,17 +14,13 @@ function setup(runners: readonly CodeRunner[]) {
 	const state = new MemoryStore();
 	const selection = new RunnerSelection(() => language, catalog, state);
 	const shown: (string | undefined)[] = [];
-	let current: string | undefined;
 	const view: EnvironmentView = {
-		selected: () => current,
 		show: (_candidates, selected) => {
-			current = selected;
 			shown.push(selected);
 		},
 	};
 	return {
 		catalog, selection, state, view, shown,
-		choose: (id: string) => void (current = id),
 		setLanguage: (next: JudgeLanguage | null) => void (language = next),
 	};
 }
@@ -38,19 +34,36 @@ describe("RunnerSelection", () => {
 	});
 
 	test("同じ言語のままなら前の選択を引き継ぎ、言語が変われば保存した選択を使う", async () => {
-		const {selection, view, shown, choose, setLanguage} = setup([runner("j", "judge"), runner("p", "paiza")]);
+		const {selection, view, shown, setLanguage} = setup([runner("j", "judge"), runner("p", "paiza")]);
 		await selection.refresh(view);
-		choose("p");
 		selection.remember("p");
 		await selection.refresh(view);
 		expect(shown).toEqual(["j", "p"]);
 		setLanguage({id: "L2", label: "C++ 23", family: "cpp"});
-		choose("j");
 		await selection.refresh(view);
 		expect(shown.at(-1)).toBe("j");
 		setLanguage({id: "L1", label: "Java 24", family: "java"});
 		await selection.refresh(view);
 		expect(shown.at(-1)).toBe("p");
+	});
+
+	test("自動選択は後から起動した Local Runner を次の実行で選ぶ", async () => {
+		const available = [runner("j", "judge")];
+		const {selection, view, shown} = setup(available);
+		await selection.refresh(view);
+		available.push(runner("l", "local"));
+		await selection.refresh(view);
+		expect(shown).toEqual(["j", "l"]);
+	});
+
+	test("手動選択はローカルより優先し、自動に戻せる", async () => {
+		const {selection, view, shown} = setup([runner("j", "judge"), runner("l", "local")]);
+		selection.remember("j");
+		await selection.refresh(view);
+		expect(shown.at(-1)).toBe("j");
+		selection.remember("");
+		await selection.refresh(view);
+		expect(shown.at(-1)).toBe("l");
 	});
 
 	test("言語が選ばれていなければ、候補は空で何も記憶しない", async () => {
@@ -81,6 +94,24 @@ describe("TestSession", () => {
 		});
 		return {session, selection, view, events};
 	};
+
+	test("手動で選んだ実行先が失敗しても他の実行先に送らない", async () => {
+		const calls: string[] = [];
+		const manual: CodeRunner = {...runner("chosen", "judge"), async run() {
+			calls.push("chosen");
+			throw new Error("unavailable");
+		}};
+		const local: CodeRunner = {...runner("local", "local"), async run() {
+			calls.push("local");
+			return ok();
+		}};
+		const {catalog, selection, view} = setup([local, manual]);
+		selection.remember("chosen");
+		await selection.refresh(view);
+		const session = new TestSession(catalog, selection, {onBusyChange() {}, onSubmitChange() {}});
+		expect((await session.start(testCase, "code", "chosen", undefined, {})).status).toBe("IE");
+		expect(calls).toEqual(["chosen", "chosen", "chosen"]);
+	});
 
 	test("実行の番号は1から順に付く", () => {
 		const {session} = create();

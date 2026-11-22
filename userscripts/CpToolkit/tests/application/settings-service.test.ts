@@ -28,6 +28,24 @@ describe("SettingsService", () => {
 		expect(reloaded.storedOptions("a")).toEqual({width: "80%"});
 	});
 
+	test("文字列で保存された旧設定も移行して一度だけ保存する", () => {
+		store.set("settings", JSON.stringify({version: 1, features: {"java-submit": {options: {headerName: "license"}}}}));
+		new SettingsService(store);
+		const migrated = store.get("settings");
+		expect(migrated).toMatchObject({version: 2, features: {"source-comments": {options: {runnerHeaderName: "license"}}}});
+		new SettingsService(store);
+		expect(store.get("settings")).toBe(migrated);
+	});
+
+	test("設定を保存していない新しい利用者は今の既定値で始め、以前から使っていた人は移行する", () => {
+		const fresh = new MemoryStore();
+		expect(new SettingsService(fresh).isEnabled("java-submit", false)).toBe(false);
+		expect(fresh.get("settings")).toMatchObject({version: 2});
+		const before = new MemoryStore();
+		expect(new SettingsService(before, {installedBefore: true}).isEnabled("java-submit", false)).toBe(true);
+		expect(before.get("settings")).toMatchObject({version: 2, features: {"java-submit": {enabled: true}}});
+	});
+
 	test("他のタブでの変更を反映する", () => {
 		const listener = mock();
 		settings.subscribe(listener);

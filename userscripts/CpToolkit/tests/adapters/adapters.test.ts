@@ -384,6 +384,16 @@ describe("YukicoderSite", () => {
 });
 
 describe("CodeforcesSite", () => {
+	test("問題ページで編集したコードを提出対象のファイルに反映する", async () => {
+		document.body.innerHTML = '<form class="submitForm"><input name="sourceFile" type="file"></form><div id="pageContent"></div>';
+		const site = new CodeforcesSite(bridge);
+		const source = document.querySelector("textarea")!;
+		const input = document.querySelector("input")!;
+		source.value = "new solution";
+		source.dispatchEvent(new Event("input", {bubbles: true}));
+		expect(await input.files?.[0]?.text()).toBe(site.sourceCode());
+	});
+
 	test("行ごとに分かれたサンプルを結合する", async () => {
 		document.body.innerHTML = `<form class="submitForm"></form><div id="pageContent"></div><div class="sample-test">
 			<div class="input"><div class="title"><span class="input-output-copier"></span></div>

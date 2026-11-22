@@ -17,8 +17,11 @@ navigationLists: []
 submission:
   editor: ace
   editorElements: ['#editor']
+  textarea: '.submit-form textarea[name="source"], .submitForm textarea[name="source"], form._SubmitPage_submitForm textarea[name="source"], textarea[data-cp-easy-test-source]'
+  taskSelect: '[name="submittedProblemIndex"], [name="problemIndex"]'
   shortcut: Ctrl+Shift+Enter
   submitButtons:
     - '.submit-form .submit'
     - '.submitForm .submit'
     - 'input[type="submit"].submit'
+    - 'form._SubmitPage_submitForm button[type="submit"]'

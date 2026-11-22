@@ -1,17 +1,19 @@
 import {judges, type RouteId} from "@catalog/judges";
 import {createTranslator, type Translate} from "@catalog/messages";
 import {runnerCatalog} from "@catalog/tables";
-import type {PageMatch} from "@domain/page/route";
+import type {PageMatch, SubmissionTarget} from "@domain/page/route";
 import {normalizeOptions} from "@domain/settings/option";
 import {LocalRunnerClient} from "@application/execution/local-runner";
 import {RunnerCatalogService, type RunnerProvider} from "@application/execution/runner-catalog";
 import type {FeatureServices} from "@application/feature/definition";
 import type {JudgeSite} from "@application/ports/judge-site";
+import type {SubmissionForm} from "@application/ports/submission-form";
 import type {SettingsService} from "@application/settings/settings-service";
 import {PastePipeline} from "@application/source/paste-pipeline";
 import {CreateJsRatingGraph} from "@adapters/atcoder/rating-graph";
 import {createJudgeSite} from "@adapters/judges/index";
 import {PageCodeEditorLocator} from "@adapters/page/code-editors";
+import {createSubmissionForm} from "@adapters/page/submission-form";
 import {ElementScriptLoader} from "@adapters/page/element-script-loader";
 import {detectLocale} from "@adapters/page/locale";
 import {UnsafeWindowPageBridge} from "@adapters/page/page-bridge";
@@ -56,6 +58,16 @@ export function createServices(
 		return judgeSite;
 	};
 
+	const forms = new Map<SubmissionTarget, Promise<SubmissionForm>>();
+	const getSubmissionForm = (target: SubmissionTarget): Promise<SubmissionForm> => {
+		let form = forms.get(target);
+		if (!form) {
+			form = createSubmissionForm(target, {judgeId: page?.judge.id, bridge, judgeSite: getJudgeSite});
+			forms.set(target, form);
+		}
+		return form;
+	};
+
 	let providers: readonly RunnerProvider[] | null = null;
 	const getProviders = (): readonly RunnerProvider[] => {
 		providers ??= [
@@ -89,6 +101,7 @@ export function createServices(
 		localRunner,
 		runners: new RunnerCatalogService(getProviders, runnerCatalog.order, runnerCatalog.maxRetry, runnerCatalog.external),
 		judgeSite: getJudgeSite,
+		submissionForm: getSubmissionForm,
 		openSettings,
 		get statementConverter() {
 			converter ??= new TurndownStatementConverter();

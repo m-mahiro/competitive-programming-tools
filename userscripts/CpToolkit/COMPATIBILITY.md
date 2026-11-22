@@ -40,6 +40,7 @@ CP Toolkit と機能が重ならないので、そのまま併用できます。
 | 提出一覧の検索条件の保持                 | [AtCoder Search Query Holder](https://greasyfork.org/scripts/460696)                                                                                                                                                                  |
 | AC 提出へのボタン                        | [AtCoder Custom Default Submissions](https://greasyfork.org/scripts/393705)、[AtCoder Add Submissions Shortcuts](https://greasyfork.org/scripts/463453)、[AtCoder quickly check fastest codes](https://greasyfork.org/scripts/499102) |
 | 言語の切り替えボタン                     | [AtCoderLanguageButtons](https://greasyfork.org/scripts/421663)                                                                                                                                                                       |
+| ショートカットキー                       | [AtCoder_submit_keyboard_shortcut](https://greasyfork.org/scripts/378760)、[Atcoder Submission Shortcut](https://greasyfork.org/scripts/509606)、[AtCoder Keyboard Shortcuts](https://greasyfork.org/scripts/397575)、[Codeforces Submit Keyboard Shortcut](https://greasyfork.org/scripts/404476)|
 | 提出結果の通知                           | [AtCoderResultNotifier](https://greasyfork.org/scripts/371225)、[comfortable-atcoder](https://github.com/urneighbor1/comfortable-atcoder)                                                                                             |
 | Clar の通知                              | [comfortable-atcoder](https://github.com/urneighbor1/comfortable-atcoder)                                                                                                                                                             |
 | テストケースの平均                       | [AtCoderAverageResult](https://greasyfork.org/scripts/429155)                                                                                                                                                                         |
@@ -52,9 +53,6 @@ CP Toolkit と機能が重ならないので、そのまま併用できます。
 | バーチャル参加のタイマー                 | [AtCoderVirtualTimer](https://github.com/ocha98/AtCoderVirtualTimer)                                                                                                                                                                  |
 | 鉄則本の難易度表示                       | [tessoku_display_difficulty](https://greasyfork.org/scripts/453352)                                                                                                                                                                   |
 | レーティンググラフにパフォーマンスを表示 | [AtCoder Perf Graph](https://greasyfork.org/scripts/476103)、[New AtCoder Perf Graph](https://greasyfork.org/scripts/586685)                                                                                                          |
-| 提出補助                                 | [AtCoder_submit_keyboard_shortcut](https://greasyfork.org/scripts/378760)、[Atcoder Submission Shortcut](https://greasyfork.org/scripts/509606)                                                                                       |
-
-「提出補助」と重なるのは提出のショートカットだけです。AtCoder の問題ページで使うキーは `Ctrl+Shift+Enter` です。
 
 ### 既定で OFF の機能
 

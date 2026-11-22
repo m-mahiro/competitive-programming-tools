@@ -9,6 +9,7 @@ import type {JudgeSite, SampleCase} from "@application/ports/judge-site";
 import {createDock, type Dock, type DockTab} from "@ui/dock/dock";
 import {h, injectStyle} from "@ui/element";
 import {registerShortcut} from "@ui/shortcuts";
+import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
 import {addTooltip} from "@ui/tooltip/tooltip";
 import css from "./easy-test.css" with {type: "text"};
 import resultRowCss from "./result-row.css" with {type: "text"};
@@ -27,6 +28,7 @@ const featureOptions = {
 };
 
 type Context = FeatureContext<typeof featureOptions>;
+type RunSnapshot = {source: string; task: string; language: string | undefined; runner: string; explicit: string | undefined};
 type Execution = {readonly result: Promise<RunResult>; readonly tab: DockTab};
 
 class EasyTest {
@@ -38,11 +40,11 @@ class EasyTest {
 	private readonly selection: RunnerSelection;
 	private readonly session: TestSession;
 	private readonly environmentView: EnvironmentView = {
-		selected: () => this.panel.environment.value,
 		show: (candidates, selected) => this.showEnvironment(candidates, selected),
 	};
 	private submitButton: HTMLButtonElement | undefined;
 	private runnable = false;
+	private currentRunner = "";
 	private readonly site: JudgeSite;
 	private readonly context: Context;
 
@@ -66,7 +68,10 @@ class EasyTest {
 
 	start(): void {
 		injectStyle(resultRowCss);
-		this.panel.environment.addEventListener("change", () => this.selection.remember(this.panel.environment.value));
+		this.panel.environment.addEventListener("change", () => {
+			this.selection.remember(this.panel.environment.value);
+			void this.refreshEnvironment();
+		});
 		this.site.onLanguageChange(() => void this.refreshEnvironment());
 		void this.refreshEnvironment();
 		this.placeButtons();
@@ -168,27 +173,25 @@ class EasyTest {
 	/** 実行環境の候補を `<select>` に反映する。 */
 	private showEnvironment(candidates: readonly CodeRunner[], selected: string | undefined): void {
 		const {environment} = this.panel;
-		const signature = candidates.map(({id, label}) => `${id}\n${label}`).join("\n");
-		if (environment.dataset.signature !== signature || candidates.length === 0) {
-			environment.dataset.signature = signature;
-			environment.replaceChildren(...candidates.map(({id, label}) => h("option", {
-				value: id,
-				textContent: label,
-			})));
-			if (candidates.length === 0) environment.append(h("option", {textContent: this.context.translate("easyTest.noEnvironment")}));
+		const explicit = this.selection.explicit;
+		const automatic = candidates.find(({kind}) => kind === "local") ?? candidates[0];
+		const options = candidates.map(({id, label}) => h("option", {value: id, textContent: label}));
+		if (automatic) options.unshift(h("option", {value: "", textContent: this.context.translate("easyTest.autoRunner") + " — " + automatic.label}));
+		else options.push(h("option", {value: "", textContent: this.context.translate("easyTest.noEnvironment")}));
+		if (explicit && !candidates.some(({id}) => id === explicit)) {
+			options.push(h("option", {value: explicit, textContent: explicit + " — " + this.context.translate("easyTest.noEnvironment")}));
 		}
-		if (selected !== undefined) environment.value = selected;
+		environment.replaceChildren(...options);
+		environment.value = explicit ?? "";
+		this.currentRunner = selected ?? "";
 		this.updateRunnable();
 	}
 
 	private updateRunnable(): void {
-		this.setRunnable(this.selection.candidates.length > 0 && !this.session.busy);
-	}
-
-	private setRunnable(runnable: boolean): void {
-		this.runnable = runnable;
-		this.panel.setRunnable(runnable);
-		for (const button of this.buttons) button.classList.toggle("disabled", !runnable);
+		// 実行先は押した時点で調べ直す。ページを開いた後に Runner を起動する場合も受け付ける。
+		this.runnable = this.site.language() !== null && !this.session.busy;
+		this.panel.setRunnable(this.runnable);
+		for (const button of this.buttons) button.classList.toggle("disabled", !this.runnable);
 		this.showSubmitState();
 	}
 
@@ -203,13 +206,39 @@ class EasyTest {
 		button.classList.toggle("disabled", !pending && !this.runnable);
 	}
 
-	private execute(testCase: TestCase, options: RunOptions): Execution {
-		const code = this.site.sourceCode();
-		if (code) this.savedCodes.save(this.site.taskUri(), code);
+	private snapshot(): RunSnapshot {
+		const explicit = this.selection.explicit;
+		return {source: this.site.sourceCode(), task: this.site.taskUri(), language: this.site.language()?.id, runner: explicit ?? this.currentRunner, explicit};
+	}
+
+	private matches(snapshot: RunSnapshot, checkRunner = true): boolean {
+		const current = this.snapshot();
+		return current.source === snapshot.source && current.task === snapshot.task && current.language === snapshot.language
+			&& current.explicit === snapshot.explicit && (!checkRunner || current.runner === snapshot.runner);
+	}
+
+	private changed(): void {
+		showToast({title: this.context.translate("easyTest.title"), detail: this.context.translate("easyTest.submitChanged"), tone: "warning", durationMs: ACTION_NOTICE_DURATION_MS});
+	}
+
+	private async prepareRun(): Promise<RunSnapshot | null> {
+		if (!await this.context.paste.settled() || !this.hasSource()) return null;
+		const before = this.snapshot();
+		await this.refreshEnvironment();
+		if (!this.matches(before, false)) { this.changed(); return null; }
+		if (!this.selection.candidates.some(({id}) => id === this.currentRunner)) {
+			window.alert(this.context.translate("easyTest.noEnvironment"));
+			return null;
+		}
+		return this.snapshot();
+	}
+
+	private execute(testCase: TestCase, options: RunOptions, snapshot: RunSnapshot): Execution {
+		this.savedCodes.save(snapshot.task, snapshot.source);
 
 		const view = createResultView(this.context.translate);
 		const tab = this.dock.addTab(`#${this.session.nextNumber()} ${testCase.title}`, view.element, {closable: true});
-		const result = this.session.start(testCase, code, this.panel.environment.value, this.panel.allowableError(), options);
+		const result = this.session.start(testCase, snapshot.source, snapshot.runner, this.panel.allowableError(), options);
 		void result.then((value) => {
 			view.show(value);
 			const tone = toneOf(value.status);
@@ -226,16 +255,16 @@ class EasyTest {
 	}
 
 	private async runPanel(): Promise<void> {
-		if (!this.hasSource()) return;
-		await this.refreshEnvironment();
+		const snapshot = await this.prepareRun();
+		if (!snapshot) return;
 		const {input, expected} = this.panel;
-		this.execute({title: "Run", input: input.value, output: expected.value || null}, {});
+		this.execute({title: "Run", input: input.value, output: expected.value || null}, {}, snapshot);
 	}
 
 	private async runSample(sample: SampleCase): Promise<void> {
-		if (!this.hasSource()) return;
-		await this.refreshEnvironment();
-		const {result, tab} = this.execute(sample, {});
+		const snapshot = await this.prepareRun();
+		if (!snapshot) return;
+		const {result, tab} = this.execute(sample, {}, snapshot);
 		await result;
 		tab.show();
 	}
@@ -245,16 +274,15 @@ class EasyTest {
 	}
 
 	/** サンプルをすべて実行し、全問正解かを返す。ソースが空か、サンプルを読めなければ何も実行しない。 */
-	private async runSamples(onClose?: () => void): Promise<boolean> {
-		if (!this.hasSource()) return false;
+	private async runSamples(snapshot: RunSnapshot, onClose?: () => void): Promise<boolean> {
 		const samples = await this.readSamples();
 		if (samples.length === 0) {
 			window.alert(this.context.translate("easyTest.noSamples"));
 			return false;
 		}
-		await this.refreshEnvironment();
+		if (!this.matches(snapshot)) { this.changed(); return false; }
 		const runGroupId = crypto.randomUUID();
-		const executions = samples.map((sample) => this.execute(sample, {runGroupId}));
+		const executions = samples.map((sample) => this.execute(sample, {runGroupId}, snapshot));
 		// 次に開いたときは、このテストの先頭の結果から見られるようにする
 		executions[0]?.tab.select();
 		const row = createResultRow(samples.length, this.context.translate("settings.close"), () => {
@@ -268,11 +296,19 @@ class EasyTest {
 	}
 
 	private async testAll(): Promise<void> {
-		await this.runSamples();
+		const snapshot = await this.prepareRun();
+		if (snapshot) await this.runSamples(snapshot);
 	}
 
 	private async testAndSubmit(): Promise<void> {
-		await this.session.testAndSubmit((cancel) => this.runSamples(cancel), () => this.site.submit());
+		let tested: RunSnapshot | null = null;
+		await this.session.testAndSubmit(async (cancel) => {
+			tested = await this.prepareRun();
+			return tested !== null && await this.runSamples(tested, cancel) && await this.context.paste.settled();
+		}, () => {
+			if (tested && this.matches(tested)) this.site.submit();
+			else this.changed();
+		});
 	}
 
 	private restore(): void {

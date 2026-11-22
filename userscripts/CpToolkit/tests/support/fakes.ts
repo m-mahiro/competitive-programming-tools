@@ -7,6 +7,9 @@ import type {PageLifecycle} from "@application/ports/page-lifecycle";
 import type {ScriptHost} from "@application/ports/script-host";
 import type {HttpClient, HttpRequest, HttpResponse, Ticker} from "@application/ports/services";
 import {UpdateChecker} from "@application/update/update-checker";
+import type {SubmissionForm} from "@application/ports/submission-form";
+import type {SubmissionTarget} from "@domain/page/route";
+import {createSubmissionForm} from "@adapters/page/submission-form";
 
 export class MemoryStore implements KeyValueStore {
 	private readonly values = new Map<string, unknown>();
@@ -123,6 +126,22 @@ export function createFakeServices(overrides: Partial<FeatureServices> = {}): Fe
 		state: new MemoryStore(),
 		...overrides,
 	};
+	// 提出欄の操作は、渡したサイトとページから本物を組み立てる
+	if (!("submissionForm" in services)) {
+		const forms = new Map<SubmissionTarget, Promise<SubmissionForm>>();
+		(services as {submissionForm?: FeatureServices["submissionForm"]}).submissionForm = (target: SubmissionTarget) => {
+			let form = forms.get(target);
+			if (!form) {
+				form = createSubmissionForm(target, {
+					judgeId: services.judge?.id,
+					bridge: services.page ?? createFakePage(),
+					judgeSite: services.judgeSite ?? (async () => null),
+				});
+				forms.set(target, form);
+			}
+			return form;
+		};
+	}
 	return new Proxy(services, {
 		get(target, key) {
 			if (key in target) return target[key as keyof FeatureServices];

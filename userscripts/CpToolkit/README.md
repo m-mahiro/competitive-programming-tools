@@ -1,6 +1,6 @@
 <div align="center">
 <h1>CP Toolkit</h1>
-<p><strong>26の機能を1本にまとめた競技プログラミング用 UserScript</strong></p>
+<p><strong>27の機能を1本にまとめた競技プログラミング用 UserScript</strong></p>
 <p>AtCoder の入出力例を横に並べる、提出結果を通知する、「問題」タブから各問題へ移動するなど、使いたい機能だけを有効にできます。</p>
 <p><a href="https://greasyfork.org/scripts/603262-cp-toolkit"><img src="https://img.shields.io/greasyfork/v/603262?label=Greasy%20Fork&color=670000" alt="Greasy Fork の版"></a>
 <a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/THIRD_PARTY_NOTICES.md"><img src="https://img.shields.io/greasyfork/l/603262" alt="ライセンス"></a></p>
@@ -34,23 +34,23 @@ Tampermonkey の「設定を開く」、または AtCoder のヘッダーにあ�
 </thead>
 <tbody><tr>
 <td>AtCoder&emsp;</td>
-<td>paiza の言語選択を除く25機能</td>
+<td>paiza の言語選択を除く26機能</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td>yukicoder&emsp;</td>
-<td>Easy Test+</td>
+<td>Easy Test+、ショートカットキー、提出補助、コードのヘッダーとフッター</td>
 </tr>
 <tr>
 <td>Codeforces&emsp;</td>
-<td>Easy Test+、提出補助</td>
+<td>Easy Test+、ショートカットキー、提出補助、コードのヘッダーとフッター</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td>AOJ、Library Checker&emsp;</td>
-<td>提出補助</td>
+<td>ショートカットキー、提出補助、コードのヘッダーとフッター</td>
 </tr>
 <tr>
 <td>paiza&emsp;</td>
-<td>提出補助、paiza の言語選択</td>
+<td>ショートカットキー、提出補助、paiza の言語選択、コードのヘッダーとフッター</td>
 </tr>
 </tbody></table>
 
@@ -219,10 +219,14 @@ Tampermonkey の「設定を開く」、または AtCoder のヘッダーにあ�
 <td>問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.md"><strong>提出補助</strong></a>&emsp;</td>
-<td>貼り付けたコードを提出用に変換し、ショートカットで提出できます。</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.md"><strong>提出補助</strong></a> <sub>既定で OFF</sub>&emsp;</td>
+<td>貼り付けたコードを提出用に変換します。</td>
 </tr>
 <tr>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/keyboard-shortcuts.md"><strong>ショートカットキー</strong></a>&emsp;</td>
+<td>提出や設定画面を開く操作を、好きなキーで行えます。</td>
+</tr>
+<tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/paiza-language.md"><strong>paiza の言語選択</strong></a>&emsp;</td>
 <td>paiza の提出ページで、あらかじめ指定した言語を自動選択します。</td>
 </tr>

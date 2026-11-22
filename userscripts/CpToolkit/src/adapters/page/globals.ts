@@ -33,6 +33,9 @@ export type MonacoModel = {
 
 export type MonacoEditor = {
 	getModel(): MonacoModel | null;
+	getDomNode?(): HTMLElement | null;
+	getRawOptions?(): {readOnly?: boolean};
+	onDidChangeModelLanguage?(listener: () => void): void;
 	getPosition(): unknown;
 	setPosition(position: unknown): void;
 	getAction(id: string): {run(): Promise<void>} | null;

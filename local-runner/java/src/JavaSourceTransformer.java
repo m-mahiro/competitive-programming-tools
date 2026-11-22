@@ -8,6 +8,7 @@ import java.util.stream.*;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
+import javax.lang.model.util.*;
 import javax.tools.*;
 
 import com.sun.source.tree.*;
@@ -18,9 +19,7 @@ import com.sun.source.util.*;
  */
 final class JavaSourceTransformer {
 	private static final Charset UTF_8 = StandardCharsets.UTF_8;
-	private static final Pattern PUBLIC_TOKEN = Pattern.compile("\\bpublic\\s+");
 	private static final Pattern LEADING_BLANK_LINES = Pattern.compile("\\A(?:[\\t ]*\\n)+");
-	private static final Pattern PACKAGE_DECLARATION = Pattern.compile("^\\s*package\\s+([\\p{L}_$][\\p{L}\\p{N}_$]*(?:\\s*\\.\\s*[\\p{L}_$][\\p{L}\\p{N}_$]*)*)\\s*;", Pattern.MULTILINE);
 	private static final String LAST_PACKAGES_ENV = "LOCAL_RUNNER_LIBRARY_LAST";
 	private static final String CLASS_PATH_DIRECTORY = ".compiled-library";
 	private final JavaCompiler compiler;
@@ -57,12 +56,18 @@ final class JavaSourceTransformer {
 			final LibraryIndex index = libraryIndex(root);
 			final String source = normalize(rawSource);
 			final Analysis analysis = analyze(source, index.classPath());
-			if (analysis.hasErrors()) return failure(source, analysis);
-			final List<Path> dependencies = collectDependencies(analysis, index);
-			final BundleOutput bundled = bundle(source, analysis, dependencies, index, debug, debugFlag);
-			if (validate) {
+			// 複数の public 型を貼った場合は、入口以外の public を展開時に外して Main.java として検証する。
+			if (analysis.hasErrors() && analysis.diagnosticItems().stream().anyMatch(item -> item.kind().equals("ERROR")
+					&& !item.code().equals("compiler.err.class.public.should.be.in.file"))) return failure(source, analysis);
+			final Map<Path, JavaBundleNames.Unit> libraries = new HashMap<>();
+			final List<Path> dependencies = collectDependencies(analysis, index, libraries);
+			final BundleOutput bundled = bundle(source, analysis, dependencies, libraries, index, debug, debugFlag);
+			if (validate || bundled.names().requiresVerification()) {
 				final Analysis validation = analyze(bundled.source(), null);
-				if (validation.hasErrors()) return failure(bundled.source(), validation);
+				if (validation.hasErrors()) return failure(rawSource, validation);
+				if (!findMainClass(validation).tree().getSimpleName().contentEquals("Main"))
+					return failure(source, "The submission entry point is not Main.");
+				bundled.names().verify(validation);
 			}
 			return new SourceTransformResult(0, bundled.source(), "", bundled.inlined(), List.of());
 		} catch (final Exception exception) {
@@ -80,7 +85,7 @@ final class JavaSourceTransformer {
 
 	/**
 	 * ライブラリのフォルダにある型の索引を作ります。フォルダの名前や階層は問いません。
-	 * 型の名前はファイル名から、パッケージは各ファイルの package 宣言から決めます。
+	 * 型とパッケージの名前は、ライブラリをコンパイルしたときの構文木から取得します。
 	 */
 	private LibraryIndex libraryIndex(final Path root) throws IOException {
 		final List<Path> sources = librarySources(root);
@@ -94,18 +99,16 @@ final class JavaSourceTransformer {
 		final Map<String, LibraryType> byFqcn = new HashMap<>();
 		final Map<Path, LibraryType> byPath = new HashMap<>();
 		final Set<String> packages = new HashSet<>();
-		for (final Path file : sources) {
-			final String simpleName = file.getFileName().toString().replaceFirst("\\.java$", "");
-			final Matcher declaration = PACKAGE_DECLARATION.matcher(Files.readString(file, UTF_8));
-			final String packageName = declaration.find() ? declaration.group(1).replaceAll("\\s+", "") : "";
-			final String fqcn = packageName.isEmpty() ? simpleName : packageName + "." + simpleName;
-			final LibraryType libraryType = new LibraryType(packageName, fqcn, file);
-			byFqcn.put(fqcn, libraryType);
-			byPath.put(file, libraryType);
-			packages.add(packageName);
-		}
 		final Path classPath = root.resolve(CLASS_PATH_DIRECTORY);
-		compileLibrary(sources, classPath);
+		cachedIndex = null;
+		for (final LibraryType type : compileLibrary(sources, classPath)) {
+			byFqcn.put(type.fqcn(), type);
+			// 展開一覧にはファイルと同名の型を表示する。同じファイルの他の型からも依存先を引ける。
+			final String fileName = type.path().getFileName().toString();
+			if ((type.fqcn().substring(type.fqcn().lastIndexOf('.') + 1) + ".java").equals(fileName) || !byPath.containsKey(type.path()))
+				byPath.put(type.path(), type);
+			packages.add(type.packageName());
+		}
 		cachedRoot = root;
 		cachedStamp = stamp;
 		cachedIndex = new LibraryIndex(byFqcn, byPath, packages, classPath, new HashMap<>());
@@ -124,23 +127,35 @@ final class JavaSourceTransformer {
 		}
 	}
 
-	private void compileLibrary(final List<Path> sources, final Path classPath) throws IOException {
+	private List<LibraryType> compileLibrary(final List<Path> sources, final Path classPath) throws IOException {
 		if (Files.exists(classPath)) {
 			try (Stream<Path> files = Files.walk(classPath)) {
 				for (final Path path : files.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
 			}
 		}
 		Files.createDirectories(classPath);
-		if (sources.isEmpty()) return;
+		if (sources.isEmpty()) return List.of();
 		final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, UTF_8)) {
 			final Iterable<? extends JavaFileObject> units = fileManager.getJavaFileObjectsFromPaths(sources);
 			final List<String> options = new ArrayList<>(List.of("-encoding", "UTF-8", "-proc:none", "-implicit:none", "-d", classPath.toString()));
 			options.addAll(JavaCompilerService.RELEASE_OPTIONS);
-			final Boolean success = compiler.getTask(null, fileManager, diagnostics, options, null, units).call();
-			if (!Boolean.TRUE.equals(success)) {
-				throw new IOException("library classpath compilation failed:\n" + diagnostics.getDiagnostics().stream().map(diagnostic -> diagnostic.getKind() + " " + diagnostic.getMessage(Locale.ROOT)).collect(Collectors.joining("\n")));
+			final JavacTask task = (JavacTask) compiler.getTask(null, fileManager, diagnostics, options, null, units);
+			final List<LibraryType> types = new ArrayList<>();
+			for (final CompilationUnitTree unit : task.parse()) {
+				final Path file = Path.of(unit.getSourceFile().toUri());
+				final String pkg = unit.getPackageName() == null ? "" : unit.getPackageName().toString();
+				for (final Tree declaration : unit.getTypeDecls()) {
+					if (declaration instanceof ClassTree type) {
+						final String name = type.getSimpleName().toString();
+						types.add(new LibraryType(pkg, pkg.isEmpty() ? name : pkg + "." + name, file));
+					}
+				}
 			}
+			task.generate();
+			if (diagnostics.getDiagnostics().stream().anyMatch(diagnostic -> diagnostic.getKind() == Diagnostic.Kind.ERROR))
+				throw new IOException("library classpath compilation failed:\n" + formatDiagnostics(diagnostics, new StringWriter()));
+			return types;
 		}
 	}
 
@@ -148,14 +163,22 @@ final class JavaSourceTransformer {
 	 * 展開順を決めます。依存先は使う型の直後に置き、末尾へ回すと決めたパッケージの型は最後に並べます。
 	 * ほかの型から使われない型を起点に名前順でたどるので、同じ型の組み合わせなら常に同じ順序になります。
 	 */
-	private List<Path> collectDependencies(final Analysis analysis, final LibraryIndex index) throws IOException {
+	private List<Path> collectDependencies(final Analysis analysis, final LibraryIndex index, final Map<Path, JavaBundleNames.Unit> libraries) throws IOException {
 		final TreeSet<Path> required = new TreeSet<>();
 		final Set<Path> usedByLibrary = new HashSet<>();
 		final ArrayDeque<Path> queue = new ArrayDeque<>(referencedLibrarySources(analysis.solution(), analysis.trees(), index));
 		while (!queue.isEmpty()) {
 			final Path path = queue.removeFirst();
 			if (!required.add(path)) continue;
-			final Set<Path> dependencies = libraryDependencies(path, index);
+			final String code = normalize(Files.readString(path, UTF_8));
+			final Analysis library = analyze(code, index.classPath());
+			if (library.hasErrors()) throw new IOException("library dependency analysis failed: " + path + "\n" + library.diagnostics());
+			libraries.put(path, new JavaBundleNames.Unit(code, library));
+			final Set<Path> dependencies = index.dependencies().computeIfAbsent(path, key -> {
+				final Set<Path> referenced = referencedLibrarySources(library.solution(), library.trees(), index);
+				referenced.remove(key);
+				return referenced;
+			});
 			usedByLibrary.addAll(dependencies);
 			queue.addAll(dependencies);
 		}
@@ -175,27 +198,19 @@ final class JavaSourceTransformer {
 
 	private void visitDependency(final Path path, final LibraryIndex index, final Set<Path> ordered) throws IOException {
 		if (!ordered.add(path)) return;
-		for (final Path dependency : new TreeSet<>(libraryDependencies(path, index))) {
+		for (final Path dependency : new TreeSet<>(index.dependencies().get(path))) {
 			visitDependency(dependency, index, ordered);
 		}
-	}
-
-	private Set<Path> libraryDependencies(final Path source, final LibraryIndex index) throws IOException {
-		final Set<Path> cached = index.dependencies().get(source);
-		if (cached != null) return cached;
-		final Analysis analysis = analyze(normalize(Files.readString(source, UTF_8)), index.classPath());
-		if (analysis.hasErrors())
-			throw new IOException("library dependency analysis failed: " + source + "\n" + analysis.diagnostics());
-		final LinkedHashSet<Path> dependencies = new LinkedHashSet<>(referencedLibrarySources(analysis.solution(), analysis.trees(), index));
-		dependencies.remove(source);
-		final Set<Path> result = Collections.unmodifiableSet(dependencies);
-		index.dependencies().put(source, result);
-		return result;
 	}
 
 	private Set<Path> referencedLibrarySources(final CompilationUnitTree unit, final Trees trees, final LibraryIndex index) {
 		final LinkedHashSet<Path> result = new LinkedHashSet<>();
 		new TreePathScanner<Void, Void>() {
+			@Override
+			public Void visitImport(final ImportTree node, final Void unused) {
+				return null;
+			}
+
 			private void collect() {
 				Element element = trees.getElement(getCurrentPath());
 				TypeElement top = null;
@@ -229,58 +244,57 @@ final class JavaSourceTransformer {
 		return result;
 	}
 
-	private BundleOutput bundle(final String source, final Analysis analysis, final List<Path> dependencies, final LibraryIndex index, final boolean debug, final String debugFlag) throws IOException {
+	private BundleOutput bundle(final String source, final Analysis analysis, final List<Path> dependencies, final Map<Path, JavaBundleNames.Unit> libraries, final LibraryIndex index, final boolean debug, final String debugFlag) throws IOException {
+		final MainClass main = findMainClass(analysis);
+		final List<JavaBundleNames.Unit> units = new ArrayList<>();
+		units.add(new JavaBundleNames.Unit(source, analysis));
+		final List<String> inlined = new ArrayList<>();
+		for (final Path dependency : dependencies) {
+			units.add(libraries.get(dependency));
+			inlined.add(index.byPath().get(dependency).fqcn());
+		}
+		final JavaBundleNames names = new JavaBundleNames(units, main.element());
 		final LinkedHashSet<String> hoisted = new LinkedHashSet<>();
 		final List<String> parts = new ArrayList<>();
-		final List<String> inlined = new ArrayList<>();
-		final Set<String> typeNames = analysis.solution().getTypeDecls().stream().filter(ClassTree.class::isInstance).map(ClassTree.class::cast).map(type -> type.getSimpleName().toString()).collect(Collectors.toCollection(HashSet::new));
-		// 起動クラスは Main になるので、ライブラリの Main という型とも重なる
-		typeNames.add("Main");
-
-		for (final Path dependency : dependencies) {
-			final String code = normalize(Files.readString(dependency, UTF_8));
-			final Parsed parsed = parse(code, dependency.toUri());
-			for (final ImportTree importTree : parsed.unit().getImports()) {
-				final String name = importTree.getQualifiedIdentifier().toString();
-				if (!index.isLibraryImport(name))
-					hoisted.add("import " + (importTree.isStatic() ? "static " : "") + name + ";");
+		for (int i = 1; i < units.size(); i++) {
+			final JavaBundleNames.Unit unit = units.get(i);
+			for (final ImportTree imported : unit.analysis.solution().getImports()) {
+				final String name = imported.getQualifiedIdentifier().toString();
+				if (!index.isLibraryImport(name) && !names.needsQualification(imported))
+					hoisted.add("import " + (imported.isStatic() ? "static " : "") + name + ";");
 			}
-			for (final Tree declaration : parsed.unit().getTypeDecls()) {
-				if (!(declaration instanceof ClassTree type)) continue;
-				final String name = type.getSimpleName().toString();
-				if (!typeNames.add(name)) throw new IllegalStateException("top-level type name collision: " + name);
+			final List<Edit> edits = names.edits(unit);
+			for (final ImportTree imported : unit.analysis.solution().getImports()) {
+				final Span span = treeSpan(unit.code, unit.analysis.solution(), imported, unit.analysis.positions());
+				edits.add(new Edit(span.start(), span.end(), ""));
 			}
-			final String fqcn = index.byPath().get(dependency).fqcn();
-			parts.add("// ===== inlined: " + fqcn + " =====\n" + transformLibraryUnit(code, parsed));
-			inlined.add(fqcn);
+			removePackage(unit.code, unit.analysis, edits);
+			parts.add("// ===== inlined: " + inlined.get(i - 1) + " =====\n" + applyEdits(unit.code, edits).strip());
 		}
 		hoisted.removeIf(candidate -> isCoveredBySolutionImport(candidate, analysis.solution().getImports()));
-
-		String transformedSolution = transformSolution(source, analysis, index, debug, debugFlag, hoisted);
+		String transformedSolution = transformSolution(source, analysis, index, main, debug, debugFlag, hoisted, names, units.getFirst());
 		if (!parts.isEmpty())
 			transformedSolution = transformedSolution.stripTrailing() + "\n\n" + String.join("\n\n", parts) + "\n";
-		return new BundleOutput(transformedSolution, List.copyOf(inlined));
+		return new BundleOutput(transformedSolution, List.copyOf(inlined), names);
 	}
 
-	private String transformSolution(final String source, final Analysis analysis, final LibraryIndex index, final boolean debug, final String debugFlag, final Set<String> hoisted) {
-		final List<Edit> edits = new ArrayList<>();
-		if (analysis.solution().getPackageName() != null) {
-			final Span span = packageSpan(source, analysis);
-			edits.add(new Edit(span.start(), span.end(), ""));
-		}
+	private String transformSolution(final String source, final Analysis analysis, final LibraryIndex index, final MainClass main, final boolean debug, final String debugFlag, final Set<String> hoisted, final JavaBundleNames names, final JavaBundleNames.Unit unit) {
+		final List<Edit> edits = names.edits(unit);
+		removePackage(source, analysis, edits);
 		boolean firstLibraryImport = true;
 		for (final ImportTree importTree : analysis.solution().getImports()) {
 			final String name = importTree.getQualifiedIdentifier().toString();
-			if (!index.isLibraryImport(name)) continue;
+			if (!index.isLibraryImport(name) && !names.needsQualification(importTree)) continue;
 			final Span span = treeSpan(source, analysis.solution(), importTree, analysis.positions());
 			final String original = source.substring(span.start(), span.end()).stripTrailing();
 			String prefix = firstLibraryImport && !hoisted.isEmpty() ? String.join("\n", hoisted) + "\n\n" : "";
 			if (firstLibraryImport && prefix.isEmpty() && span.start() > 0 && !source.substring(0, span.start()).endsWith("\n\n"))
 				prefix = "\n";
-			edits.add(new Edit(span.start(), span.end(), prefix + "// " + original.stripLeading() + "\n"));
+			edits.add(new Edit(span.start(), span.end(), prefix + "// " + original.stripLeading().replace("\n", "\n// ") + "\n"));
 			firstLibraryImport = false;
 		}
-		addMainAndDebugEdits(source, analysis, debug, debugFlag, edits);
+		if (firstLibraryImport && !hoisted.isEmpty()) edits.add(new Edit(0, 0, String.join("\n", hoisted) + "\n"));
+		addDebugEdits(analysis, main, debug, debugFlag, edits);
 		return LEADING_BLANK_LINES.matcher(applyEdits(source, edits)).replaceFirst("");
 	}
 
@@ -300,37 +314,14 @@ final class JavaSourceTransformer {
 		return false;
 	}
 
-	private void addMainAndDebugEdits(final String source, final Analysis analysis, final boolean debug, final String debugFlag, final List<Edit> edits) {
-		final MainClass main = findMainClass(analysis);
-		final String oldName = main.tree().getSimpleName().toString();
-		if (!"Main".equals(oldName)) {
-			if (declaresName(analysis.solution(), "Main"))
-				throw new IllegalStateException("cannot rename " + oldName + " to Main: the name Main is already used in the source");
-			final Set<Span> spans = new LinkedHashSet<>();
-			// 注釈の中の文字列や { を名前と取り違えないよう、修飾子の後ろから探す
-			final int classStart = afterModifiers(analysis, main.tree(), main.tree().getModifiers());
-			final int classBrace = source.indexOf('{', classStart);
-			findToken(source, oldName, classStart, classBrace < 0 ? source.length() : classBrace).ifPresent(spans::add);
-			for (final Tree member : main.tree().getMembers()) {
-				if (member instanceof MethodTree method && method.getReturnType() == null) {
-					final int start = afterModifiers(analysis, method, method.getModifiers());
-					final int open = source.indexOf('(', start);
-					findToken(source, oldName, start, open < 0 ? start : open).ifPresent(spans::add);
-				}
-			}
-			new TreePathScanner<Void, Void>() {
-				@Override
-				public Void visitIdentifier(final IdentifierTree node, final Void unused) {
-					if (analysis.trees().getElement(getCurrentPath()) == main.element()) {
-						final int start = (int) analysis.positions().getStartPosition(analysis.solution(), node);
-						spans.add(new Span(start, start + oldName.length()));
-					}
-					return super.visitIdentifier(node, unused);
-				}
-			}.scan(analysis.solution(), null);
-			for (final Span span : spans) edits.add(new Edit(span.start(), span.end(), "Main"));
+	private void removePackage(final String source, final Analysis analysis, final List<Edit> edits) {
+		if (analysis.solution().getPackageName() != null) {
+			final Span span = treeSpan(source, analysis.solution(), analysis.solution().getPackage(), analysis.positions());
+			edits.add(new Edit(span.start(), span.end(), ""));
 		}
+	}
 
+	private void addDebugEdits(final Analysis analysis, final MainClass main, final boolean debug, final String debugFlag, final List<Edit> edits) {
 		if (debugFlag.isEmpty()) return;
 		for (final Tree member : main.tree().getMembers()) {
 			if (!(member instanceof VariableTree variable) || !variable.getName().contentEquals(debugFlag)) continue;
@@ -341,32 +332,6 @@ final class JavaSourceTransformer {
 			final int end = (int) analysis.positions().getEndPosition(analysis.solution(), variable.getInitializer());
 			edits.add(new Edit(start, end, Boolean.toString(debug)));
 		}
-	}
-
-	/** 修飾子(注釈を含む)の終わりの位置。修飾子が無ければ宣言の始まり。 */
-	private int afterModifiers(final Analysis analysis, final Tree declaration, final ModifiersTree modifiers) {
-		final long start = analysis.positions().getStartPosition(analysis.solution(), declaration);
-		final long end = analysis.positions().getEndPosition(analysis.solution(), modifiers);
-		return (int) Math.max(start, end);
-	}
-
-	/** name という型か変数を宣言しているか。あれば、起動クラスをその名前に変えると重なる。 */
-	private boolean declaresName(final CompilationUnitTree unit, final String name) {
-		final boolean[] found = {false};
-		new TreeScanner<Void, Void>() {
-			@Override
-			public Void visitClass(final ClassTree node, final Void unused) {
-				if (node.getSimpleName().contentEquals(name)) found[0] = true;
-				return super.visitClass(node, unused);
-			}
-
-			@Override
-			public Void visitVariable(final VariableTree node, final Void unused) {
-				if (node.getName().contentEquals(name)) found[0] = true;
-				return super.visitVariable(node, unused);
-			}
-		}.scan(unit, null);
-		return found[0];
 	}
 
 	/**
@@ -393,75 +358,45 @@ final class JavaSourceTransformer {
 		final Set<Modifier> flags = element.getModifiers();
 		if (!flags.contains(Modifier.PUBLIC) || !flags.contains(Modifier.STATIC)) return false;
 		if (element.getReturnType().getKind() != TypeKind.VOID || element.getParameters().size() != 1) return false;
-		return element.getParameters().getFirst().asType() instanceof ArrayType array && array.getComponentType().toString().equals("java.lang.String");
-	}
-
-	private String transformLibraryUnit(final String source, final Parsed parsed) {
-		final List<Edit> edits = new ArrayList<>();
-		if (parsed.unit().getPackageName() != null) {
-			final Span span = packageSpan(source, parsed);
-			edits.add(new Edit(span.start(), span.end(), ""));
-		}
-		for (final ImportTree importTree : parsed.unit().getImports()) {
-			final Span span = treeSpan(source, parsed.unit(), importTree, parsed.positions());
-			edits.add(new Edit(span.start(), span.end(), ""));
-		}
-		for (final Tree declaration : parsed.unit().getTypeDecls()) {
-			if (!(declaration instanceof ClassTree type) || !type.getModifiers().getFlags().contains(Modifier.PUBLIC))
-				continue;
-			final int start = (int) parsed.positions().getStartPosition(parsed.unit(), type);
-			final int name = source.indexOf(type.getSimpleName().toString(), start);
-			final Matcher matcher = PUBLIC_TOKEN.matcher(source).region(start, name < 0 ? start : name);
-			if (matcher.find()) edits.add(new Edit(matcher.start(), matcher.end(), ""));
-		}
-		return applyEdits(source, edits).strip();
+		return element.getParameters().getFirst().asType() instanceof ArrayType array
+				&& array.getComponentType() instanceof DeclaredType component && component.asElement() instanceof TypeElement type
+				&& type.getQualifiedName().contentEquals("java.lang.String");
 	}
 
 	private Analysis analyze(final String source, final Path classPath) throws IOException {
 		final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		final StringWriter output = new StringWriter();
-		final String fileName = primaryTypeName(source) + ".java";
+		final String fileName = classPath == null ? "Main.java" : primaryTypeName(source) + ".java";
 		final MemorySource unit = new MemorySource(fileName, source);
-		final List<CompilationUnitTree> units = new ArrayList<>();
 		try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, UTF_8)) {
 			final List<String> options = new ArrayList<>(List.of("-encoding", "UTF-8", "-proc:none", "-implicit:none"));
 			options.addAll(JavaCompilerService.RELEASE_OPTIONS);
-			if (classPath != null) options.addAll(List.of("-classpath", classPath.toString()));
+			fileManager.setLocationFromPaths(StandardLocation.CLASS_PATH, classPath == null ? List.of() : List.of(classPath));
 			final JavacTask task = (JavacTask) compiler.getTask(output, fileManager, diagnostics, options, null, List.of(unit));
-			task.setTaskListener(new TaskListener() {
-				@Override
-				public void started(final TaskEvent event) {
-					if (event.getKind() == TaskEvent.Kind.PARSE && event.getCompilationUnit() != null)
-						units.add(event.getCompilationUnit());
-				}
-			});
 			final CompilationUnitTree solution = task.parse().iterator().next();
 			task.analyze();
-			if (!units.contains(solution)) units.addFirst(solution);
 			final Trees trees = Trees.instance(task);
 			final String text = formatDiagnostics(diagnostics, output);
-			final List<CompilerDiagnostic> items = diagnosticItems(diagnostics);
+			final List<CompilerDiagnostic> items = diagnosticItems(diagnostics, solution, trees.getSourcePositions());
 			final boolean errors = diagnostics.getDiagnostics().stream().anyMatch(d -> d.getKind() == Diagnostic.Kind.ERROR);
-			return new Analysis(solution, List.copyOf(units), trees, trees.getSourcePositions(), text, errors, items);
+			return new Analysis(solution, trees, trees.getSourcePositions(), task.getElements(), task.getTypes(), text, errors, items);
 		}
 	}
 
-	private Parsed parse(final String source, final URI uri) throws IOException {
+	private CompilationUnitTree parse(final String source, final URI uri) throws IOException {
 		final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
 		try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, UTF_8)) {
 			final MemorySource unit = new MemorySource(uri, source);
 			final JavacTask task = (JavacTask) compiler.getTask(null, fileManager, diagnostics, List.of("-proc:none"), null, List.of(unit));
-			final CompilationUnitTree tree = task.parse().iterator().next();
-			final Trees trees = Trees.instance(task);
-			return new Parsed(tree, trees.getSourcePositions());
+			return task.parse().iterator().next();
 		}
 	}
 
 	private String primaryTypeName(final String source) {
 		try {
-			final Parsed parsed = parse(source, URI.create("string:///Submission.java"));
+			final CompilationUnitTree parsed = parse(source, URI.create("string:///Submission.java"));
 			String first = null;
-			for (final Tree declaration : parsed.unit().getTypeDecls()) {
+			for (final Tree declaration : parsed.getTypeDecls()) {
 				if (!(declaration instanceof ClassTree type) || type.getSimpleName().isEmpty()) continue;
 				// public な型はファイル名と一致している必要があるので、先頭の型より優先する
 				if (type.getModifiers().getFlags().contains(Modifier.PUBLIC)) return type.getSimpleName().toString();
@@ -482,22 +417,26 @@ final class JavaSourceTransformer {
 		return builder.toString().stripTrailing();
 	}
 
-	private List<CompilerDiagnostic> diagnosticItems(final DiagnosticCollector<JavaFileObject> diagnostics) {
-		return diagnostics.getDiagnostics().stream().map(diagnostic -> new CompilerDiagnostic(diagnostic.getKind().name(), diagnostic.getLineNumber(), diagnostic.getColumnNumber(), diagnostic.getCode(), diagnostic.getMessage(Locale.ROOT))).toList();
-	}
-
-	private Span packageSpan(final String source, final Analysis analysis) {
-		return packageSpan(source, new Parsed(analysis.solution(), analysis.positions()));
-	}
-
-	private Span packageSpan(final String source, final Parsed parsed) {
-		final int nameStart = (int) parsed.positions().getStartPosition(parsed.unit(), parsed.unit().getPackageName());
-		int start = source.lastIndexOf("package", nameStart);
-		if (start < 0) start = nameStart;
-		int end = source.indexOf(';', nameStart);
-		if (end < 0) end = (int) parsed.positions().getEndPosition(parsed.unit(), parsed.unit().getPackageName());
-		else end++;
-		return new Span(start, extendNewline(source, end));
+	private List<CompilerDiagnostic> diagnosticItems(final DiagnosticCollector<JavaFileObject> diagnostics,
+												   final CompilationUnitTree unit, final SourcePositions positions) {
+		final List<CompilerDiagnostic> result = new ArrayList<>();
+		for (final Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
+			String importName = null;
+			final String code = diagnostic.getCode();
+			if (diagnostic.getKind() == Diagnostic.Kind.ERROR && (code.equals("compiler.err.doesnt.exist") || code.startsWith("compiler.err.cant.resolve"))
+					&& diagnostic.getSource() != null && diagnostic.getSource().toUri().equals(unit.getSourceFile().toUri())) {
+				for (final ImportTree imported : unit.getImports()) {
+					final long position = diagnostic.getPosition();
+					if (position >= positions.getStartPosition(unit, imported) && position < positions.getEndPosition(unit, imported)) {
+						importName = imported.getQualifiedIdentifier().toString();
+						break;
+					}
+				}
+			}
+			result.add(new CompilerDiagnostic(diagnostic.getKind().name(), diagnostic.getLineNumber(), diagnostic.getColumnNumber(),
+					diagnostic.getCode(), diagnostic.getMessage(Locale.ROOT), importName));
+		}
+		return List.copyOf(result);
 	}
 
 	private Span treeSpan(final String source, final CompilationUnitTree unit, final Tree tree, final SourcePositions positions) {
@@ -512,19 +451,13 @@ final class JavaSourceTransformer {
 		return end;
 	}
 
-	private Optional<Span> findToken(final String source, final String token, final int from, final int to) {
-		if (from < 0 || to < from) return Optional.empty();
-		final Matcher matcher = Pattern.compile("\\b" + Pattern.quote(token) + "\\b").matcher(source).region(from, to);
-		return matcher.find() ? Optional.of(new Span(matcher.start(), matcher.end())) : Optional.empty();
-	}
-
 	private String applyEdits(final String source, final List<Edit> edits) {
-		final List<Edit> sorted = edits.stream().distinct().sorted(Comparator.comparingInt(Edit::start).reversed()).toList();
+		final List<Edit> sorted = edits.stream().distinct().sorted(Comparator.comparingInt(Edit::start).thenComparingInt(Edit::end).reversed()).toList();
 		String result = source;
 		int previousStart = source.length() + 1;
 		for (final Edit edit : sorted) {
-			if (edit.start() < 0 || edit.end() < edit.start() || edit.end() > source.length()) continue;
-			if (edit.end() > previousStart) continue;
+			if (edit.start() < 0 || edit.end() < edit.start() || edit.end() > source.length() || edit.end() > previousStart)
+				throw new IllegalStateException("Could not apply source edit at offset " + edit.start());
 			result = result.substring(0, edit.start()) + edit.text() + result.substring(edit.end());
 			previousStart = edit.start();
 		}
@@ -552,19 +485,17 @@ final class JavaSourceTransformer {
 		}
 	}
 
-	private record BundleOutput(String source, List<String> inlined) {}
+	private record BundleOutput(String source, List<String> inlined, JavaBundleNames names) {}
 
-	private record Parsed(CompilationUnitTree unit, SourcePositions positions) {}
-
-	private record Analysis(CompilationUnitTree solution, List<CompilationUnitTree> units, Trees trees,
-							SourcePositions positions, String diagnostics, boolean hasErrors,
+	record Analysis(CompilationUnitTree solution, Trees trees,
+							SourcePositions positions, Elements elements, Types types, String diagnostics, boolean hasErrors,
 							List<CompilerDiagnostic> diagnosticItems) {}
 
 	private record MainClass(ClassTree tree, TypeElement element) {}
 
 	private record Span(int start, int end) {}
 
-	private record Edit(int start, int end, String text) {}
+	record Edit(int start, int end, String text) {}
 
 	private static final class MemorySource extends SimpleJavaFileObject {
 		private final String source;

@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {stripAnsi} from "../utils/color";
-import {CommandEngine, type CommandLanguage, expandArguments, rewriteDebugFlag} from "./commandEngine";
+import {CommandEngine, type CommandLanguage, expandArguments} from "./commandEngine";
+import {canRewriteDebugFlag, DEBUG_FLAG_FAMILIES, rewriteDebugFlag} from "./debugFlag";
 import {CanceledError, ensureLauncher, findOnPath} from "./processRunner";
 
 describe("expandArguments", () => {
@@ -22,25 +23,54 @@ describe("expandArguments", () => {
 
 describe("rewriteDebugFlag", () => {
 	test("Python の DEBUG を、大文字で始まる値のまま書き換える", () => {
-		expect(rewriteDebugFlag("import sys\nDEBUG: bool = True\nx = 1\n", "DEBUG", false)).toBe("import sys\nDEBUG: bool = False\nx = 1\n");
-		expect(rewriteDebugFlag("DEBUG = False\n", "DEBUG", true)).toBe("DEBUG = True\n");
+		expect(rewriteDebugFlag("import sys\nDEBUG: bool = True\nx = 1\n", "DEBUG", false, "python3")).toBe("import sys\nDEBUG: bool = False\nx = 1\n");
+		expect(rewriteDebugFlag("DEBUG = False\n", "DEBUG", true, "python3")).toBe("DEBUG = True\n");
 	});
 
 	test("修飾子の付いた宣言も書き換える", () => {
-		expect(rewriteDebugFlag("\tprivate static final boolean DEBUG = true;\n", "DEBUG", false)).toBe("\tprivate static final boolean DEBUG = false;\n");
-		expect(rewriteDebugFlag("const bool DEBUG = false;\n", "DEBUG", true)).toBe("const bool DEBUG = true;\n");
+		expect(rewriteDebugFlag("const bool DEBUG = false;\n", "DEBUG", true, "cpp")).toBe("const bool DEBUG = true;\n");
 	});
 
 	test("設定した名前だけを書き換え、使うだけの行は変えない", () => {
-		expect(rewriteDebugFlag("if LOCAL:\n\tpass\nLOCAL = True\nDEBUG = True\n", "LOCAL", false)).toBe("if LOCAL:\n\tpass\nLOCAL = False\nDEBUG = True\n");
+		expect(rewriteDebugFlag("if LOCAL:\n\tpass\nLOCAL = True\nDEBUG = True\n", "LOCAL", false, "python3")).toBe("if LOCAL:\n\tpass\nLOCAL = False\nDEBUG = True\n");
 	});
 
 	test("代入が2行以上あれば、どれが本物か決められないので null を返す", () => {
-		expect(rewriteDebugFlag("\"\"\"\nDEBUG = True\n\"\"\"\nDEBUG = True\n", "DEBUG", false)).toBeNull();
+		expect(rewriteDebugFlag("DEBUG = False\nDEBUG = True\n", "DEBUG", false, "python3")).toBeNull();
 	});
 
 	test("名前が無ければそのまま返す", () => {
-		expect(rewriteDebugFlag("print(1)\n", "DEBUG", false)).toBe("print(1)\n");
+		expect(rewriteDebugFlag("print(1)\n", "DEBUG", false, "python3")).toBe("print(1)\n");
+	});
+
+	test("Python の文字列、複合式、ローカル変数と論理行の続きは変えない", () => {
+		const unchanged = 'r"""\r\nDEBUG = True\r\n"""\r\nDEBUG = True == False\r\ndef f():\r\n  DEBUG = True\r\na = dict(\r\nDEBUG = True\r\n)\r\n';
+		expect(rewriteDebugFlag(unchanged + "DEBUG: bool = True # flag\r\n", "DEBUG", false, "python3"))
+			.toBe(unchanged + "DEBUG: bool = False # flag\r\n");
+	});
+
+	test("C++ のコメント、生文字列、複合式と関数内の宣言は変えない", () => {
+		const unchanged = '/*\nconst bool DEBUG = true;\n*/\nauto s = R"tag(\nconst bool DEBUG = true;\n)tag";\nconst bool DEBUG = true && flag;\nvoid f() {\nconst bool DEBUG = true;\n}\n';
+		expect(rewriteDebugFlag(unchanged + "constexpr bool DEBUG = true; // flag\n", "DEBUG", false, "cpp"))
+			.toBe(unchanged + "constexpr bool DEBUG = false; // flag\n");
+	});
+
+	test("Go の生文字列と関数内の宣言は変えず、パッケージ直下の宣言を書き換える", () => {
+		const unchanged = "package main\n\nvar s = `\nconst DEBUG = true\n`\n\nfunc main() {\n\tvar DEBUG = true\n}\n";
+		expect(rewriteDebugFlag(unchanged + "const DEBUG = true // flag\n", "DEBUG", false, "go"))
+			.toBe(unchanged + "const DEBUG = false // flag\n");
+	});
+
+	test("Rust のライフタイム、生文字列と関数内の宣言は変えず、モジュール直下の定数を書き換える", () => {
+		const unchanged = "fn first<'a>(s: &'a str) -> &'a str { s }\nconst S: &str = r#\"\nconst DEBUG: bool = true;\n\"#;\nfn main() {\n    const DEBUG: bool = true;\n}\n";
+		expect(rewriteDebugFlag(unchanged + "pub const DEBUG: bool = true;\n", "DEBUG", false, "rust"))
+			.toBe(unchanged + "pub const DEBUG: bool = false;\n");
+	});
+
+	test("対応していない言語は書き換えない", () => {
+		expect(canRewriteDebugFlag("kotlin")).toBe(false);
+		expect(rewriteDebugFlag("val DEBUG = true\n", "DEBUG", false, "kotlin")).toBe("val DEBUG = true\n");
+		expect(DEBUG_FLAG_FAMILIES).toEqual(["python3", "c", "cpp", "go", "rust"]);
 	});
 });
 
@@ -55,6 +85,7 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 	const logs: string[] = [];
 
 	const pythonLanguage: CommandLanguage = {
+		family: "python3",
 		name: "cpython",
 		command: python ?? "",
 		sourceFile: "Main.py",
@@ -67,6 +98,7 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 		bundle: null,
 	};
 	const cLanguage: CommandLanguage = {
+		family: "c",
 		name: "c",
 		command: cc ?? "",
 		sourceFile: "Main.c",

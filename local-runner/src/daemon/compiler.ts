@@ -103,8 +103,7 @@ function cleanupOldCache() {
 		if (entry && entry.rootDir) {
 			filesystem.removeDirectory(entry.rootDir);
 		}
-		return null;
-	});
+	}, () => undefined);
 }
 
 /** 常駐 JVM のクラスパスを返す。配布用の実行ファイルでは埋め込んだ jar を、ソースから動かすときはコンパイルしたクラスを使う。 */
@@ -258,6 +257,9 @@ export function getCompiledEntry(sourceCode: string) {
 	}
 	const entryPromise = compileSource(sourceCode, hash);
 	compileCache.set(hash, entryPromise);
+	void entryPromise.catch(() => {
+		if (compileCache.get(hash) === entryPromise) compileCache.delete(hash);
+	});
 	cleanupOldCache();
 	return entryPromise;
 }

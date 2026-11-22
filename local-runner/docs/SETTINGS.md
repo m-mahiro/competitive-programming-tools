@@ -7,6 +7,12 @@ Local Runner の設定は、`competitive-programming-tools` フォルダの `loc
 - 環境ごとに違うので、Git には入れません。
 - 既定値の一覧は [src/settings/defaults.json](../src/settings/defaults.json) です。このファイルは書き換えず、同じ形で `local-runner.settings.json` に書きます。
 
+## 設定の移行
+
+1.x の設定には形式番号がありません。2.0.0 の初回起動時に `librarySourceRoot` を `languages.java.library`、`headerFiles` を `headers` に移し、`settingsVersion: 2` を保存します。新旧の指定がある場合は新しい指定を優先します。明示した `debugRewrite: true` は `debugFlag: "DEBUG"` に移します。未指定なら自動書き換えはオフです。
+
+移行後の設定を検証し、書き換え前の内容を同じフォルダの `.bak` に保存します。検証に失敗した場合は元の設定を保ちます。移行済みの設定は次の起動でもそのまま使います。
+
 ## 書き方
 
 Java のライブラリとヘッダーを設定し、ポートを変える例です。
@@ -119,7 +125,14 @@ Java のライブラリとヘッダーを設定し、ポートを変える例で
 | `bundle`       | コンパイルの前と提出物の作成で通す、変換のコマンド(後述)                                                    |
 | `enabled`      | `false` にすると、この言語を使いません。                                                                    |
 
-`debugFlag` は、行の初めにある `名前 = True` や `名前: bool = True` を書き換えます(`true`、`false` も同じ)。文字列の中の行と見分けないので、そうした行が2つ以上あれば、どれが本物か決められないとしてエラーにします。
+`debugFlag` に対応する `family` と、書き換える宣言は次のとおりです。対象の代入・宣言は、関数やブロックの外に1行で書きます。コメント、文字列、関数内の変数、比較などを含む初期化式はそのままにします。対象が複数あるときは変換エラーになります。表にない `family` で `debugFlag` を書くと変換エラーになるので、省略してください。
+
+| `family` | 書き換える宣言の例 |
+|----------|--------------------|
+| `python3` | `名前 = True`、`名前: bool = False` |
+| `c`、`cpp` | `const bool 名前 = true;`、`constexpr bool 名前 = false;` |
+| `go` | `const 名前 = true`、`var 名前 bool = false` |
+| `rust` | `const 名前: bool = true;`、`static 名前: bool = false;` |
 
 `compile`、`run`、`bundle` の引数では、次の名前が置き換わります。先頭が `~/` の引数は、ホームからのパスになります。
 

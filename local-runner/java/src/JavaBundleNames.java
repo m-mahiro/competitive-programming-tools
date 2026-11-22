@@ -1,0 +1,370 @@
+import java.util.*;
+import java.util.regex.*;
+import javax.lang.model.element.*;
+import javax.lang.model.type.*;
+import com.sun.source.tree.*;
+import com.sun.source.util.*;
+
+/** ソースを同じパッケージへ移す前に、javac が解決した宣言ごとに提出時の名前を決める。 */
+final class JavaBundleNames {
+	static final class Unit {
+		final String code;
+		final JavaSourceTransformer.Analysis analysis;
+		final Map<Element, String> localNames = new HashMap<>();
+
+		Unit(final String code, final JavaSourceTransformer.Analysis analysis) {
+			this.code = code;
+			this.analysis = analysis;
+		}
+
+		int start(final Tree tree) { return (int) analysis.positions().getStartPosition(analysis.solution(), tree); }
+		int end(final Tree tree) { return (int) analysis.positions().getEndPosition(analysis.solution(), tree); }
+		String binary(final TypeElement type) { return analysis.elements().getBinaryName(type).toString(); }
+	}
+
+	private final List<Unit> units;
+	private final Set<String> reserved = new HashSet<>();
+	private final Set<String> topLevelNames = new HashSet<>();
+	private final Map<String, String> typeNames = new HashMap<>();
+	private final Map<String, String> binaryNames = new HashMap<>();
+	private final Map<String, String> fieldNames = new HashMap<>();
+	private final Map<String, Set<String>> candidates = new HashMap<>();
+	private final Set<String> qualify = new HashSet<>();
+	private final TypeElement entry;
+	private final Map<String, Integer> nextSuffix = new HashMap<>();
+
+	JavaBundleNames(final List<Unit> units, final TypeElement entry) {
+		this.units = units;
+		this.entry = entry;
+		for (final Unit unit : units) collectNames(unit);
+		topLevelNames.add("Main");
+		for (final Unit unit : units) allocateNames(unit);
+		// 別ファイルのワイルドカードから見える型は、そこで未使用でも展開後に単純名を曖昧にする。
+		if (units.size() > 1) {
+			final Set<String> scopes = new HashSet<>(Set.of("java.lang"));
+			for (final Unit unit : units) {
+				for (final ImportTree imported : unit.analysis.solution().getImports()) {
+					if (imported.getQualifiedIdentifier() instanceof MemberSelectTree select && select.getIdentifier().contentEquals("*"))
+						scopes.add(select.getExpression().toString());
+				}
+			}
+			final var symbols = units.getFirst().analysis.elements();
+			for (final var group : candidates.entrySet()) {
+				for (final String scope : scopes) {
+					final TypeElement visible = symbols.getTypeElement(scope + "." + group.getKey());
+					if (visible != null) group.getValue().add(symbols.getBinaryName(visible).toString());
+				}
+			}
+		}
+		for (final var group : candidates.entrySet()) {
+			if (group.getValue().size() > 1 || topLevelNames.contains(group.getKey())) qualify.add(group.getKey());
+		}
+	}
+
+	boolean requiresVerification() {
+		return units.size() > 1 || !entry.getSimpleName().contentEquals("Main") || !nextSuffix.isEmpty() || units.getFirst().analysis.hasErrors();
+	}
+
+	private void collectNames(final Unit unit) {
+		new TreePathScanner<Void, Void>() {
+			@Override public Void scan(final Tree node, final Void unused) {
+				if (node instanceof ClassTree tree) reserved.add(tree.getSimpleName().toString());
+				if (node instanceof VariableTree tree) reserved.add(tree.getName().toString());
+				if (node instanceof TypeParameterTree tree) reserved.add(tree.getName().toString());
+				if (node instanceof IdentifierTree tree) reserved.add(tree.getName().toString());
+				return super.scan(node, unused);
+			}
+
+			private void remember() {
+				if (unit.analysis.trees().getElement(getCurrentPath()) instanceof TypeElement type)
+					candidates.computeIfAbsent(type.getSimpleName().toString(), key -> new HashSet<>()).add(unit.binary(type));
+			}
+			@Override public Void visitIdentifier(final IdentifierTree node, final Void unused) {
+				remember();
+				return super.visitIdentifier(node, unused);
+			}
+			@Override public Void visitMemberSelect(final MemberSelectTree node, final Void unused) {
+				remember();
+				return super.visitMemberSelect(node, unused);
+			}
+		}.scan(unit.analysis.solution(), null);
+	}
+
+	private String nextName(final String base) {
+		int suffix = nextSuffix.getOrDefault(base, 1);
+		String result;
+		do { result = base + suffix++; } while (!reserved.add(result));
+		nextSuffix.put(base, suffix);
+		return result;
+	}
+
+	private void allocateNames(final Unit unit) {
+		new TreePathScanner<Void, Void>() {
+			@Override public Void visitClass(final ClassTree tree, final Void unused) {
+				final TypeElement type = (TypeElement) unit.analysis.trees().getElement(getCurrentPath());
+				final String old = type.getSimpleName().toString();
+				final String binary = unit.binary(type);
+				final boolean topLevel = type.getNestingKind() == NestingKind.TOP_LEVEL;
+				String name = old;
+				if (type == entry) name = "Main";
+				else if (old.equals("Main") || topLevel && topLevelNames.contains(old)) name = nextName(old);
+				typeNames.put(binary, name);
+				if (topLevel) {
+					topLevelNames.add(name);
+					binaryNames.put(binary, name);
+				} else {
+					Element owner = type.getEnclosingElement();
+					while (!(owner instanceof TypeElement)) owner = owner.getEnclosingElement();
+					final String parent = unit.binary((TypeElement) owner);
+					final String suffix = binary.substring(parent.length(), binary.length() - old.length());
+					binaryNames.put(binary, binaryNames.get(parent) + suffix + name);
+				}
+				return super.visitClass(tree, unused);
+			}
+
+			@Override public Void visitTypeParameter(final TypeParameterTree tree, final Void unused) {
+				if (tree.getName().contentEquals("Main"))
+					unit.localNames.put(unit.analysis.trees().getElement(getCurrentPath()), nextName("Main"));
+				return super.visitTypeParameter(tree, unused);
+			}
+
+			@Override public Void visitVariable(final VariableTree tree, final Void unused) {
+				if (tree.getName().contentEquals("Main") && !entry.getSimpleName().contentEquals("Main")) {
+					final VariableElement variable = (VariableElement) unit.analysis.trees().getElement(getCurrentPath());
+					if (variable != null && unit.end(tree) >= 0 && variable.getKind() != ElementKind.ENUM_CONSTANT
+							&& !(variable.getEnclosingElement() instanceof TypeElement owner && owner.getKind() == ElementKind.RECORD)) {
+						final String name = nextName("Main");
+						unit.localNames.put(variable, name);
+						if (variable.getKind() == ElementKind.FIELD)
+							fieldNames.put(unit.binary((TypeElement) variable.getEnclosingElement()) + ".Main", name);
+					}
+				}
+				return super.visitVariable(tree, unused);
+			}
+		}.scan(unit.analysis.solution(), null);
+	}
+
+	private String variableName(final Unit unit, final VariableElement variable) {
+		final String name = variable.getSimpleName().toString();
+		return variable.getKind() == ElementKind.FIELD && variable.getEnclosingElement() instanceof TypeElement owner
+				? fieldNames.getOrDefault(unit.binary(owner) + "." + name, name) : unit.localNames.getOrDefault(variable, name);
+	}
+
+	boolean needsQualification(final ImportTree imported) {
+		final Tree target = imported.getQualifiedIdentifier();
+		return !imported.isStatic() && target instanceof MemberSelectTree member && qualify.contains(member.getIdentifier().toString());
+	}
+
+	void verify(final JavaSourceTransformer.Analysis output) {
+		final List<String> expected = new ArrayList<>();
+		for (final Unit unit : units) expected.addAll(bindings(unit, true));
+		final List<String> actual = bindings(new Unit("", output), false);
+		for (int i = 0; i < Math.max(expected.size(), actual.size()); i++) {
+			final String before = i < expected.size() ? expected.get(i) : "(end)";
+			final String after = i < actual.size() ? actual.get(i) : "(end)";
+			if (!before.equals(after))
+				throw new IllegalStateException("Name resolution changed after bundling: " + before + " -> " + after);
+		}
+	}
+
+	/** パッケージ・import の文字列や別の JavacTask の Element を直接比較せず、移動後の所有型と署名で比較する。 */
+	private List<String> bindings(final Unit unit, final boolean original) {
+		final List<String> result = new ArrayList<>();
+		new TreePathScanner<Void, Void>() {
+			private String owner(final TypeElement type) {
+				final String name = unit.binary(type);
+				return original ? binaryNames.getOrDefault(name, name) : name;
+			}
+			private String erased(final TypeMirror type) {
+				final TypeMirror erased = unit.analysis.types().erasure(type);
+				if (erased instanceof ArrayType array) return erased(array.getComponentType()) + "[]";
+				if (erased instanceof DeclaredType declared) return owner((TypeElement) declared.asElement());
+				return erased.toString();
+			}
+			private String method(final ExecutableElement element) {
+				return owner((TypeElement) element.getEnclosingElement()) + "." + element.getSimpleName()
+						+ element.getParameters().stream().map(p -> erased(p.asType())).toList();
+			}
+			private void reference() {
+				final Element element = unit.analysis.trees().getElement(getCurrentPath());
+				if (element instanceof TypeElement type) result.add("type " + owner(type));
+				else if (element instanceof TypeParameterElement parameter)
+					result.add("parameter " + unit.localNames.getOrDefault(parameter, parameter.getSimpleName().toString()));
+				else if (element instanceof ExecutableElement executable) result.add("method " + method(executable));
+				else if (element instanceof VariableElement var && var.getEnclosingElement() instanceof TypeElement type)
+					result.add("field " + owner(type) + "." + (original ? variableName(unit, var) : var.getSimpleName()));
+				else if (element instanceof VariableElement var) result.add("variable " + (original ? variableName(unit, var) : var.getSimpleName()));
+			}
+			@Override public Void visitIdentifier(final IdentifierTree tree, final Void unused) {
+				reference();
+				return super.visitIdentifier(tree, unused);
+			}
+			@Override public Void visitMemberSelect(final MemberSelectTree tree, final Void unused) {
+				reference();
+				// Map.Entry と import された Entry は、外側の型が省略されても同じ型を指す。
+				if (unit.analysis.trees().getElement(getCurrentPath()) instanceof TypeElement
+						&& (tree.getExpression() instanceof IdentifierTree || tree.getExpression() instanceof MemberSelectTree)) return null;
+				return super.visitMemberSelect(tree, unused);
+			}
+			@Override public Void visitMemberReference(final MemberReferenceTree tree, final Void unused) {
+				reference();
+				return super.visitMemberReference(tree, unused);
+			}
+			@Override public Void visitNewClass(final NewClassTree tree, final Void unused) {
+				reference();
+				return super.visitNewClass(tree, unused);
+			}
+			@Override public Void visitMethod(final MethodTree tree, final Void unused) {
+				final Element element = unit.analysis.trees().getElement(getCurrentPath());
+				if (units.size() > 1 && element instanceof ExecutableElement executable && element.getKind() == ElementKind.METHOD) {
+					final TypeElement child = (TypeElement) executable.getEnclosingElement();
+					final Set<String> overridden = new TreeSet<>();
+					TypeMirror parent = child.getSuperclass();
+					while (parent instanceof DeclaredType base) {
+						final TypeElement parentType = (TypeElement) base.asElement();
+						for (final Element member : parentType.getEnclosedElements()) {
+							if (!(member instanceof ExecutableElement candidate) || !member.getSimpleName().equals(element.getSimpleName())) continue;
+							if (!Collections.disjoint(candidate.getModifiers(), Set.of(Modifier.PUBLIC, Modifier.PROTECTED, Modifier.PRIVATE))) continue;
+							if (unit.analysis.elements().overrides(executable, candidate, child)) overridden.add(method(candidate));
+						}
+						parent = parentType.getSuperclass();
+					}
+					result.add("overrides " + method(executable) + " " + overridden);
+				}
+				return super.visitMethod(tree, unused);
+			}
+			void run() {
+				for (final Tree declaration : unit.analysis.solution().getTypeDecls())
+					scan(TreePath.getPath(unit.analysis.solution(), declaration), null);
+			}
+		}.run();
+		return result;
+	}
+
+	// javac は宣言名だけの位置を公開しない。宣言の範囲内でコメントと空白を飛ばしてトークンを探す。
+	private static final Pattern TOKEN = Pattern.compile("//[^\r\n]*|/\\*.*?\\*/|\"\"\".*?\"\"\"|\"(?:[^\"\\\\]++|\\\\.)*+\"|'(?:[^'\\\\]++|\\\\.)*+'"
+			+ "|\\s+|\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*|.", Pattern.DOTALL);
+
+	private static java.util.stream.Stream<MatchResult> tokens(final String code, final int start, final int end) {
+		return TOKEN.matcher(code).region(start, end).results().filter(token -> !token.group().isBlank()
+				&& !token.group().startsWith("//") && !token.group().startsWith("/*"));
+	}
+
+	private static JavaSourceTransformer.Edit edit(final MatchResult token, final String text) {
+		return new JavaSourceTransformer.Edit(token.start(), token.end(), text);
+	}
+
+	private static JavaSourceTransformer.Edit declaration(final Unit unit, final int start, final int end, final String name,
+														 final String replacement, final boolean constructor) {
+		final Iterator<MatchResult> tokens = tokens(unit.code, start, end).iterator();
+		while (tokens.hasNext()) {
+			final MatchResult token = tokens.next();
+			if (!token.group().equals(name)) continue;
+			if (constructor && (!tokens.hasNext() || !Set.of("(", "{").contains(tokens.next().group()))) continue;
+			return edit(token, replacement);
+		}
+		throw new IllegalStateException("Could not identify the declaration of " + name + " at offset " + start);
+	}
+
+	List<JavaSourceTransformer.Edit> edits(final Unit unit) {
+		final List<JavaSourceTransformer.Edit> edits = new ArrayList<>();
+		new TreePathScanner<Void, Void>() {
+			private Element element() { return unit.analysis.trees().getElement(getCurrentPath()); }
+			private String nameOf(final Element symbol) {
+				if (symbol instanceof VariableElement variable) return variableName(unit, variable);
+				return symbol instanceof TypeElement type ? typeNames.get(unit.binary(type)) : unit.localNames.get(symbol);
+			}
+			@Override public Void visitImport(final ImportTree node, final Void unused) { return null; }
+			@Override public Void visitClass(final ClassTree tree, final Void unused) {
+				final TypeElement type = (TypeElement) element();
+				final String old = type.getSimpleName().toString();
+				final String name = nameOf(type);
+				final int start = unit.start(tree);
+				final int afterModifiers = Math.max(start, unit.end(tree.getModifiers()));
+				if (type == entry && !type.getModifiers().contains(Modifier.PUBLIC))
+					edits.add(new JavaSourceTransformer.Edit(start, start, "public "));
+				if (type != entry && type.getNestingKind() == NestingKind.TOP_LEVEL && type.getModifiers().contains(Modifier.PUBLIC)) {
+					for (final MatchResult token : tokens(unit.code, start, afterModifiers).toList()) {
+						if (!token.group().equals("public")) continue;
+						int end = token.end();
+						while (end < afterModifiers + 1 && end < unit.code.length() && unit.code.charAt(end) == ' ') end++;
+						edits.add(new JavaSourceTransformer.Edit(token.start(), end, ""));
+					}
+				}
+				if (!old.equals(name)) edits.add(declaration(unit, afterModifiers, unit.end(tree), old, name, false));
+				return super.visitClass(tree, unused);
+			}
+			@Override public Void visitMethod(final MethodTree tree, final Void unused) {
+				if (tree.getReturnType() == null && unit.end(tree) >= 0 && element() instanceof ExecutableElement method) {
+					final TypeElement type = (TypeElement) method.getEnclosingElement();
+					// package-private な record を public Main にすると、正規コンストラクターにも public が必要になる。
+					if (type == entry && type.getKind() == ElementKind.RECORD && !type.getModifiers().contains(Modifier.PUBLIC)
+							&& !method.getModifiers().contains(Modifier.PUBLIC) && isCanonical(type, method))
+						edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.start(tree), "public "));
+					final String old = type.getSimpleName().toString();
+					final String name = nameOf(type);
+					if (!old.equals(name)) {
+						final int start = Math.max(unit.start(tree), unit.end(tree.getModifiers()));
+						edits.add(declaration(unit, start, unit.start(tree.getBody()) + 1, old, name, true));
+					}
+				}
+				return super.visitMethod(tree, unused);
+			}
+			@Override public Void visitTypeParameter(final TypeParameterTree tree, final Void unused) {
+				final String name = nameOf(element());
+				if (name != null) {
+					int start = unit.start(tree);
+					for (final AnnotationTree annotation : tree.getAnnotations()) start = Math.max(start, unit.end(annotation));
+					edits.add(declaration(unit, start, unit.end(tree), tree.getName().toString(), name, false));
+				}
+				return super.visitTypeParameter(tree, unused);
+			}
+			@Override public Void visitVariable(final VariableTree tree, final Void unused) {
+				final String name = unit.localNames.get(element());
+				if (name != null) {
+					final int end = tree.getInitializer() == null ? unit.end(tree) : unit.start(tree.getInitializer());
+					final List<MatchResult> beforeValue = tokens(unit.code, unit.start(tree), end).toList();
+					final MatchResult declared = beforeValue.reversed().stream().filter(token -> token.group().equals(tree.getName().toString()))
+							.findFirst().orElseThrow(() -> new IllegalStateException("Could not identify variable " + tree.getName()));
+					edits.add(edit(declared, name));
+				}
+				return super.visitVariable(tree, unused);
+			}
+			@Override public Void visitIdentifier(final IdentifierTree tree, final Void unused) {
+				final Element symbol = element();
+				String replacement = nameOf(symbol);
+				final String name = tree.getName().toString();
+				if (replacement == null && symbol instanceof TypeElement type && qualify.contains(name))
+					replacement = type.getQualifiedName().toString();
+				if (replacement != null && !replacement.equals(name) && unit.end(tree) >= 0)
+					edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.end(tree), replacement));
+				return super.visitIdentifier(tree, unused);
+			}
+			@Override public Void visitMemberSelect(final MemberSelectTree tree, final Void unused) {
+				if (element() instanceof TypeElement type) {
+					final String name = nameOf(type);
+					if (name != null && type.getNestingKind() == NestingKind.TOP_LEVEL) {
+						edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.end(tree), name));
+						return null;
+					}
+					if (name != null && !tree.getIdentifier().contentEquals(name))
+						edits.add(declaration(unit, unit.end(tree.getExpression()), unit.end(tree), tree.getIdentifier().toString(), name, false));
+				} else if (element() instanceof VariableElement variable && !tree.getIdentifier().contentEquals(variableName(unit, variable))) {
+					edits.add(declaration(unit, unit.end(tree.getExpression()), unit.end(tree), tree.getIdentifier().toString(), variableName(unit, variable), false));
+				}
+				return super.visitMemberSelect(tree, unused);
+			}
+		}.scan(unit.analysis.solution(), null);
+		return edits;
+	}
+
+	private static boolean isCanonical(final TypeElement type, final ExecutableElement constructor) {
+		final var components = type.getRecordComponents();
+		final var parameters = constructor.getParameters();
+		if (components.size() != parameters.size()) return false;
+		for (int i = 0; i < components.size(); i++)
+			if (!components.get(i).getSimpleName().equals(parameters.get(i).getSimpleName())
+					|| !components.get(i).asType().toString().equals(parameters.get(i).asType().toString())) return false;
+		return true;
+	}
+}

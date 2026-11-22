@@ -91,6 +91,7 @@ export type LocalRunnerRunRequest = {
 };
 
 export type LocalRunnerRequest =
+	| {mode: "status"}
 	| LocalRunnerListRequest
 	| LocalRunnerPrecompileRequest
 	| LocalRunnerHeaderRequest
@@ -114,6 +115,8 @@ export type CompilerDiagnostic = {
 	kind: string;
 	line: number;
 	column: number;
+	/** 元ソースの診断位置を含む、解決できなかった import。 */
+	importName?: string;
 	code: string;
 	message: string;
 };
@@ -135,13 +138,11 @@ export type LocalRunnerRunResponse = {
 /** 指定した programId のプログラムがサーバーにないときの stderr の先頭。サーバーの再起動やキャッシュの追い出しで起こる。 */
 export const STALE_PROGRAM_MESSAGE = "Prepared program is unavailable:";
 
-/**
- * 提出用のヘッダーをすでに含むコードか。ヘッダーの1行目と同じ行があれば含むとみなす。
- * toclip の出力を貼り付けたときや、ヘッダーを付けたコードにもう一度付けるときに、重ねないために使う。
- */
-export function includesSubmissionHeader(code: string, header: string): boolean {
-	const firstLine = header.split("\n", 1)[0] ?? "";
-	return firstLine !== "" && code.split("\n").includes(firstLine);
+/** 挿入位置から、ヘッダーの全文が独立した行として始まるか。 */
+export function includesSubmissionHeader(code: string, header: string, offset = 0): boolean {
+	if (!header.trim()) return true;
+	const end = offset + header.length;
+	return code.startsWith(header, offset) && (end === code.length || code[end] === "\n" || code.startsWith("\r\n", end));
 }
 
 /** コンパイル済みのプログラムが消えていて、ソースから作り直す必要がある応答か。 */

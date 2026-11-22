@@ -54,7 +54,8 @@ export class TestSession {
 			...(allowableError === undefined ? {} : {allowableError}),
 			...extra,
 		};
-		return this.runners.test(this.selection.candidates, runnerId, code, testCase, options).finally(() => {
+		const candidates = this.selection.explicit ? this.selection.candidates.filter(({id}) => id === runnerId) : this.selection.candidates;
+		return this.runners.test(candidates, runnerId, code, testCase, options).finally(() => {
 			if (--this.active === 0) this.listener.onBusyChange();
 		});
 	}

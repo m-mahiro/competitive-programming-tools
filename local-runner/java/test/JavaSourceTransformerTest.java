@@ -133,13 +133,7 @@ public final class JavaSourceTransformerTest {
 			check(annotated.exitCode() == 0, annotated.diagnostics());
 			check(annotated.sourceCode().contains("@SuppressWarnings(\"Solver\") Main() {}"), "annotation text was renamed instead of the constructor");
 
-			for (final String clash : java.util.List.of(
-					"final class Main {}\npublic final class Solver { public static void main(String[] args) {} }",
-					"public final class Solver { public static void main(String[] args) { int Main = 1; } }")) {
-				final SourceTransformResult clashed = transformer.transform(clash, root, false, "DEBUG", true);
-				check(clashed.exitCode() != 0, "renaming to Main unexpectedly succeeded although Main is used: " + clash);
-				check(clashed.diagnostics().contains("Main is already used"), clashed.diagnostics());
-			}
+			checkNameResolution(transformer, root);
 
 			final SourceTransformResult overloaded = transformer.transform("""
 					final class Helper {
@@ -233,6 +227,84 @@ public final class JavaSourceTransformerTest {
 			try (var files = Files.walk(root)) {
 				for (final Path path : files.sorted(java.util.Comparator.reverseOrder()).toList())
 					Files.deleteIfExists(path);
+			}
+		}
+	}
+
+	private static void checkNameResolution(final JavaSourceTransformer transformer, final Path root) throws Exception {
+		final String source = """
+				class Main1 {}
+				class Main { int value() { return 7; } }
+				public class /* Solver */ Solver extends Main {
+					static int y = 3;
+					Solver() {}
+					static <Main extends Number> String pick(Solver x) { return choose(x); }
+					static String choose(Object x) { return "ok"; }
+					static String choose(Number x) { return "bad"; }
+					public static void main(String[] args) { int Main = 1; System.out.print(pick(null) + new Solver().value() + Solver.y + Main); }
+				}
+				""";
+		final SourceTransformResult result = transformer.transform(source, root, false, "", false);
+		check(result.exitCode() == 0, result.diagnostics());
+		check(result.sourceCode().contains("class /* Solver */ Main extends Main2"), result.sourceCode());
+		check(result.sourceCode().contains("class Main2"), result.sourceCode());
+		check(result.sourceCode().contains("<Main3 extends Number> String pick(Main x)"), result.sourceCode());
+		check(result.sourceCode().contains("int Main4 = 1"), result.sourceCode());
+		check(execute(result.sourceCode()).equals("ok731"), "renaming changed execution");
+
+		final SourceTransformResult compact = transformer.transform("record Solver$(int x) { Solver$ { } public static void main(String[] a) { new Solver$(1); } }", root, false, "", true);
+		check(compact.exitCode() == 0 && compact.sourceCode().contains("Main { }"), compact.diagnostics());
+		final SourceTransformResult helper = transformer.transform("public class Helper {} class Solver { public static void main(String[] args) {} }", root, false, "", true);
+		check(helper.exitCode() == 0 && !helper.sourceCode().contains("public class Helper") && helper.sourceCode().contains("public class Main"), helper.diagnostics());
+		final SourceTransformResult publics = transformer.transform("public class Main { public static void main(String[] args) {} } public class Other {}", root, false, "", false);
+		check(publics.exitCode() == 0 && !publics.sourceCode().contains("public class Other"), publics.diagnostics());
+
+		final String unused = "import lib.ds.UnusedTree; class Sol { public static void main(String[] a) {} }";
+		final SourceTransformResult noDependency = transformer.transform(unused, root, false, "", false);
+		check(noDependency.exitCode() == 0 && noDependency.inlinedClasses().isEmpty(), noDependency.diagnostics());
+		final SourceTransformResult missing = transformer.transform("import java.util.List; import a.b.Missing; class Sol {}", root, false, "", false);
+		check(missing.diagnosticItems().stream().anyMatch(item -> "a.b.Missing".equals(item.importName())), missing.diagnostics());
+
+		final Path pkg = Files.createDirectories(root.resolve("extra"));
+		Files.writeString(pkg.resolve("Main.java"), "package extra; import java.sql.Date; public class Main { public static String name() { return Date.class.getName(); } }");
+		final String date = "import java.util.*; import extra.Main; public class Sol { public static void main(String[] a) { System.out.print(Date.class.getName() + Main.name()); } }";
+		final SourceTransformResult bundled = transformer.transform(date, root, false, "", false);
+		check(bundled.exitCode() == 0, bundled.diagnostics());
+		check(bundled.inlinedClasses().equals(java.util.List.of("extra.Main")), bundled.inlinedClasses().toString());
+		check(execute(bundled.sourceCode()).equals("java.util.Datejava.sql.Date"), "bundling changed a Date reference");
+
+		Files.writeString(pkg.resolve("Palette.java"), "/*\npackage fake;\n*/\npackage /* paint */ extra; import java.awt.*; public class Palette { public Color red = Color.RED; }");
+		final SourceTransformResult stars = transformer.transform("import java.util.*; class Solver { public static void main(String[] a) { System.out.print(List.of(new extra.Palette().red.getRed()).getFirst()); } }", root, false, "", true);
+		check(stars.exitCode() == 0 && execute(stars.sourceCode()).equals("255"), stars.diagnostics());
+
+		final SourceTransformResult typeUse = transformer.transform("import java.lang.annotation.*; @Target(ElementType.TYPE_USE) @interface Mark {} class Solver { public static void main(@Mark String... a) {} }", root, false, "", true);
+		check(typeUse.exitCode() == 0, typeUse.diagnostics());
+		final Path other = Files.createDirectories(root.resolve("other"));
+		Files.writeString(pkg.resolve("Value.java"), "package extra; public class Value { public int number() { return 1; } }");
+		Files.writeString(other.resolve("Value.java"), "package other; public class Value { public int number() { return 2; } }");
+		final SourceTransformResult sameName = transformer.transform("import extra.Value; class Value1 {} class Solver { public static void main(String[] a) { System.out.print(new Value().number() + \"/\" + new other.Value().number()); } }", root, false, "", true);
+		check(sameName.exitCode() == 0, sameName.diagnostics());
+		check(sameName.sourceCode().contains("class Value2") && execute(sameName.sourceCode()).equals("1/2"), sameName.sourceCode());
+
+		Files.writeString(pkg.resolve("Base.java"), "package extra; public class Base { void f() {} public void run() { f(); } }");
+		final SourceTransformResult overridden = transformer.transform("import extra.Base; class Solver extends Base { void f() {} public static void main(String[] a) { new Solver().run(); } }", root, false, "", false);
+		check(overridden.exitCode() != 0 && overridden.diagnostics().contains("overrides"), overridden.diagnostics());
+	}
+
+	private static String execute(final String source) throws Exception {
+		final Path folder = Files.createTempDirectory("bundle-execution-");
+		try {
+			final Path file = folder.resolve("Main.java");
+			Files.writeString(file, source);
+			check(javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", folder.toString(), file.toString()) == 0, source);
+			final Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", folder.toString(), "Main").start();
+			final String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			final String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
+			check(process.waitFor() == 0, stderr);
+			return stdout;
+		} finally {
+			try (var files = Files.walk(folder)) {
+				for (final Path path : files.sorted(java.util.Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
 			}
 		}
 	}

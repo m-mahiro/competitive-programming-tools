@@ -1,6 +1,8 @@
 import {parseStoredObject} from "@atcoder-tools/shared";
 
-export const CURRENT_SETTINGS_VERSION = 1;
+import {migrateToVersion2} from "./migrations";
+
+export const CURRENT_SETTINGS_VERSION = 2;
 
 export type FeatureSettings = {
 	readonly enabled?: boolean;
@@ -15,7 +17,7 @@ export type Settings = {
 type SettingsMigration = (settings: Settings) => Settings;
 
 /** キーの版から次の版へ移行する処理。保存形式を変えるたびに追加する。 */
-const MIGRATIONS: Readonly<Record<number, SettingsMigration>> = {};
+const MIGRATIONS: Readonly<Record<number, SettingsMigration>> = {1: migrateToVersion2};
 
 export function createDefaultSettings(): Settings {
 	return {version: CURRENT_SETTINGS_VERSION, features: {}};
@@ -31,10 +33,11 @@ function parseFeatureSettings(raw: unknown): FeatureSettings {
 
 /** 保存値を読み取り、現在の版へ移行する。壊れた値は既定値として扱う。 */
 export function parseSettings(raw: unknown): Settings {
+	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return createDefaultSettings();
 	const {version, features} = parseStoredObject<Record<string, unknown>>(raw);
 	const entries = Object.entries(parseStoredObject<Record<string, unknown>>(features));
 	let settings: Settings = {
-		version: typeof version === "number" ? version : CURRENT_SETTINGS_VERSION,
+		version: typeof version === "number" && Number.isSafeInteger(version) && version >= 0 ? version : 1,
 		features: Object.fromEntries(entries.map(([id, value]) => [id, parseFeatureSettings(value)])),
 	};
 	while (settings.version < CURRENT_SETTINGS_VERSION) {

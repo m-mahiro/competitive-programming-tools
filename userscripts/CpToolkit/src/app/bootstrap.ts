@@ -24,7 +24,6 @@ export function bootstrap(): void {
 
 	const lifecycle = new DocumentLifecycle();
 	const store = new GmKeyValueStore();
-	const settings = new SettingsService(store);
 	const updates = new UpdateChecker({
 		host,
 		http: new GmHttpClient(),
@@ -32,6 +31,8 @@ export function bootstrap(): void {
 		allowedHosts: updateCatalog.connect,
 		intervalHours: updateCatalog.checkIntervalHours,
 	});
+	// 設定を一度も変えずに使っていた人は設定を保存していないので、更新の確認の記録で見分ける
+	const settings = new SettingsService(store, {installedBefore: updates.hasCheckedBefore()});
 	importLegacySettings(new LocalStorageLegacyInbox(), settings);
 	const page = matchPage(judges, location.href);
 	let panel: SettingsPanel | null = null;

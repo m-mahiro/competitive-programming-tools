@@ -15,13 +15,13 @@ Easy Test+ is based on [AtCoder Easy Test v2](https://greasyfork.org/scripts/433
 ### Running tests and submitting
 
 - Click “Run” beside a sample to test that case, or “Test All Samples” to run them all. Use the bottom panel to enter your own input.
-- “Test & Submit” submits once every sample passes. Cancel the pending submission while the tests are running to keep the results without submitting.
+- “Test & Submit” submits once every sample passes. A change to the tested source, task, language or environment cancels submission and keeps the results. Cancel the pending submission while the tests are running to keep the results without submitting.
 - If no samples are found, “Test All Samples” and “Test & Submit” skip testing and submission. You can set a tolerance for comparing output.
 
 ### Execution environments
 
 - Options depend on the site and language. They include AtCoder custom tests, Python in the browser, PaizaIO and Wandbox. C++ on Wandbox supports AtCoder Library.
-- Code and input go to the selected environment when you run a test. An internal error can trigger a retry, but Easy Test+ never switches to PaizaIO or Wandbox as a fallback.
+- Automatic selection checks the available environments at run time and prefers a compatible Local Runner. A manual choice is saved per language and retries stay on that environment. Automatic retries also exclude PaizaIO and Wandbox as fallback destinations.
 - AtCoder custom tests run one at a time. In browsers with Web Locks, tests started in other tabs join the same queue.
 - Enable [Local Runner integration](local-runner.en.md) to run supported languages on the configured server. When precompilation is on and the server has a compatible environment, Easy Test+ also sends the code as you edit, even when another environment is selected. The bundled runner reports cumulative allocation for Java and peak memory usage for C, C++ and Python.
 

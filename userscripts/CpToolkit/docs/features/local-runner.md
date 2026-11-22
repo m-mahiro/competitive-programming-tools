@@ -10,6 +10,8 @@
 - 接続先には、自分のサーバーの URL を指定します。[Local Runner](../../../../local-runner/README.md) か、同じ API に対応するサーバーを使えます。Local Runner は別途導入が必要です。
 - 手元で Local Runner を既定の設定で起動した場合は、接続先に `http://localhost:8080` を使います。
 
+Local Runner 1.x でも Easy Test+ の実行を利用できます。提出用変換とヘッダー取得には 2.0.0 以降が必要です。CP Toolkit は操作の前に接続先のバージョンを確認します。
+
 ## 詳細設定
 
 設定画面でこの機能の「詳細設定」を開きます。
@@ -28,7 +30,8 @@
 | `list`       | Easy Test+      | なし                                                      | `{language, compilerName, label}` の配列。`language` は言語名（例：`Java`、`C++`、`Python`）で、提出言語と同じ系統のものが実行環境の候補になります。`label` は画面に出す名前です。 |
 | `precompile` | Easy Test+      | `sourceCode`、`compilerName`、`debug`                     | `{status: "accepted"}`。要求を受け付けたら返し、バックグラウンドでコンパイルします。                                                                                               |
 | `run`        | Easy Test+      | `sourceCode`、`stdin`、`compilerName`、`debug`            | `status`、`exitCode`、`stdout`、`stderr`、`time`（ミリ秒）、`memory`（累積の割り当て量。KB。0 なら表示しません）、`peakMemory`（任意。使用量の最大値。KB）                         |
-| `transform`  | 提出補助        | `sourceCode`、`compilerName`、`header`、`debug`、`validate` | `status`（`success` か `compileError`）、`sourceCode`（変換後のコード）、`diagnostics`、`diagnosticItems`。CP Toolkit は `header` を `false` で送ります。                          |
+| `transform` | 提出補助 | `sourceCode`、`compilerName`、`header: false`、`debug: false`、`validate: true` | `status`（`success` または `compileError`）、`sourceCode`、`diagnostics`、`diagnosticItems`、`inlinedClasses`。import の診断には `importName` を含められます。 |
+| `status` | 提出補助・ヘッダー | なし | `{status: "running", version: "2.0.0"}`。実行中のサーバーのバージョンを返します。 |
 | `header`     | コードのヘッダーとフッター | `compilerName`、`header`                         | `{status: "success", header}`。`header` は提出物に付けるヘッダーの文で、無ければ `null` です。要求の `header` は、`true` なら言語の既定、文字列ならその名前のヘッダーです。 |
 
 - `compilerName` は `list` で返した値です。複数の言語を扱うサーバーは、これで言語を選びます。

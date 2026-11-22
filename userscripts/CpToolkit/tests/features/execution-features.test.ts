@@ -9,6 +9,7 @@ import type {Translate} from "@catalog/messages";
 import {easyTest} from "@features/easy-test/index";
 import {createResultView} from "@features/easy-test/views";
 import {submissionHelper} from "@features/java-submit/index";
+import {keyboardShortcuts} from "@features/keyboard-shortcuts/index";
 import {paizaLanguage} from "@features/paiza-language/index";
 import {taskDropdown} from "@features/task-dropdown/index";
 import {createFakePage, createFakeServices, FakeHttpClient, MemoryStore} from "../support/fakes";
@@ -86,6 +87,7 @@ describe("easyTest", () => {
 	async function start(site: JudgeSite, run: CodeRunner["run"], extra = {}) {
 		await easyTest.run(undefined, createFakeServices({
 			judgeSite: async () => site,
+			paste: new PastePipeline({locate: async () => null}),
 			openSettings: () => undefined,
 			runners: createRunners(run),
 			localRunner: new LocalRunnerClient(new FakeHttpClient(() => ({status: 500, text: ""})), () => null),
@@ -346,6 +348,24 @@ describe("easyTest", () => {
 		expect(tabs()[1]?.dataset.tone).toBe("success");
 	});
 
+	test("サンプル実行中に本文が変われば、合格しても提出しない", async () => {
+		let code = "original";
+		const site = createSite({sourceCode: () => code});
+		const started = Promise.withResolvers<void>();
+		const finish = Promise.withResolvers<void>();
+		await start(site, async (_source, input) => {
+			started.resolve();
+			await finish.promise;
+			return {status: "OK", input, output: input};
+		});
+		button("Test & Submit")?.click();
+		await started.promise;
+		code = "edited";
+		finish.resolve();
+		await wait(30);
+		expect(site.submit).not.toHaveBeenCalled();
+	});
+
 	test("実行環境の一覧はテスト1回につき1回だけ取得する", async () => {
 		await start(createSite(), echo);
 		const before = runnerLookups.count;
@@ -513,6 +533,15 @@ describe("submissionHelper", () => {
 	const source = "package a;\npublic class Solution {\n\tpublic static void main(String[] args) {}\n}\n";
 	const offline = new LocalRunnerClient(new FakeHttpClient(() => ({status: 500, text: ""})), () => null);
 
+	function runnerWithTransform(transform: object) {
+		return new FakeHttpClient(({body}) => {
+			const {mode} = JSON.parse(String(body)) as {mode: string};
+			if (mode === "status") return {status: 200, text: JSON.stringify({status: "running", version: "2.0.0"})};
+			if (mode === "list") return {status: 200, text: JSON.stringify([{language: "Java", label: "Java", compilerName: "java", family: "java"}])};
+			return {status: 200, text: JSON.stringify({diagnostics: "", diagnosticItems: [], inlinedClasses: [], ...transform})};
+		});
+	}
+
 	test("Local Runner がなくても、貼り付けたコードを提出用に変換する", async () => {
 		const {editor, paste} = createEditor(source);
 		await submissionHelper.run({foldOnPaste: false}, createFakeServices({
@@ -529,10 +558,7 @@ describe("submissionHelper", () => {
 
 	test("Local Runner があればその変換結果を使う", async () => {
 		const {editor, paste} = createEditor(source);
-		const http = new FakeHttpClient(() => ({
-			status: 200,
-			text: JSON.stringify({status: "success", sourceCode: "// transformed\n"}),
-		}));
+		const http = runnerWithTransform({status: "success", sourceCode: "// transformed\n"});
 		await submissionHelper.run({foldOnPaste: false}, createFakeServices({
 			judge,
 			localRunner: new LocalRunnerClient(http, () => "http://localhost:8080"),
@@ -549,6 +575,7 @@ describe("submissionHelper", () => {
 		const {editor, paste} = createEditor(pythonSource);
 		const http = new FakeHttpClient(({body}) => {
 			const request = JSON.parse(String(body)) as {mode: string; compilerName?: string};
+			if (request.mode === "status") return {status: 200, text: JSON.stringify({status: "running", version: "2.0.0"})};
 			const response = request.mode === "list"
 				? [
 					{language: "Python", compilerName: "cpython", label: "CPython", family: "python3", match: ["CPython"]},
@@ -562,7 +589,7 @@ describe("submissionHelper", () => {
 			judge,
 			localRunner: new LocalRunnerClient(http, () => "http://localhost:8080"),
 			...editorServices(editor),
-			judgeSite: async () => ({language: () => pypy}) as unknown as JudgeSite,
+			judgeSite: async () => languageSite(() => pypy),
 		}));
 		await wait();
 		paste();
@@ -600,7 +627,7 @@ describe("submissionHelper", () => {
 	});
 
 	const connectedRunner = (response: object) => new LocalRunnerClient(
-		new FakeHttpClient(() => ({status: 200, text: JSON.stringify(response)})),
+		runnerWithTransform(response),
 		() => "http://localhost:8080",
 	);
 
@@ -668,15 +695,12 @@ describe("submissionHelper", () => {
 		expect(shadowRoots().map((root) => root.textContent).join("")).not.toContain("Local Runner");
 	});
 
-	test("ショートカットで提出ボタンを押す", async () => {
+	test("ショートカットキーの機能で提出ボタンを押す", async () => {
 		document.body.innerHTML = '<button id="submit"></button>';
 		const click = mock(() => undefined);
 		document.querySelector("#submit")?.addEventListener("click", click);
-		await submissionHelper.run(undefined, createFakeServices({
-			judge,
-			localRunner: offline,
-			...editorServices(null),
-		}));
+		await keyboardShortcuts.run(undefined, createFakeServices({judge, ...editorServices(null), openSettings: () => undefined}));
+		await wait();
 
 		pressKey("Enter", {ctrlKey: true});
 		expect(click).not.toHaveBeenCalled();
@@ -684,14 +708,78 @@ describe("submissionHelper", () => {
 		expect(click).toHaveBeenCalledTimes(1);
 	});
 
+	test("変換待ちのクリックとショートカットの連打を、反映後に一度だけ提出する", async () => {
+		document.body.innerHTML = '<button type="button" id="submit"></button>';
+		const {editor, paste} = createEditor(source);
+		const setup = editorServices(editor);
+		const gate = Promise.withResolvers<void>();
+		setup.paste.add(target, {}, {order: 5, async transform(code) { await gate.promise; return code; }});
+		const submitted: string[] = [];
+		const button = document.querySelector<HTMLButtonElement>("#submit")!;
+		button.onclick = () => { submitted.push(editor.getValue()); };
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({judge, localRunner: offline, ...setup}));
+		await wait();
+		paste();
+		button.click();
+		pressKey("Enter", {ctrlKey: true, shiftKey: true});
+		expect(submitted).toEqual([]);
+		gate.resolve();
+		await setup.paste.settled();
+		await wait();
+		expect(submitted).toEqual([editor.getValue()]);
+		expect(submitted[0]).toContain("class Main");
+	});
+
+	test("提出操作の待機中に言語が変われば、本文が同じでも変換とフォーム送信を取り消す", async () => {
+		document.body.innerHTML = '<form><button type="submit" id="submit"></button></form>';
+		const {editor, paste} = createEditor(source);
+		const setup = editorServices(editor);
+		const gate = Promise.withResolvers<void>();
+		setup.paste.add(target, {}, {order: 5, async transform(code) { await gate.promise; return code; }});
+		let language: JudgeLanguage = {id: "1", label: "Java", family: "java"};
+		await submissionHelper.run({foldOnPaste: false}, createFakeServices({
+			judge, localRunner: offline, ...setup, judgeSite: async () => languageSite(() => language),
+		}));
+		const form = document.querySelector("form")!;
+		const submit = mock((event: Event) => event.preventDefault());
+		form.addEventListener("submit", submit);
+		await wait();
+		paste();
+		form.requestSubmit();
+		language = {id: "2", label: "Python", family: "python3"};
+		gate.resolve();
+		expect(await setup.paste.settled()).toBe(false);
+		expect(submit).not.toHaveBeenCalled();
+		expect(editor.getValue()).toBe(source);
+	});
+
 	test("提出ボタンにカーソルを乗せるとショートカットを表示する", async () => {
-		await submissionHelper.run(undefined, createFakeServices({judge, localRunner: offline, ...editorServices(null)}));
+		await keyboardShortcuts.run(undefined, createFakeServices({judge, ...editorServices(null), openSettings: () => undefined}));
+		await wait();
 		// 起動の後にサイトが作ったボタンでも表示する
 		document.body.innerHTML = '<button id="submit"></button>';
 		hover(document.querySelector("#submit"));
 		expect(tooltipText()).toBe("Ctrl+Shift+Enter");
 	});
+
+	test("ショートカットキーは自分で選べ、none で使わない", async () => {
+		document.body.innerHTML = '<button id="submit"></button>';
+		const click = mock(() => undefined);
+		const openSettings = mock(() => undefined);
+		document.querySelector("#submit")?.addEventListener("click", click);
+		await keyboardShortcuts.run({submit: "alt+s", openSettings: "none"}, createFakeServices({judge, ...editorServices(null), openSettings}));
+		await wait();
+		pressKey("s", {altKey: true});
+		expect(click).toHaveBeenCalledTimes(1);
+		pressKey("i", {ctrlKey: true});
+		expect(openSettings).not.toHaveBeenCalled();
+	});
 });
+
+/** 提出補助が言語と問題を読むためだけのサイトの代役。 */
+function languageSite(language: () => JudgeLanguage): JudgeSite {
+	return {language, onLanguageChange: () => undefined, taskUri: () => location.href} as unknown as JudgeSite;
+}
 
 describe("paizaLanguage", () => {
 	test("指定した言語を選び、隠し項目にも反映する", async () => {

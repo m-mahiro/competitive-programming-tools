@@ -88,6 +88,6 @@ describe("他のサイトのルート", () => {
 	test("提出補助の対象サイトを判定する", () => {
 		expect(matchPage(judges, "https://paiza.jp/works")?.judge.submission?.editor).toBe("ace");
 		expect(matchPage(judges, "https://judge.yosupo.jp/problem/aplusb")?.judge.submission?.editor).toBe("monaco");
-		expect(matchPage(judges, "https://yukicoder.me/problems/no/1")?.judge.submission).toBeUndefined();
+		expect(matchPage(judges, "https://yukicoder.me/problems/no/1")?.judge.submission?.editor).toBe("codemirror");
 	});
 });

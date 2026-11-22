@@ -1,5 +1,5 @@
 import {describe, expect, test} from "bun:test";
-import {modifyJavaCode} from "@atcoder-tools/shared";
+import {modifyJavaCode, transformJavaForSubmission} from "@atcoder-tools/shared";
 
 const rename = (code: string) => modifyJavaCode(code);
 const withMain = (signature: string) => `class Helper {}\nclass Solver {\n\t${signature} {}\n}\n`;
@@ -9,6 +9,8 @@ describe("modifyJavaCode の Main への改名", () => {
 		"public static void main(String[] args)",
 		"static public void main(String[] args)",
 		"public static void main(String... args)",
+		"public static void main(java.lang.String[] args)",
+		"public static void main(java.lang.String args[])",
 		"public static void main(final String[] args)",
 		"public static void main(String args[])",
 		"public static void main(String []args)",
@@ -30,6 +32,8 @@ describe("modifyJavaCode の Main への改名", () => {
 		"static void main(String[] args)",
 		"public static void main(int[] args)",
 		"public static void main(String args)",
+		"public static void main(String[][] args)",
+		"public static void main(String[] args, int extra)",
 	])("%s は main として扱わない", (signature) => {
 		const result = rename(`class First {\n\t${signature} {}\n}\nclass Second {\n\tpublic static void main(String[] args) {}\n}\n`);
 		expect(result).toContain("class First {");
@@ -68,11 +72,40 @@ describe("modifyJavaCode の Main への改名", () => {
 		expect(rename("interface A {\n\tstatic void main(String[] args) {}\n}\n")).toBe("interface Main {\n\tstatic void main(String[] args) {}\n}\n");
 	});
 
-	test("同じ名前の変数もそろえて変え、. の付く名前は変えない", () => {
+	test("同じ名前の変数もそろえて変える", () => {
 		const code = "import java.util.*;\npublic final class A {\n\tpublic static void main(String... args) {\n\t\tint[] A = new int[3];\n\t\tSystem.out.println(A.length);\n"
-			+ "\t\tMap.A x = null;\n\t\tA.class.getName();\n\t}\n\tstatic void f(int... A) {}\n}\n";
-		expect(rename(code)).toBe("import java.util.*;\npublic final class Main {\n\tpublic static void main(String... args) {\n\t\tint[] Main = new int[3];\n\t\tSystem.out.println(Main.length);\n"
-			+ "\t\tMap.A x = null;\n\t\tMain.class.getName();\n\t}\n\tstatic void f(int... Main) {}\n}\n");
+			+ "\t\tA.class.getName();\n\t}\n\tstatic void f(int... A) {}\n}\n";
+		expect(transformJavaForSubmission("package p;\r\n" + code.replaceAll("\n", "\r\n"))).toEqual({
+			sourceCode: "import java.util.*;\npublic final class Main {\n\tpublic static void main(String... args) {\n\t\tint[] Main = new int[3];\n\t\tSystem.out.println(Main.length);\n"
+				+ "\t\tMain.class.getName();\n\t}\n\tstatic void f(int... Main) {}\n}\n",
+			issue: null,
+		});
+	});
+
+	test("ほかの型のメンバーは変えず、同じ名前の変数がそれと重なるときは元のコードを残す", () => {
+		const entry = "import java.util.*;\npublic class Entry {\n\tpublic static void main(String[] args) {\n\t\tfor (Map.Entry<Integer, Integer> e : new HashMap<Integer, Integer>().entrySet()) {}\n\t}\n}\n";
+		expect(rename(entry)).toBe(entry.replace("public class Entry", "public class Main"));
+		const both = "public class A {\n\tpublic static void main(String[] args) {\n\t\tint A = 1;\n\t\tSystem.out.println(Other.A + A);\n\t}\n}\n";
+		expect(transformJavaForSubmission(both)).toEqual({sourceCode: both, issue: "ambiguousReference"});
+	});
+
+	test("同じ名前のフィールドをほかの値のメンバーとしても使うときは、どちらか決められないので元のコードを残す", () => {
+		const code = "class A$Impl { int A$Impl = 4; A$Impl() {} public static void main(String[] a) { System.out.print(new A$Impl().A$Impl); } }";
+		expect(transformJavaForSubmission(code)).toEqual({sourceCode: code, issue: "ambiguousReference"});
+		const own = "class A { int A = 4; public static void main(String[] a) { System.out.print(this.A + A.A); } }";
+		expect(rename(own)).toBe("class Main { int Main = 4; public static void main(String[] a) { System.out.print(this.Main + Main.Main); } }");
+	});
+
+	test("起動型の同名 import と自分のパッケージの修飾参照を報告する", () => {
+		expect(transformJavaForSubmission("import foo.Main; " + withMain("public static void main(String[] a)")).issue).toBe("nameCollision");
+		const source = "package x; class A { public static void main(String[] a) { new x.A(); } }";
+		expect(transformJavaForSubmission(source)).toEqual({sourceCode: source, issue: "ambiguousReference"});
+	});
+
+	test("型引数の String は起動引数を隠さず、自分の静的メソッド参照を改名する", () => {
+		const source = "class Solver { static void go() {} java.util.List<String> words; public static void main(String[] args) { Runnable r = Solver::go; Solver.go(); } }";
+		expect(rename(source)).toBe(source.replaceAll("Solver", "Main"));
+		expect(transformJavaForSubmission(source.replace("class Solver", "class Solver<String>")).issue).toBe("mainNotFound");
 	});
 
 	test("Main という名前がすでにあれば改名しない", () => {
@@ -97,6 +130,15 @@ describe("modifyJavaCode のデバッグ用の変数", () => {
 		expect(modifyJavaCode(code, {debugFlag: ""})).toBe(code);
 		const local = code.replaceAll("DEBUG", "LOCAL");
 		expect(modifyJavaCode(local, {debugFlag: "DEBUG"})).toBe(local);
+	});
+
+	test("複合式を維持し、カンマ区切りの宣言でも単独リテラルだけを書き換える", () => {
+		for (const expression of ["true == false", "true || other", "true ? false : true"]) {
+			const original = code.replace("DEBUG = true;", "DEBUG = " + expression + ";");
+			expect(modifyJavaCode(original, {debugFlag: "DEBUG"})).toBe(original);
+		}
+		const original = code.replace("boolean DEBUG = true;", "boolean A = false, DEBUG = /*flag*/ true;");
+		expect(modifyJavaCode(original, {debugFlag: "DEBUG"})).toBe(original.replace("/*flag*/ true", "/*flag*/ false"));
 	});
 });
 

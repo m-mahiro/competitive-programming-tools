@@ -141,7 +141,7 @@ export class LocalRunnerProvider implements RunnerProvider {
 	/** ページの言語と同じ種類の実行環境を、使う順に返す。サーバーが順番を決めたときだけ、その順位を付ける。 */
 	async runnersFor(language: JudgeLanguage): Promise<readonly CodeRunner[]> {
 		if (!this.client.isAvailable()) return [];
-		const ordered = orderLocalCompilers(await this.client.list(), language);
+		const ordered = orderLocalCompilers(await this.client.list(true), language);
 		const ranked = ordered.some(({match}) => match !== undefined);
 		return ordered.map(({compilerName, label}, index) => new LocalCodeRunner(this.client, compilerName, label, ranked ? index : undefined));
 	}

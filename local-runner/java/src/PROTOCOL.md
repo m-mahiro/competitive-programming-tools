@@ -136,7 +136,9 @@ TRANSFORM \t <id> \t b64(sourceCode) \t b64(librarySourceRoot) \t <debug> \t b64
 TRANSFORMED \t <id> \t <exitCode> \t b64(sourceCode) \t b64(diagnostics) \t b64(inlinedClasses) \t b64(diagnosticItemsJson)
 ```
 
-`inlinedClasses`はLF区切りです。javacの構文木・シンボル解決で実依存を確定し、Main/DEBUG/package/import変換と単一ソース化を行います。importを書いていない型は補いません。`debugFlag`が空でなければ、起動クラスのその名前のフィールドで、初期値が`true`か`false`のものを`<debug>`の値にします。空なら書き換えません。`validate=1`では変換後ソースも再解析します。
+`inlinedClasses` は展開した型の元の完全修飾名を LF で区切ったものです。javac の構文木と名前解決から実際に使う型を決めます。書かれていない import は補いません。エラーの位置が import 宣言に含まれる場合は、その名前を `diagnosticItemsJson` の該当項目の `importName` に入れます。
+
+`debugFlag` に名前を指定した場合は、起動クラスの同名フィールドの初期値が `true` または `false` なら `<debug>` の値にします。`validate=1` では提出先と同じ `Main.java` として再解析します。改名やライブラリの展開で参照先が変わりうる場合は、`validate=0` でも名前解決を検査します。
 
 ### 3.6 `ERROR`：エラー応答
 

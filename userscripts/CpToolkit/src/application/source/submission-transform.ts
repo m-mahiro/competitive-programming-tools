@@ -1,7 +1,7 @@
-import {type CompilerDiagnostic, importsPackage, modifyJavaCode, unresolvedImports} from "@atcoder-tools/shared";
+import {type CompilerDiagnostic, importsPackage, transformJavaForSubmission, unresolvedImports} from "@atcoder-tools/shared";
 import type {JudgeLanguage} from "@domain/execution/result";
 import {findFoldStartLines} from "@domain/source/fold-lines";
-import type {LocalRunnerClient} from "@application/execution/local-runner";
+import {LocalRunnerError, type LocalRunnerClient} from "@application/execution/local-runner";
 
 /** Local Runner がないときの変換の設定。 */
 export type FallbackOptions = {
@@ -17,7 +17,7 @@ export type FallbackOptions = {
  */
 export type LanguageSupport = {
 	/** Local Runner がないときの提出用の変換。 */
-	readonly fallback?: (code: string, options: FallbackOptions) => string;
+	readonly fallback?: (code: string, options: FallbackOptions) => ReturnType<typeof transformJavaForSubmission>;
 	/** Local Runner がないと、提出してもコンパイルできないコードか。 */
 	readonly needsLocalRunner?: (code: string, options: FallbackOptions) => boolean;
 	/** 変換の失敗のうち、見つからない import の名前。 */
@@ -28,7 +28,7 @@ export type LanguageSupport = {
 
 const LANGUAGE_SUPPORT: Readonly<Record<string, LanguageSupport>> = {
 	java: {
-		fallback: (code, {debugFlag}) => modifyJavaCode(code, {debugFlag}),
+		fallback: (code, {debugFlag}) => transformJavaForSubmission(code, {debugFlag}),
 		needsLocalRunner: (code, {libraryPackage}) => libraryPackage !== "" && importsPackage(code, libraryPackage),
 		unresolvedImports,
 		foldStartLines: findFoldStartLines,
@@ -39,17 +39,14 @@ export function languageSupport(family: string): LanguageSupport {
 	return LANGUAGE_SUPPORT[family] ?? {};
 }
 
-/** 提出するコードの言語。ページで選んだ言語が分からないサイトでは、エディタが Java と判定したときだけ Java にする。 */
-export type SubmissionLanguage = {
-	readonly family: string;
-	/** ページで選んだ言語。分からなければ null。 */
-	readonly judgeLanguage: JudgeLanguage | null;
-};
+/** 提出フォームかエディタから言語の種類を特定できたときだけ変換する。 */
+export type SubmissionLanguage = JudgeLanguage & {readonly family: string};
 
 /** Local Runner で変換できなかったときの診断。 */
 export type SubmissionFailure = {
 	readonly diagnostics: string;
 	readonly items: readonly CompilerDiagnostic[];
+	readonly notify?: boolean;
 };
 
 export type SubmissionTransformResult = {
@@ -60,12 +57,6 @@ export type SubmissionTransformResult = {
 	readonly failure: SubmissionFailure | null;
 };
 
-/** Local Runner の言語の識別子。ページの言語が分からなければ、サーバーの既定(Java)に任せる。使える言語が無ければ null。 */
-async function compilerNameOf(localRunner: LocalRunnerClient, {family, judgeLanguage}: SubmissionLanguage): Promise<string | undefined | null> {
-	if (judgeLanguage) return localRunner.compilerFor(judgeLanguage);
-	return family === "java" ? undefined : null;
-}
-
 /** Local Runner で提出用に変換する。通信できないか、その言語が無いときだけ、言語ごとの代わりの変換を使う。 */
 export async function transformSubmission(
 	code: string,
@@ -75,22 +66,34 @@ export async function transformSubmission(
 ): Promise<SubmissionTransformResult> {
 	if (localRunner.isAvailable()) {
 		try {
-			const compilerName = await compilerNameOf(localRunner, language);
+			const compilerName = await localRunner.compilerFor(language);
 			if (compilerName !== null) {
 				const transformed = await localRunner.transform(code, compilerName);
 				if (transformed.status === "success") return {sourceCode: transformed.sourceCode, via: "localRunner", failure: null};
 				return {
 					sourceCode: code,
 					via: "localRunner",
-					failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems ?? []},
+					failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems},
 				};
 			}
-		} catch {
-			// Local Runner が起動していなければ、下の代わりの変換を使う
+		} catch (error) {
+			if (!(error instanceof LocalRunnerError && error.status === 0)) {
+				return {sourceCode: code, via: "localRunner", failure: {
+					diagnostics: error instanceof Error ? error.message : String(error), items: [],
+					notify: !(error instanceof LocalRunnerError) || error.notify,
+				}};
+			}
 		}
 	}
 	const fallback = languageSupport(language.family).fallback;
-	return fallback
-		? {sourceCode: fallback(code, options), via: "fallback", failure: null}
-		: {sourceCode: code, via: "none", failure: null};
+	if (!fallback) return {sourceCode: code, via: "none", failure: null};
+	const {sourceCode, issue} = fallback(code, options);
+	const reasons = {
+		mainNotFound: "No supported Java main method was found.",
+		ambiguousMain: "More than one Java entry point was found.",
+		nameCollision: "Renaming the entry class would cause a name collision.",
+		ambiguousReference: "The browser cannot reliably resolve references to the entry class.",
+		unsupportedSyntax: "This Java syntax requires Local Runner for a safe transform.",
+	};
+	return {sourceCode, via: "fallback", failure: issue ? {diagnostics: reasons[issue], items: []} : null};
 }

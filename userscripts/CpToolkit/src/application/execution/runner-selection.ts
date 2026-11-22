@@ -7,9 +7,6 @@ const RUNNER_SELECTION_KEY = "easy-test:runner-selection";
 
 /** 選んだ実行環境を表示する側。 */
 export interface EnvironmentView {
-	/** いま選ばれている実行環境の id。 */
-	selected(): string | undefined;
-
 	show(candidates: readonly CodeRunner[], selected: string | undefined): void;
 }
 
@@ -19,7 +16,10 @@ export class RunnerSelection {
 	private readonly runners: RunnerCatalogService;
 	private readonly state: KeyValueStore;
 	private current: readonly CodeRunner[] = [];
-	private languageId: string | undefined;
+	get explicit(): string | undefined {
+		const language = this.language();
+		return language ? this.selections()[language.id] : undefined;
+	}
 	private refreshing: Promise<void> = Promise.resolve();
 
 	constructor(language: () => JudgeLanguage | null, runners: RunnerCatalogService, state: KeyValueStore) {
@@ -52,7 +52,10 @@ export class RunnerSelection {
 	remember(runnerId: string): void {
 		const language = this.language();
 		if (!language) return;
-		this.state.set(RUNNER_SELECTION_KEY, {...this.selections(), [language.id]: runnerId});
+		const next = {...this.selections()};
+		if (runnerId) next[language.id] = runnerId;
+		else delete next[language.id];
+		this.state.set(RUNNER_SELECTION_KEY, next);
 	}
 
 	private selections(): Readonly<Record<string, string>> {
@@ -62,14 +65,9 @@ export class RunnerSelection {
 	private async load(view: EnvironmentView): Promise<void> {
 		const language = this.language();
 		const candidates = language ? await this.runners.candidates(language) : [];
-		const previous = view.selected();
+		if (this.language()?.id !== language?.id) return;
 		this.current = candidates;
-		const isCandidate = (id: string | undefined): boolean => candidates.some((candidate) => candidate.id === id);
-		const local = candidates.find(({kind}) => kind === "local")?.id;
-		const saved = language ? this.selections()[language.id] : undefined;
-		// 同じ系統の別の言語でも候補に残るので、前の選択を引き継ぐのは言語が同じときだけにする
-		const kept = language?.id === this.languageId && isCandidate(previous) ? previous : undefined;
-		this.languageId = language?.id;
-		view.show(candidates, local ?? kept ?? (isCandidate(saved) ? saved : candidates[0]?.id));
+		const preferred = candidates.find(({kind}) => kind === "local") ?? candidates[0];
+		view.show(candidates, this.explicit ?? preferred?.id);
 	}
 }

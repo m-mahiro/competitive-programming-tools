@@ -1,6 +1,6 @@
 <div align="center">
 <h1>CP Toolkit</h1>
-<p><strong>26 competitive programming features in one userscript</strong></p>
+<p><strong>27 competitive programming features in one userscript</strong></p>
 <p>View samples side by side, get verdict notifications and jump between tasks on AtCoder. Turn on just the features you want.</p>
 <p><a href="https://greasyfork.org/scripts/603262-cp-toolkit"><img src="https://img.shields.io/greasyfork/v/603262?label=Greasy%20Fork&color=670000" alt="Greasy Fork version"></a>
 <a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/THIRD_PARTY_NOTICES.md"><img src="https://img.shields.io/greasyfork/l/603262" alt="License"></a></p>
@@ -34,23 +34,23 @@ When a newer version exists, a notice appears once in the corner of the page, an
 </thead>
 <tbody><tr>
 <td>AtCoder&emsp;</td>
-<td>25 features (all except paiza language selection)</td>
+<td>26 features (all except paiza language selection)</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td>yukicoder&emsp;</td>
-<td>Easy Test+</td>
+<td>Easy Test+, Keyboard shortcuts, Submission helper, Code header and footer</td>
 </tr>
 <tr>
 <td>Codeforces&emsp;</td>
-<td>Easy Test+, Submission helper</td>
+<td>Easy Test+, Keyboard shortcuts, Submission helper, Code header and footer</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td>AOJ, Library Checker&emsp;</td>
-<td>Submission helper</td>
+<td>Keyboard shortcuts, Submission helper, Code header and footer</td>
 </tr>
 <tr>
 <td>paiza&emsp;</td>
-<td>Submission helper, paiza language selection</td>
+<td>Keyboard shortcuts, Submission helper, paiza language selection, Code header and footer</td>
 </tr>
 </tbody></table>
 
@@ -219,10 +219,14 @@ All features are enabled from the start, except those marked <sub>off by default
 <td>Run sample tests from the task page and submit when they all pass.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
-<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.en.md"><strong>Submission helper</strong></a>&emsp;</td>
-<td>Prepare pasted code for submission and submit with a keyboard shortcut.</td>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/java-submit.en.md"><strong>Submission helper</strong></a> <sub>off by default</sub>&emsp;</td>
+<td>Prepare pasted code for submission.</td>
 </tr>
 <tr>
+<td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/keyboard-shortcuts.en.md"><strong>Keyboard shortcuts</strong></a>&emsp;</td>
+<td>Submit, open the settings and more with keys you choose.</td>
+</tr>
+<tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/paiza-language.en.md"><strong>paiza language selection</strong></a>&emsp;</td>
 <td>Automatically select your preferred language on paiza submission pages.</td>
 </tr>

@@ -2,14 +2,15 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import {isIdentifier} from "@atcoder-tools/shared";
 import {stripAnsi} from "../utils/color";
 import {formatCompileSummary} from "../utils/formatter";
 import {ensureHeaderUnit} from "./headerUnit";
+import {canRewriteDebugFlag, DEBUG_FLAG_FAMILIES, rewriteDebugFlag} from "./debugFlag";
 import {CanceledError, type ProcessOutcome, runCommand, runMeasured} from "./processRunner";
 
 /** コンパイルと実行をコマンドで行う言語。設定の languages から作る。 */
 export type CommandLanguage = {
+	readonly family: string;
 	/** 設定での名前。要求の compilerName と --lang で使う。 */
 	readonly name: string;
 	/** 処理系の実体。PATH から探した結果か、設定に書かれたパス。 */
@@ -74,25 +75,6 @@ export function expandArguments(template: readonly string[], values: Placeholder
 	});
 }
 
-function debugAssignment(flag: string): RegExp {
-	return new RegExp(String.raw`^([ \t]*[\w \t]*\b${flag}\b[ \t]*(?::[ \t]*\w+[ \t]*)?=[ \t]*)(true|false|True|False)\b`, "gm");
-}
-
-/**
- * 行の初めにある `flag = true` を、指定の値に書き換える。Python の `DEBUG: bool = True` にも合う。
- * 文字列の中かどうかは見分けないので、そうした行が2つ以上あれば、どれが本物か決められないとして null を返す。
- */
-export function rewriteDebugFlag(sourceCode: string, flag: string, debug: boolean): string | null {
-	if (!isIdentifier(flag)) return sourceCode;
-	const pattern = debugAssignment(flag);
-	const count = [...sourceCode.matchAll(pattern)].length;
-	if (count > 1) return null;
-	return sourceCode.replace(pattern, (_match, head: string, literal: string) => {
-		const capitalized = literal === "True" || literal === "False";
-		return head + (capitalized ? (debug ? "True" : "False") : String(debug));
-	});
-}
-
 /** 一時的なフォルダの場所を、利用者が書いたファイルの名前だけに見えるようにする。 */
 function hideDirectory(text: string, dir: string): string {
 	return text.replaceAll(`${dir}${path.sep}`, "").replaceAll(dir, ".");
@@ -147,7 +129,10 @@ export class CommandEngine {
 			}
 		}
 		if (language.debugFlag === null) return {ok: true, sourceCode: transformed};
-		const rewritten = rewriteDebugFlag(transformed, language.debugFlag, debug);
+		if (!canRewriteDebugFlag(language.family)) {
+			return {ok: false, diagnostics: `debugFlag is not supported for the language family ${language.family}. Supported: ${DEBUG_FLAG_FAMILIES.join(", ")}.`};
+		}
+		const rewritten = rewriteDebugFlag(transformed, language.debugFlag, debug, language.family);
 		return rewritten === null
 			? {ok: false, diagnostics: `${language.debugFlag} is assigned on more than one line, so it was not rewritten. Assign it on one line.`}
 			: {ok: true, sourceCode: rewritten};

@@ -114,7 +114,14 @@ final class ProtocolCodec {
 	}
 
 	private static String diagnosticsJson(final List<CompilerDiagnostic> diagnostics) {
-		return diagnostics.stream().map(diagnostic -> "{" + "\"kind\":\"" + jsonEscape(diagnostic.kind()) + "\"," + "\"line\":" + diagnostic.line() + "," + "\"column\":" + diagnostic.column() + "," + "\"code\":\"" + jsonEscape(diagnostic.code()) + "\"," + "\"message\":\"" + jsonEscape(diagnostic.message()) + "\"}").collect(java.util.stream.Collectors.joining(",", "[", "]"));
+		final StringJoiner json = new StringJoiner(",", "[", "]");
+		for (final CompilerDiagnostic diagnostic : diagnostics) {
+			final String imported = diagnostic.importName() == null ? "" : ",\"importName\":\"" + jsonEscape(diagnostic.importName()) + "\"";
+			json.add("{\"kind\":\"" + jsonEscape(diagnostic.kind()) + "\",\"line\":" + diagnostic.line()
+					+ ",\"column\":" + diagnostic.column() + ",\"code\":\"" + jsonEscape(diagnostic.code())
+					+ "\",\"message\":\"" + jsonEscape(diagnostic.message()) + "\"" + imported + "}");
+		}
+		return json.toString();
 	}
 
 	private static String jsonEscape(final String value) {

@@ -107,23 +107,23 @@ export function createRunnerServer(requestShutdown: () => void): http.Server {
 			return;
 		}
 
-		let body = "";
-		let size = 0;
-		for await (const chunk of req) {
-			const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-			size += buffer.length;
-			if (size > config.RUNNER_CONFIG.maxBodySize) {
-				res.writeHead(413, {"Content-Type": "text/plain"});
-				res.end("Request Entity Too Large");
-				return;
-			}
-			body += buffer.toString("utf8");
-		}
-
 		let request: RunnerRequest;
 		try {
-			request = JSON.parse(body) as RunnerRequest;
+			const chunks: Buffer[] = [];
+			let size = 0;
+			for await (const chunk of req) {
+				const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+				size += buffer.length;
+				if (size > config.RUNNER_CONFIG.maxBodySize) {
+					res.writeHead(413, {"Content-Type": "text/plain"});
+					res.end("Request Entity Too Large");
+					return;
+				}
+				chunks.push(buffer);
+			}
+			request = JSON.parse(Buffer.concat(chunks, size).toString("utf8")) as RunnerRequest;
 		} catch (error) {
+			if (res.destroyed) return;
 			const message = error instanceof Error ? error.message : String(error);
 			res.writeHead(400, {"Content-Type": "application/json"});
 			res.end(JSON.stringify({status: "badRequest", stderr: `Invalid JSON: ${message}`}));

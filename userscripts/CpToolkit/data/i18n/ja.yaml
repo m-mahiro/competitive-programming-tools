@@ -190,11 +190,20 @@ ratingGraph.showRecent: recent
 
 
 localRunner.title: Local Runner との連携
-localRunner.description: Easy Test+ と Java の提出補助で使うサーバーの接続先を設定します。
+localRunner.description: 提出補助、ヘッダーの取得、Easy Test+ で使うサーバーの接続先を設定します。
 localRunner.url: 接続先の URL
 
+submissionHelper.submitChanged: 提出準備が完了しなかったため、提出を取り消しました。
+submissionHelper.fallbackFailed: ブラウザで安全に変換できませんでした。
+keyboardShortcuts.title: ショートカットキー
+keyboardShortcuts.description: 提出や設定画面を開く操作を、好きなキーで行えます。
+keyboardShortcuts.submit: 提出する（空欄ならサイトの既定、none で使わない）
+keyboardShortcuts.fold: Java のクラスとコメントを折りたたむ（none で使わない）
+keyboardShortcuts.openSettings: CP Toolkit の設定を開く（none で使わない）
+keyboardShortcuts.share: 表示中のページを X に投稿する画面を開く（空欄なら使わない）
+keyboardShortcuts.invalidKey: キーの書き方が正しくありません（例：Ctrl+Shift+Enter、Alt+S）。
 submissionHelper.title: 提出補助
-submissionHelper.description: 貼り付けたコードを提出用に変換し、ショートカットで提出できます。
+submissionHelper.description: 貼り付けたコードを提出用に変換します。
 submissionHelper.localRunnerRequired: "{package}.* の展開には Local Runner が必要です"
 submissionHelper.localRunnerGuide: Local Runner に接続できなかったので、簡易の変換だけを行いました。このまま提出するとコンパイルエラーになります。リンクから導入方法を確認できます。
 submissionHelper.unresolvedImports: 見つからない import があります
@@ -204,6 +213,7 @@ submissionHelper.debugFlag: Local Runner がないときに false にする Java
 submissionHelper.libraryPackage: Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）
 submissionHelper.foldOnPaste: 貼り付け後に Java のクラスとコメントを折りたたむ
 
+easyTest.submitChanged: テスト中に提出内容または実行環境が変わったため、提出を取り消しました。結果はテスト欄で確認できます。
 easyTest.title: Easy Test+
 easyTest.description: 問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。
 easyTest.precompile: Local Runner で編集中のコードを事前にコンパイルする
@@ -215,6 +225,7 @@ easyTest.testAndSubmit: Test & Submit
 easyTest.cancelSubmit: 提出を中止
 easyTest.testAll: Test All Samples
 easyTest.restore: Restore Last Code
+easyTest.autoRunner: 自動
 easyTest.environment: 実行環境
 easyTest.noEnvironment: 実行環境がありません
 easyTest.standardInput: 標準入力

@@ -3,7 +3,8 @@ import type {PageBridge} from "@application/ports/page-bridge";
 import {pageGlobals} from "@adapters/page/globals";
 import {JudgeSiteBase} from "./site-base";
 
-const LANGUAGE_SELECT = "select[name='programTypeId']";
+/** 提出欄の言語の選択欄。問題ページと提出ページで同じ。 */
+export const CODEFORCES_LANGUAGE_SELECT = "select[name='programTypeId']";
 
 function readSampleBlock(pre: Element): string {
 	const lines = pre.querySelectorAll(".test-example-line");
@@ -22,14 +23,21 @@ export class CodeforcesSite extends JudgeSiteBase {
 
 	constructor(bridge: PageBridge) {
 		super(bridge);
+		this.textarea.dataset.cpEasyTestSource = "";
 		Object.assign(this.textarea.style, {fontFamily: "monospace", width: "100%", minHeight: "5em"});
 		document.querySelector(".submitForm")?.append(this.buttons);
-		document.getElementById("pageContent")?.append(this.textarea);
-		this.fileInput?.addEventListener("change", () => {
-			void this.fileInput?.files?.[0]?.text().then((text) => {
-				this.textarea.value = text;
+		if (!this.fastSubmitEditor) document.getElementById("pageContent")?.append(this.textarea);
+		const input = this.fileInput;
+		if (input) {
+			this.textarea.addEventListener("input", () => this.attachFile(this.textarea.value, input));
+			input.addEventListener("change", () => {
+				const file = input.files?.[0];
+				this.textarea.value = "";
+				if (file) void file.text().then((text) => {
+					if (input.files?.[0] === file) this.textarea.value = text;
+				}).catch(() => undefined);
 			});
-		});
+		}
 	}
 
 	get mounts(): JudgeMounts {
@@ -37,7 +45,7 @@ export class CodeforcesSite extends JudgeSiteBase {
 	}
 
 	protected get languageSelect(): HTMLSelectElement | null {
-		return document.querySelector(LANGUAGE_SELECT);
+		return document.querySelector(CODEFORCES_LANGUAGE_SELECT);
 	}
 
 	private get fileInput(): HTMLInputElement | null {
@@ -57,9 +65,14 @@ export class CodeforcesSite extends JudgeSiteBase {
 	setSourceCode(code: string): void {
 		this.textarea.value = code;
 		this.fastSubmitEditor?.setValue(code);
+		const input = this.fileInput;
+		if (input) this.attachFile(code, input);
+	}
+
+	private attachFile(code: string, input: HTMLInputElement): void {
 		const files = new DataTransfer();
-		files.items.add(new File([code], "prog.txt", {type: "text/plain"}));
-		if (this.fileInput) this.fileInput.files = files.files;
+		if (code) files.items.add(new File([code], "prog.txt", {type: "text/plain"}));
+		input.files = files.files;
 	}
 
 	submit(): void {
@@ -120,10 +133,17 @@ export class CodeforcesMobileSite extends JudgeSiteBase {
 		const frame = document.createElement("iframe");
 		frame.src = `/contest/${url[1]}/submit`;
 		frame.style.display = "none";
-		document.body.append(frame);
-		await new Promise((resolve) => frame.addEventListener("load", resolve, {once: true}));
-		const form = frame.contentDocument?.querySelector<HTMLFormElement>("._SubmitPage_submitForm");
-		if (!form) return null;
+		const loaded = await new Promise<boolean>((resolve) => {
+			const timer = setTimeout(() => resolve(false), 10_000);
+			frame.addEventListener("load", () => { clearTimeout(timer); resolve(true); }, {once: true});
+			frame.addEventListener("error", () => { clearTimeout(timer); resolve(false); }, {once: true});
+			document.body.append(frame);
+		});
+		const form = loaded && frame.contentDocument?.querySelector<HTMLFormElement>("._SubmitPage_submitForm");
+		if (!form) {
+			frame.remove();
+			return null;
+		}
 		const problem = form.elements.namedItem("problemIndex") as HTMLInputElement | null;
 		if (problem) {
 			problem.value = url[2] ?? "";
@@ -142,7 +162,7 @@ export class CodeforcesMobileSite extends JudgeSiteBase {
 	}
 
 	submit(): void {
-		this.form.submit();
+		this.form.requestSubmit();
 	}
 
 	async samples(): Promise<readonly SampleCase[]> {
