@@ -47,7 +47,7 @@
 | カーソルの行の折りたたみを開く                               | Ctrl+Shift+]         |
 | Easy Test+ でテストしてから提出する                          | Ctrl+Enter           |
 | Easy Test+ ですべての入出力例をテストする                    | Alt+Enter            |
-| Easy Test+ の画面を開閉する                                  | Alt+Escape           |
+| Easy Test+ の画面を開閉する                                  | Ctrl+Shift+Alt+D     |
 | 入力例をコピーする（この修飾キーと番号の 1〜9）              | Ctrl+Alt             |
 | 出力例をコピーする（この修飾キーと番号の 1〜9）              | Ctrl+Shift+Alt       |
 | 問題文をすべてコピーする（AtCoder）                          | Ctrl+Shift+Alt+P     |

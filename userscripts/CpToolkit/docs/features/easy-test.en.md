@@ -28,7 +28,7 @@ Easy Test+ is based on [AtCoder Easy Test v2](https://greasyfork.org/scripts/433
 ### Saved code and shortcuts
 
 - Easy Test+ keeps the last code you ran for each task, up to 10 tasks by default. Choose “Restore Last Code” to restore it for the current task.
-- Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to test and submit, <kbd>Alt</kbd>+<kbd>Enter</kbd> to test all samples, or <kbd>Alt</kbd>+<kbd>Esc</kbd> to toggle the bottom panel. You can change the keys in the detailed settings of [Keyboard shortcuts](keyboard-shortcuts.en.md).
+- Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to test and submit, <kbd>Alt</kbd>+<kbd>Enter</kbd> to test all samples, or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd> to toggle the bottom panel. You can change the keys in the detailed settings of [Keyboard shortcuts](keyboard-shortcuts.en.md).
 
 ![Result for each sample](../images/easy-test-panel.png)
 

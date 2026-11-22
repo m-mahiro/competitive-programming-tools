@@ -9964,7 +9964,7 @@ ${efficient_layout_default}`);
 		unfold: shortcutOption("Ctrl+Shift+]", "keyboardShortcuts.unfold"),
 		testAndSubmit: shortcutOption("Ctrl+Enter", "keyboardShortcuts.testAndSubmit"),
 		testAll: shortcutOption("Alt+Enter", "keyboardShortcuts.testAll"),
-		toggleEasyTest: shortcutOption("Alt+Escape", "keyboardShortcuts.toggleEasyTest"),
+		toggleEasyTest: shortcutOption("Ctrl+Shift+Alt+D", "keyboardShortcuts.toggleEasyTest"),
 		copyInput: modifierOption("Ctrl+Alt", "keyboardShortcuts.copyInput"),
 		copyOutput: modifierOption("Ctrl+Shift+Alt", "keyboardShortcuts.copyOutput"),
 		copyStatement: shortcutOption("Ctrl+Shift+Alt+P", "keyboardShortcuts.copyStatement"),

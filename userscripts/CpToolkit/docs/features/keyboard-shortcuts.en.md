@@ -47,7 +47,7 @@ Open this feature’s “Detailed settings” in CP Toolkit.
 | Unfold the fold on the cursor line                                               | Ctrl+Shift+]         |
 | Test with Easy Test+, then submit                                                | Ctrl+Enter           |
 | Test all samples with Easy Test+                                                 | Alt+Enter            |
-| Open or close the Easy Test+ panel                                               | Alt+Escape           |
+| Open or close the Easy Test+ panel                                               | Ctrl+Shift+Alt+D     |
 | Copy a sample input (these modifiers and a number from 1 to 9)                   | Ctrl+Alt             |
 | Copy a sample output (these modifiers and a number from 1 to 9)                  | Ctrl+Shift+Alt       |
 | Copy the whole statement (AtCoder)                                               | Ctrl+Shift+Alt+P     |
