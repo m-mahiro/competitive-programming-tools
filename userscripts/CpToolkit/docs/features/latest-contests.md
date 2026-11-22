@@ -4,7 +4,7 @@
 
 > ヘッダーから今後のコンテストを確認できます。
 
-![次のコンテスト](../images/latest-contests.png)
+<p><img src="../images/latest-contests.png" alt="次のコンテスト"><br><sub>ヘッダーから開く、今後のコンテストの一覧。</sub></p>
 
 ## 使い方
 

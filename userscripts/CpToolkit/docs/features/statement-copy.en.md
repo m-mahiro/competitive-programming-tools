@@ -4,7 +4,7 @@
 
 > Copy sections such as the statement and constraints individually or together.
 
-![Copy statement](../images/statement-copy.png)
+<p><img src="../images/statement-copy.png" alt="Copy statement"><br><sub>“Copy” for each section and “Copy All” next to the task title.</sub></p>
 
 ## How it works
 

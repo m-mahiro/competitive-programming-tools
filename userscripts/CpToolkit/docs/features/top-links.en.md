@@ -4,7 +4,7 @@
 
 > Open the ABC, ARC, AGC and AHC contest archives from the home page.
 
-![Contest links on the top page](../images/top-links.png)
+<p><img src="../images/top-links.png" alt="Contest links on the top page"><br><sub>Links to past contest lists added to the top page.</sub></p>
 
 ## How it works
 

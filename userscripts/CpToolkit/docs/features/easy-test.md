@@ -6,7 +6,7 @@
 
 **この機能は既定で OFF です。設定画面で有効にしてください。**
 
-![Easy Test+](../images/easy-test.png)
+<p><img src="../images/easy-test.png" alt="Easy Test+"><br><sub>提出欄の下の「Test &amp; Submit」と「Test All Samples」。すべての入出力例を実行し、結果をその下に表示します。</sub></p>
 
 ## 使い方
 
@@ -30,7 +30,7 @@
 - 最後に実行したコードを1問につき1件、既定で直近10問分保存します。「Restore Last Code」でその問題のコードを復元できます。
 - <kbd>Ctrl</kbd>+<kbd>Enter</kbd> でテスト後に提出し、<kbd>Alt</kbd>+<kbd>Enter</kbd> で全サンプルを実行します。<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd> で画面下部のパネルを開閉します。キーは[ショートカットキー](keyboard-shortcuts.md)の詳細設定で変えられます。
 
-![サンプルごとの結果](../images/easy-test-panel.png)
+<p><img src="../images/easy-test-panel.png" alt="サンプルごとの結果"><br><sub>画面下部のパネル。入出力例ごとの結果をタブで切り替えて確かめられます。</sub></p>
 
 ## 詳細設定
 

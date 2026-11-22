@@ -4,7 +4,7 @@
 
 > 問題文の数値や変数、実行時間制限とメモリ制限を強調します。
 
-![問題文の強調表示](../images/statement-highlight.png)
+<p><img src="../images/statement-highlight.png" alt="問題文の強調表示"><br><sub>問題文の数値、変数、実行時間制限とメモリ制限を強調した例。</sub></p>
 
 ## 使い方
 

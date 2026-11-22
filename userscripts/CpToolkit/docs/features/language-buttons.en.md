@@ -4,14 +4,14 @@
 
 > Pin frequently used submission languages and switch between them with one click.
 
-![Language switch buttons](../images/language-buttons.png)
+<p><img src="../images/language-buttons.png" alt="Language switch buttons"><br><sub>Language buttons below the language selector.</sub></p>
 
 ## How it works
 
 - Click the gear below the language selector and choose the languages to pin.
 - The buttons appear on task, submission and custom test pages wherever those languages are available.
 
-![Choosing languages for the buttons](../images/language-buttons-settings.png)
+<p><img src="../images/language-buttons-settings.png" alt="Choosing languages for the buttons"><br><sub>The window opened from the gear button to choose the languages for the buttons.</sub></p>
 
 ## Pages
 

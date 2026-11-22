@@ -4,7 +4,7 @@
 
 > Open a task from the Tasks tab, or open several tasks at once.
 
-![Tasks dropdown](../images/task-dropdown.png)
+<p><img src="../images/task-dropdown.png" alt="Tasks dropdown"><br><sub>The Tasks dropdown. Go to a task or open several at once.</sub></p>
 
 ## How it works
 

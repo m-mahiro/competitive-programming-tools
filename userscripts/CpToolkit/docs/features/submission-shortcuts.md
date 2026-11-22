@@ -4,7 +4,7 @@
 
 > 問題ページから、実行時間順やコード長順などで AC 提出の一覧を開けます。
 
-![AC 提出へのボタン](../images/submission-shortcuts.png)
+<p><img src="../images/submission-shortcuts.png" alt="AC 提出へのボタン"><br><sub>問題名の横に並ぶ、AC 提出の一覧を開くボタン。</sub></p>
 
 ## 使い方
 

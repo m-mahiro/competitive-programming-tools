@@ -4,7 +4,7 @@
 
 > Open accepted submissions for a task sorted by runtime, code size, submission time or memory.
 
-![AC submission buttons](../images/submission-shortcuts.png)
+<p><img src="../images/submission-shortcuts.png" alt="AC submission buttons"><br><sub>Buttons next to the task title that open AC submissions.</sub></p>
 
 ## How it works
 

@@ -4,7 +4,7 @@
 
 > 問題文や制約などを項目ごとに、またはまとめてコピーできます。
 
-![問題文のコピー](../images/statement-copy.png)
+<p><img src="../images/statement-copy.png" alt="問題文のコピー"><br><sub>項目ごとの「Copy」と、問題名の横の「Copy All」。</sub></p>
 
 ## 使い方
 

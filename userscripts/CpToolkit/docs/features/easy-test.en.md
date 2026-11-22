@@ -6,7 +6,7 @@
 
 **This feature is off by default. Turn it on in the settings.**
 
-![Easy Test+](../images/easy-test.png)
+<p><img src="../images/easy-test.png" alt="Easy Test+"><br><sub>“Test &amp; Submit” and “Test All Samples” below the submission form. All samples run and the results appear below.</sub></p>
 
 ## How it works
 
@@ -30,7 +30,7 @@ Easy Test+ is based on [AtCoder Easy Test v2](https://greasyfork.org/scripts/433
 - Easy Test+ keeps the last code you ran for each task, up to 10 tasks by default. Choose “Restore Last Code” to restore it for the current task.
 - Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to test and submit, <kbd>Alt</kbd>+<kbd>Enter</kbd> to test all samples, or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd> to toggle the bottom panel. You can change the keys in the detailed settings of [Keyboard shortcuts](keyboard-shortcuts.en.md).
 
-![Result for each sample](../images/easy-test-panel.png)
+<p><img src="../images/easy-test-panel.png" alt="Result for each sample"><br><sub>The bottom panel. Switch tabs to see the result of each sample.</sub></p>
 
 ## Detailed settings
 

@@ -4,7 +4,7 @@
 
 > Read editorials directly below their links on the editorials page.
 
-![All editorials](../images/editorial-list.png)
+<p><img src="../images/editorial-list.png" alt="All editorials"><br><sub>Editorials expanded below their links in the editorial list.</sub></p>
 
 ## How it works
 

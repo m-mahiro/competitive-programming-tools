@@ -4,7 +4,7 @@
 
 > Show the difficulty ratings from the book on the Tessoku task list.
 
-![Tessoku difficulty](../images/tessoku-difficulty.png)
+<p><img src="../images/tessoku-difficulty.png" alt="Tessoku difficulty"><br><sub>Book difficulties shown in the Tessoku task list.</sub></p>
 
 ## How it works
 

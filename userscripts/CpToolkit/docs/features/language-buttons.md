@@ -4,14 +4,14 @@
 
 > よく使う提出言語を登録し、ボタンひとつで切り替えられます。
 
-![言語の切り替えボタン](../images/language-buttons.png)
+<p><img src="../images/language-buttons.png" alt="言語の切り替えボタン"><br><sub>言語の選択欄の下に並ぶ、言語の切り替えボタン。</sub></p>
 
 ## 使い方
 
 - 言語欄の下にある歯車を押し、ボタンにしたい提出言語を選びます。
 - 登録した言語のボタンは、問題・提出・コードテストの各ページに表示されます。
 
-![ボタンにする言語を選ぶ画面](../images/language-buttons-settings.png)
+<p><img src="../images/language-buttons-settings.png" alt="ボタンにする言語を選ぶ画面"><br><sub>歯車のボタンから、ボタンにする言語を選ぶ画面。</sub></p>
 
 ## 動くページ
 

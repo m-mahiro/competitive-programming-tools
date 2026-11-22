@@ -4,7 +4,7 @@
 
 > Highlight numbers, variables, and the time and memory limits in a task statement.
 
-![Statement highlighting](../images/statement-highlight.png)
+<p><img src="../images/statement-highlight.png" alt="Statement highlighting"><br><sub>Numbers, variables, and the time and memory limits highlighted in the statement.</sub></p>
 
 ## How it works
 

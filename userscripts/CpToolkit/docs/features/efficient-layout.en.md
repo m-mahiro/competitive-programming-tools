@@ -6,7 +6,7 @@
 
 **This feature is off by default. Turn it on in the settings.**
 
-![Side-by-side samples](../images/efficient-layout.png)
+<p><img src="../images/efficient-layout.png" alt="Side-by-side samples"><br><sub>Samples placed side by side.</sub></p>
 
 ## How it works
 

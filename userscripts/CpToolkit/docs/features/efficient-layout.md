@@ -6,7 +6,7 @@
 
 **この機能は既定で OFF です。設定画面で有効にしてください。**
 
-![サンプルの横並び](../images/efficient-layout.png)
+<p><img src="../images/efficient-layout.png" alt="サンプルの横並び"><br><sub>入出力例を横に並べた例。</sub></p>
 
 ## 使い方
 

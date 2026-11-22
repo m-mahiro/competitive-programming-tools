@@ -4,7 +4,7 @@
 
 > トップページから、ABC・ARC・AGC・AHC の過去のコンテスト一覧を開けます。
 
-![トップページのコンテスト一覧](../images/top-links.png)
+<p><img src="../images/top-links.png" alt="トップページのコンテスト一覧"><br><sub>トップページに追加される、過去のコンテスト一覧へのリンク。</sub></p>
 
 ## 使い方
 

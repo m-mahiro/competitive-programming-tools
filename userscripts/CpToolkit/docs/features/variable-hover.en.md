@@ -4,7 +4,7 @@
 
 > Hover over a variable or number in a formula to highlight matching occurrences in the same task.
 
-![Highlight hovered variables and numbers](../images/variable-hover.png)
+<p><img src="../images/variable-hover.png" alt="Highlight hovered variables and numbers"><br><sub>Hovering over a variable highlights the same variable in the task.</sub></p>
 
 ## How it works
 

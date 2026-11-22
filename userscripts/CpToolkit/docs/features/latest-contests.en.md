@@ -4,7 +4,7 @@
 
 > View upcoming contests from the header.
 
-![Next contests](../images/latest-contests.png)
+<p><img src="../images/latest-contests.png" alt="Next contests"><br><sub>Upcoming contests opened from the header.</sub></p>
 
 ## How it works
 

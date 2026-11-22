@@ -15,11 +15,13 @@
 
 ## 2. Usage
 
-Choose "Open settings" in Tampermonkey or "CP Toolkit" in the AtCoder header. Toggle individual features or open their detailed settings. Settings are kept per site: switch sites with the tabs at the top to see only the features and settings that work there. A few settings that are the same everywhere, such as the Local Runner URL, are shared by all sites. If a feature shows "Reload to apply", reload the page.
+Choose "Open settings" in Tampermonkey or "CP Toolkit" in the AtCoder header. Toggle individual features or open their detailed settings. Settings are kept per site: switch sites with the tabs at the top to see only the features and settings that work there. A few settings that are the same everywhere, such as the Local Runner URL, are shared by all sites. If a feature shows "Reload to apply", choose "Reload page" at the bottom.
 
-<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit settings" width="640"></p>
+<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit settings" width="640"><br><sub>The settings opened on an AtCoder task page. Switch the site to configure with the tabs at the top.</sub></p>
 
 Use "Back up settings to a file" at the bottom of the settings to save feature toggles and detailed settings to a file, and "Restore settings from a file" to load them again. The interface is available in Japanese and English.
+
+<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings-backup.png" alt="Settings backup" width="640"><br><sub>Buttons to back up, restore and reset the settings, at the bottom of the feature list.</sub></p>
 
 When a newer version exists, a notice appears once in the corner of the page, and an "Update to" link appears at the bottom right of the settings. Opening the link shows the update page of Tampermonkey. "Check for updates" in the settings checks right away.
 

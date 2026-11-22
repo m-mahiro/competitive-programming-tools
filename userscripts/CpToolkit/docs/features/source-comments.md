@@ -4,7 +4,7 @@
 
 > コード全体を貼り付けると、登録した文を先頭と末尾に追加します。
 
-![コードのヘッダーとフッター](../images/source-comments.png)
+<p><img src="../images/source-comments.png" alt="コードのヘッダーとフッター"><br><sub>登録した文をコードの先頭と末尾に追加した例。</sub></p>
 
 ## 使い方
 

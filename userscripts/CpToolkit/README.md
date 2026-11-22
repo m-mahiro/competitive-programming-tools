@@ -15,11 +15,13 @@
 
 ## 2. 使い方
 
-Tampermonkey の「設定を開く」、または AtCoder のヘッダーにある「CP Toolkit」から設定画面を開きます。各機能の ON/OFF や詳細設定を変更できます。設定はサイトごとに分かれていて、上のタブでサイトを切り替えると、そのサイトで動く機能と項目だけを表示します。Local Runner の URL など、どのサイトでも同じものは全サイトで共通です。「再読み込みで反映」と表示されたら、ページを再読み込みしてください。
+Tampermonkey の「設定を開く」、または AtCoder のヘッダーにある「CP Toolkit」から設定画面を開きます。各機能の ON/OFF や詳細設定を変更できます。設定はサイトごとに分かれていて、上のタブでサイトを切り替えると、そのサイトで動く機能と項目だけを表示します。Local Runner の URL など、どのサイトでも同じものは全サイトで共通です。「再読み込みで反映」と表示されたら、下の「ページを再読み込み」を押してください。
 
-<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit の設定画面" width="640"></p>
+<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings.png" alt="CP Toolkit の設定画面" width="640"><br><sub>AtCoder の問題ページで開いた設定画面。上のタブで、設定するサイトを切り替えます。</sub></p>
 
 設定画面の一番下の「設定をファイルにバックアップ」で、機能の ON/OFF と詳細設定をファイルに保存できます。「ファイルから設定を復元」で読み込み直せます。設定画面は日本語と英語に対応しています。
+
+<p><img src="https://raw.githubusercontent.com/nsubaru11/competitive-programming-tools/main/userscripts/CpToolkit/docs/images/settings-backup.png" alt="設定のバックアップ" width="640"><br><sub>機能の一覧の一番下にある、設定のバックアップ、復元、初期化のボタン。</sub></p>
 
 新しいバージョンがあると通知が届きます。設定画面の「更新する」から更新できます。手動で確認するには「更新を確認」を押します。
 

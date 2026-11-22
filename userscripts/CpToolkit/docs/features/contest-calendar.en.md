@@ -4,7 +4,7 @@
 
 > Open a Google Calendar event form with the contest name and times filled in.
 
-![Add to calendar](../images/contest-calendar.png)
+<p><img src="../images/contest-calendar.png" alt="Add to calendar"><br><sub>“Add to calendar” next to the contest time. It opens the event page of Google Calendar.</sub></p>
 
 ## How it works
 

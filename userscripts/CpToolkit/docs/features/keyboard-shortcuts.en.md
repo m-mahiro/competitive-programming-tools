@@ -4,8 +4,6 @@
 
 > Submit, copy samples, switch tasks, open pages and more with keys you choose.
 
-![Shortcut shown on the submit button](../images/keyboard-shortcuts.png)
-
 ## How it works
 
 - In the detailed settings, write a key for each action. Join `Ctrl`, `Shift`, `Alt`, `Cmd` and a character or a key such as `Enter`, `Escape` or an arrow (`Left` and so on) with `+` (e.g. `Ctrl+Shift+Enter`, `Alt+S`). Case does not matter.
@@ -20,6 +18,8 @@
 - If you press the submit key while the [submission helper](java-submit.en.md) is transforming pasted code, the code is submitted after the transform finishes.
 - Folding folds the innermost block around the cursor (such as `{}` or a comment) that is not folded yet. The unfold key opens the fold on the cursor line. Any language works. This does not work in the yukicoder editor.
 - The test keys work on pages where [Easy Test+](easy-test.en.md) is enabled.
+
+<p><img src="../images/keyboard-shortcuts.png" alt="Shortcut shown on the submit button"><br><sub>Hover over the submit button to see the assigned key.</sub></p>
 
 ### Copying samples and the statement
 
@@ -38,6 +38,8 @@
 ## Detailed settings
 
 Open this feature’s “Detailed settings” in CP Toolkit. Keys are set per site, and only the settings that work on that site are shown.
+
+<p><img src="../images/keyboard-shortcuts-settings.png" alt="Keyboard shortcut settings"><br><sub>The detailed settings on the Library Checker tab. Only the five keys that work on that site are listed.</sub></p>
 
 | Setting                                                                          | Default              | Sites                          |
 |----------------------------------------------------------------------------------|----------------------|--------------------------------|

@@ -4,7 +4,7 @@
 
 > 解説一覧で、各解説の本文をリンクの下に展開します。
 
-![解説の一覧表示](../images/editorial-list.png)
+<p><img src="../images/editorial-list.png" alt="解説の一覧表示"><br><sub>解説の一覧で、各解説の本文をリンクの下に展開した例。</sub></p>
 
 ## 使い方
 

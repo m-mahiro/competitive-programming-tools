@@ -4,7 +4,7 @@
 
 > Show average runtime and memory usage across test cases on the submission details page.
 
-![Test case averages](../images/average-result.png)
+<p><img src="../images/average-result.png" alt="Test case averages"><br><sub>A submission detail page showing the average execution time and memory usage of the test cases.</sub></p>
 
 ## How it works
 

@@ -4,7 +4,7 @@
 
 > Hover over your username, the language selector or the Results tab to open its dropdown.
 
-![Open dropdowns on hover](../images/hover-menu.png)
+<p><img src="../images/hover-menu.png" alt="Open dropdowns on hover"><br><sub>Header menus open when you hover over them.</sub></p>
 
 ## How it works
 

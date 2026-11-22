@@ -4,7 +4,7 @@
 
 > 『競技プログラミングの鉄則』の問題一覧に、書籍の難易度を表示します。
 
-![鉄則本の難易度表示](../images/tessoku-difficulty.png)
+<p><img src="../images/tessoku-difficulty.png" alt="鉄則本の難易度表示"><br><sub>鉄則本の問題一覧に、書籍の難易度を表示した例。</sub></p>
 
 ## 使い方
 

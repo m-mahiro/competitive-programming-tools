@@ -4,7 +4,7 @@
 
 > コンテスト名と開催日時を入力した Google カレンダーの予定作成画面を開けます。
 
-![カレンダーへの登録](../images/contest-calendar.png)
+<p><img src="../images/contest-calendar.png" alt="カレンダーへの登録"><br><sub>コンテスト時間の横に出る「カレンダーに追加」。押すと Google カレンダーの予定作成画面が開きます。</sub></p>
 
 ## 使い方
 

@@ -4,7 +4,7 @@
 
 > Add a saved header and footer when you paste a complete solution.
 
-![Code header and footer](../images/source-comments.png)
+<p><img src="../images/source-comments.png" alt="Code header and footer"><br><sub>Registered text added at the beginning and end of the code.</sub></p>
 
 ## How it works
 

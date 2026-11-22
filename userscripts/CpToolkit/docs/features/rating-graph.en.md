@@ -4,7 +4,7 @@
 
 > Overlay performance from rated contests on a user's rating graph.
 
-![Performance on the rating graph](../images/rating-graph.png)
+<p><img src="../images/rating-graph.png" alt="Performance on the rating graph"><br><sub>Performances of rated contests drawn on the rating graph.</sub></p>
 
 ## How it works
 
