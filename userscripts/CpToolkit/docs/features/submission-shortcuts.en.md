@@ -12,6 +12,7 @@
 - Other people's submissions are hidden during a contest, so the buttons appear only after the contest ends.
 - Choose the buttons to show with the checkboxes in the detailed settings. Nothing is shown when none is checked.
 - Setting a language in the detailed settings narrows the list to that language.
+- [Keyboard shortcuts](keyboard-shortcuts.en.md) can also open the same lists in a new tab.
 
 ## Detailed settings
 

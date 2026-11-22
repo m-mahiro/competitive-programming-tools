@@ -65,6 +65,14 @@ describe("3.0 への移行", () => {
 		expect(migrated.features["keyboard-shortcuts"]?.options).toEqual({submit: "none", fold: "none"});
 	});
 
+	test("Easy Test+ のショートカットを OFF にしていた人は、Easy Test+ のキーを使わないままにする", () => {
+		const migrated = parseSettings({version: 1, features: {"easy-test": {enabled: true, options: {keyboardShortcuts: false, precompile: false}}}});
+		expect(migrated.features["easy-test"]).toEqual({enabled: true, options: {precompile: false}});
+		expect(migrated.features["keyboard-shortcuts"]?.options).toEqual({testAndSubmit: "none", testAll: "none", toggleEasyTest: "none"});
+		const kept = parseSettings({version: 1, features: {"easy-test": {options: {keyboardShortcuts: true}}}});
+		expect(kept.features["keyboard-shortcuts"]).toBeUndefined();
+	});
+
 	test("新しい形式の設定を優先する", () => {
 		const raw = {version: 1, features: {"java-submit": {enabled: false}, "source-comments": {options: {runnerHeader: "below"}}}};
 		expect(parseSettings(raw).features["source-comments"]?.options?.runnerHeader).toBe("below");

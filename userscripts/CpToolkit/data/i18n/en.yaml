@@ -195,12 +195,35 @@ localRunner.url: Server URL
 submissionHelper.submitChanged: Submission canceled because preparation could not finish.
 submissionHelper.fallbackFailed: The browser could not safely transform this source.
 keyboardShortcuts.title: Keyboard shortcuts
-keyboardShortcuts.description: Submit, open the settings and more with keys you choose.
-keyboardShortcuts.submit: Submit (empty for the site default, none to turn it off)
-keyboardShortcuts.fold: Fold Java classes and comments (none to turn it off)
-keyboardShortcuts.openSettings: Open the CP Toolkit settings (none to turn it off)
-keyboardShortcuts.share: Open a post to X for the current page (empty to turn it off)
-keyboardShortcuts.invalidKey: This key combination is not valid (e.g. Ctrl+Shift+Enter, Alt+S).
+keyboardShortcuts.description: "Submit, copy samples, switch tasks, open pages and more with keys you choose. Write keys like Ctrl+Shift+Enter, or none to turn one off."
+keyboardShortcuts.openSettings: Open the CP Toolkit settings
+keyboardShortcuts.submit: Submit (empty for the site default)
+keyboardShortcuts.fold: Fold Java classes and comments
+keyboardShortcuts.testAndSubmit: "Test with Easy Test+, then submit"
+keyboardShortcuts.testAll: Test all samples with Easy Test+
+keyboardShortcuts.toggleEasyTest: Open or close the Easy Test+ panel
+keyboardShortcuts.copyInput: Copy a sample input (these modifiers and a number from 1 to 9)
+keyboardShortcuts.copyOutput: Copy a sample output (these modifiers and a number from 1 to 9)
+keyboardShortcuts.copyStatement: Copy the whole statement (AtCoder)
+keyboardShortcuts.previousTask: Open the previous task
+keyboardShortcuts.nextTask: Open the next task
+keyboardShortcuts.openTask: Open a task (these modifiers and its letter from A to Z)
+keyboardShortcuts.openTasks: Open the task list
+keyboardShortcuts.openMySubmissions: Open my submissions
+keyboardShortcuts.openStandings: Open the standings
+keyboardShortcuts.openEditorial: Open the editorial (AtCoder)
+keyboardShortcuts.openCustomTest: Open the custom test
+keyboardShortcuts.acByTime: Open AC submissions by execution time (AtCoder)
+keyboardShortcuts.acByLength: Open AC submissions by code length (AtCoder)
+keyboardShortcuts.acByCreated: Open AC submissions by submission time (AtCoder)
+keyboardShortcuts.acByMemory: Open AC submissions by memory (AtCoder)
+keyboardShortcuts.share: Open a post to X for the current page
+keyboardShortcuts.invalidKey: "This key combination is not valid (e.g. Ctrl+Shift+Enter, Alt+S)."
+keyboardShortcuts.invalidModifiers: Write only modifier keys joined with + (e.g. Ctrl+Alt).
+keyboardShortcuts.sampleInput: "Sample input {number}"
+keyboardShortcuts.sampleOutput: "Sample output {number}"
+keyboardShortcuts.sampleCopied: "Copied {sample}"
+keyboardShortcuts.sampleMissing: "{sample} was not found"
 submissionHelper.title: Submission helper
 submissionHelper.description: Prepare pasted code for submission.
 submissionHelper.localRunnerRequired: "Expanding {package}.* needs Local Runner"
@@ -216,7 +239,6 @@ easyTest.submitChanged: Submission canceled because the source, task, language o
 easyTest.title: Easy Test+
 easyTest.description: Run sample tests from the task page and submit when they all pass.
 easyTest.precompile: Precompile edited code with Local Runner
-easyTest.keyboardShortcuts: "Use shortcuts (Ctrl+Enter, Alt+Enter, Alt+Esc)"
 easyTest.savedCodeLimit: Number of tasks to keep code for
 easyTest.allowableError: Allowed error
 easyTest.run: Run

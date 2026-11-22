@@ -43,3 +43,19 @@ export function normalizeShortcut(text: string): string | null {
 export function isShortcutSetting(text: string): boolean {
 	return text === "" || text.toLowerCase() === NO_SHORTCUT || normalizeShortcut(text) !== null;
 }
+
+/**
+ * 修飾キーだけの組み合わせ(例: ctrl+alt)をそろえる。後ろに数字や文字を足して使う設定に使う。
+ * 修飾キーが1つも無いか、読めなければ null。
+ */
+export function normalizeModifiers(text: string): string | null {
+	const parts = text.split("+").map((part) => part.trim().toLowerCase());
+	const modifiers = MODIFIERS.filter((name) => parts.includes(name.toLowerCase()));
+	if (modifiers.length === 0 || parts.some((part) => !MODIFIERS.some((name) => name.toLowerCase() === part))) return null;
+	return modifiers.join("+");
+}
+
+/** 修飾キーだけの設定の値として受け付けるか。none も受け付ける。 */
+export function isModifierSetting(text: string): boolean {
+	return text.toLowerCase() === NO_SHORTCUT || normalizeModifiers(text) !== null;
+}

@@ -2,7 +2,9 @@ import {statementCatalog} from "@catalog/tables";
 import {option} from "@domain/settings/option";
 import {isSampleTitle} from "@domain/statement/sample";
 import {defineFeature} from "@application/feature/definition";
+import {SHORTCUT_ACTIONS} from "@application/shortcuts/shortcut-actions";
 import {h} from "@ui/element";
+import {addTooltip} from "@ui/tooltip/tooltip";
 
 const COPIED_LABEL_MS = 1500;
 const EXCLUDED_FROM_COPY = ".btn, .btn-copy, .btn-pre, .div-btn-copy, .pull-right, .cp-title-control";
@@ -37,8 +39,9 @@ export const statementCopy = defineFeature({
 		]),
 	},
 	live: true,
-	start({options, clipboard, statementConverter, translate}) {
+	start({options, clipboard, statementConverter, translate, shortcuts}) {
 		const added: HTMLElement[] = [];
+		const disposers: Array<() => void> = [];
 		const container = document.getElementById("task-statement");
 		if (!container) return () => undefined;
 
@@ -80,14 +83,22 @@ export const statementCopy = defineFeature({
 				const prefix = options.format === "plain" ? heading : `# ${heading}`;
 				return `${prefix}\n\nURL: ${location.href}\n\n${body}`.trim();
 			};
-			const wrapper = h("span", {className: "pull-right"}, createButton(translate("statementCopy.copyAll"), copyAll));
+			const copyAllButton = createButton(translate("statementCopy.copyAll"), copyAll);
+			const wrapper = h("span", {className: "pull-right"}, copyAllButton);
 			wrapper.style.fontSize = "14px";
 			title.append(wrapper);
 			added.push(wrapper);
+			addTooltip(() => copyAllButton, () => shortcuts.keyOf(SHORTCUT_ACTIONS.copyStatement));
+			const unregister = shortcuts.register(SHORTCUT_ACTIONS.copyStatement, () => {
+				copyAllButton.click();
+				return true;
+			});
+			disposers.push(unregister);
 		}
 
 		return () => {
 			for (const element of added) element.remove();
+			for (const dispose of disposers) dispose();
 		};
 	},
 });

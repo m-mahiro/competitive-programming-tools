@@ -28,7 +28,7 @@
 ### コードの保存とショートカット
 
 - 最後に実行したコードを1問につき1件、既定で直近10問分保存します。「Restore Last Code」でその問題のコードを復元できます。
-- <kbd>Ctrl</kbd>+<kbd>Enter</kbd> でテスト後に提出し、<kbd>Alt</kbd>+<kbd>Enter</kbd> で全サンプルを実行します。<kbd>Alt</kbd>+<kbd>Esc</kbd> で画面下部のパネルを開閉します。
+- <kbd>Ctrl</kbd>+<kbd>Enter</kbd> でテスト後に提出し、<kbd>Alt</kbd>+<kbd>Enter</kbd> で全サンプルを実行します。<kbd>Alt</kbd>+<kbd>Esc</kbd> で画面下部のパネルを開閉します。キーは[ショートカットキー](keyboard-shortcuts.md)の詳細設定で変えられます。
 
 ![サンプルごとの結果](../images/easy-test-panel.png)
 
@@ -39,7 +39,6 @@
 | 項目                                                   | 既定値 |
 |--------------------------------------------------------|--------|
 | Local Runner で編集中のコードを事前にコンパイルする    | ON     |
-| ショートカットを使う（Ctrl+Enter、Alt+Enter、Alt+Esc） | ON     |
 | コードを保存する問題数                                 | `10`   |
 | 許容誤差                                               | `1e-6` |
 

@@ -224,7 +224,7 @@ All features are enabled from the start, except those marked <sub>off by default
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/keyboard-shortcuts.en.md"><strong>Keyboard shortcuts</strong></a>&emsp;</td>
-<td>Submit, open the settings and more with keys you choose.</td>
+<td>Submit, copy samples, switch tasks, open pages and more with keys you choose.</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/paiza-language.en.md"><strong>paiza language selection</strong></a>&emsp;</td>

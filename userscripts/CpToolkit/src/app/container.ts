@@ -1,17 +1,21 @@
 import {judges, type RouteId} from "@catalog/judges";
 import {createTranslator, type Translate} from "@catalog/messages";
-import {runnerCatalog} from "@catalog/tables";
-import type {PageMatch, SubmissionTarget} from "@domain/page/route";
+import {contestCatalog, runnerCatalog} from "@catalog/tables";
+import {contestPagesOf} from "@domain/contest/pages";
+import {contestIdOf, type PageMatch, type SubmissionTarget} from "@domain/page/route";
 import {normalizeOptions} from "@domain/settings/option";
+import {type ContestTask, loadContestTasks} from "@application/contest/task-list";
 import {LocalRunnerClient} from "@application/execution/local-runner";
 import {RunnerCatalogService, type RunnerProvider} from "@application/execution/runner-catalog";
 import type {FeatureServices} from "@application/feature/definition";
 import type {JudgeSite} from "@application/ports/judge-site";
 import type {SubmissionForm} from "@application/ports/submission-form";
 import type {SettingsService} from "@application/settings/settings-service";
+import {ShortcutActions} from "@application/shortcuts/shortcut-actions";
 import {PastePipeline} from "@application/source/paste-pipeline";
 import {CreateJsRatingGraph} from "@adapters/atcoder/rating-graph";
-import {createJudgeSite} from "@adapters/judges/index";
+import {createJudgeSite, readPageSamples} from "@adapters/judges/index";
+import {parseAtCoderTaskPage, parseCodeforcesContestPage} from "@adapters/page/contest-tasks";
 import {PageCodeEditorLocator} from "@adapters/page/code-editors";
 import {createSubmissionForm} from "@adapters/page/submission-form";
 import {ElementScriptLoader} from "@adapters/page/element-script-loader";
@@ -68,6 +72,27 @@ export function createServices(
 		return form;
 	};
 
+	let contestTasks: Promise<readonly ContestTask[] | null> | null = null;
+	const loadTasks = async (): Promise<readonly ContestTask[] | null> => {
+		const judgeId = page?.judge.id;
+		const contestId = contestIdOf(location.pathname);
+		if (judgeId === "atcoder" && contestId) {
+			return loadContestTasks(contestId, {site, state, parse: parseAtCoderTaskPage, cacheDays: contestCatalog.taskCacheDays});
+		}
+		const contestPage = contestPagesOf(judgeId, location.pathname)?.tasks;
+		if (judgeId !== "codeforces" || !contestPage) return null;
+		const response = await site.send({url: contestPage});
+		return response.status === 200 ? parseCodeforcesContestPage(response.text) : null;
+	};
+	const getContestTasks = (): Promise<readonly ContestTask[] | null> => {
+		contestTasks ??= loadTasks().catch(() => null);
+		// 取得に失敗したら、次に使うときに取り直す
+		void contestTasks.then((tasks) => {
+			if (tasks === null) contestTasks = null;
+		});
+		return contestTasks;
+	};
+
 	let providers: readonly RunnerProvider[] | null = null;
 	const getProviders = (): readonly RunnerProvider[] => {
 		providers ??= [
@@ -102,6 +127,9 @@ export function createServices(
 		runners: new RunnerCatalogService(getProviders, runnerCatalog.order, runnerCatalog.maxRetry, runnerCatalog.external),
 		judgeSite: getJudgeSite,
 		submissionForm: getSubmissionForm,
+		shortcuts: new ShortcutActions(),
+		samples: () => readPageSamples(page?.judge.id, getJudgeSite).catch(() => []),
+		contestTasks: getContestTasks,
 		openSettings,
 		get statementConverter() {
 			converter ??= new TurndownStatementConverter();

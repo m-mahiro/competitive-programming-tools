@@ -19,6 +19,9 @@ import type {
 	Ticker
 } from "@application/ports/services";
 import type {SubmissionForm} from "@application/ports/submission-form";
+import type {ShortcutActions} from "@application/shortcuts/shortcut-actions";
+import type {ContestTask} from "@application/contest/task-list";
+import type {TestCase} from "@domain/execution/result";
 import type {PastePipeline} from "@application/source/paste-pipeline";
 
 export type Disposer = () => void;
@@ -52,6 +55,12 @@ export type FeatureServices = {
 	readonly judgeSite: () => Promise<JudgeSite | null>;
 	/** 提出欄の操作。同じ提出欄なら同じものを返す。 */
 	readonly submissionForm: (target: SubmissionTarget) => Promise<SubmissionForm>;
+	/** 機能が持つ操作と、割り当てたショートカットキー。 */
+	readonly shortcuts: ShortcutActions;
+	/** 表示中の問題の入出力例。読めなければ空。Codeforces でも Easy Test+ の画面は作らない。 */
+	readonly samples: () => Promise<readonly TestCase[]>;
+	/** 表示中のコンテストの問題の一覧(順番どおり)。対応していないページや、取得できなければ null。 */
+	readonly contestTasks: () => Promise<readonly ContestTask[] | null>;
 	readonly openSettings: () => void;
 };
 

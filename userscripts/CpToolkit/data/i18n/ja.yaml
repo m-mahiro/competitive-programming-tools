@@ -196,12 +196,35 @@ localRunner.url: 接続先の URL
 submissionHelper.submitChanged: 提出準備が完了しなかったため、提出を取り消しました。
 submissionHelper.fallbackFailed: ブラウザで安全に変換できませんでした。
 keyboardShortcuts.title: ショートカットキー
-keyboardShortcuts.description: 提出や設定画面を開く操作を、好きなキーで行えます。
-keyboardShortcuts.submit: 提出する（空欄ならサイトの既定、none で使わない）
-keyboardShortcuts.fold: Java のクラスとコメントを折りたたむ（none で使わない）
-keyboardShortcuts.openSettings: CP Toolkit の設定を開く（none で使わない）
-keyboardShortcuts.share: 表示中のページを X に投稿する画面を開く（空欄なら使わない）
+keyboardShortcuts.description: 提出、入出力例のコピー、問題の切り替え、ページを開く操作などを、好きなキーで行えます。キーは Ctrl+Shift+Enter のように書き、none で使わなくなります。
+keyboardShortcuts.openSettings: CP Toolkit の設定を開く
+keyboardShortcuts.submit: 提出する（空欄ならサイトの既定）
+keyboardShortcuts.fold: Java のクラスとコメントを折りたたむ
+keyboardShortcuts.testAndSubmit: Easy Test+ でテストしてから提出する
+keyboardShortcuts.testAll: Easy Test+ ですべての入出力例をテストする
+keyboardShortcuts.toggleEasyTest: Easy Test+ の画面を開閉する
+keyboardShortcuts.copyInput: 入力例をコピーする（この修飾キーと番号の 1〜9）
+keyboardShortcuts.copyOutput: 出力例をコピーする（この修飾キーと番号の 1〜9）
+keyboardShortcuts.copyStatement: 問題文をすべてコピーする（AtCoder）
+keyboardShortcuts.previousTask: 前の問題を開く
+keyboardShortcuts.nextTask: 次の問題を開く
+keyboardShortcuts.openTask: 問題を開く（この修飾キーと問題の記号の A〜Z）
+keyboardShortcuts.openTasks: 問題の一覧を開く
+keyboardShortcuts.openMySubmissions: 自分の提出を開く
+keyboardShortcuts.openStandings: 順位表を開く
+keyboardShortcuts.openEditorial: 解説を開く（AtCoder）
+keyboardShortcuts.openCustomTest: コードテストを開く
+keyboardShortcuts.acByTime: AC の提出を実行時間順に開く（AtCoder）
+keyboardShortcuts.acByLength: AC の提出をコード長順に開く（AtCoder）
+keyboardShortcuts.acByCreated: AC の提出を提出日時順に開く（AtCoder）
+keyboardShortcuts.acByMemory: AC の提出をメモリ順に開く（AtCoder）
+keyboardShortcuts.share: 表示中のページを X に投稿する画面を開く
 keyboardShortcuts.invalidKey: キーの書き方が正しくありません（例：Ctrl+Shift+Enter、Alt+S）。
+keyboardShortcuts.invalidModifiers: 修飾キーだけを + でつないで書いてください（例：Ctrl+Alt）。
+keyboardShortcuts.sampleInput: "入力例 {number}"
+keyboardShortcuts.sampleOutput: "出力例 {number}"
+keyboardShortcuts.sampleCopied: "{sample} をコピーしました"
+keyboardShortcuts.sampleMissing: "{sample} が見つかりません"
 submissionHelper.title: 提出補助
 submissionHelper.description: 貼り付けたコードを提出用に変換します。
 submissionHelper.localRunnerRequired: "{package}.* の展開には Local Runner が必要です"
@@ -217,7 +240,6 @@ easyTest.submitChanged: テスト中に提出内容または実行環境が変�
 easyTest.title: Easy Test+
 easyTest.description: 問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。
 easyTest.precompile: Local Runner で編集中のコードを事前にコンパイルする
-easyTest.keyboardShortcuts: ショートカットを使う（Ctrl+Enter、Alt+Enter、Alt+Esc）
 easyTest.savedCodeLimit: コードを保存する問題数
 easyTest.allowableError: 許容誤差
 easyTest.run: Run

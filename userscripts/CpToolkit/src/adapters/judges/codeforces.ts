@@ -15,6 +15,38 @@ function readSampleBlock(pre: Element): string {
 	}).join("");
 }
 
+/** 問題文の入出力例。Run ボタンの置き場所は、入力の見出しのコピーのボタン。 */
+export function readCodeforcesSamples(root: ParentNode = document): SampleCase[] {
+	const samples: SampleCase[] = [];
+	for (const block of root.querySelectorAll(".sample-test")) {
+		const inputs = block.querySelectorAll(".input pre");
+		const outputs = block.querySelectorAll(".output pre");
+		const anchors = block.querySelectorAll(".input .title .input-output-copier");
+		inputs.forEach((input, index) => {
+			const output = outputs[index];
+			const anchor = anchors[index];
+			if (!output) return;
+			samples.push({
+				title: `Sample ${samples.length + 1}`,
+				input: readSampleBlock(input),
+				output: readSampleBlock(output),
+				anchors: anchor ? [anchor] : [],
+			});
+		});
+	}
+	return samples;
+}
+
+/** モバイル版の問題文の入出力例。 */
+export function readCodeforcesMobileSamples(root: ParentNode = document): SampleCase[] {
+	return [...root.querySelectorAll(".sample-test")].map((block, index) => ({
+		title: `Sample ${index + 1}`,
+		input: block.querySelector(".input pre.content")?.textContent ?? "",
+		output: block.querySelector(".output pre.content")?.textContent ?? "",
+		anchors: [block.querySelector(".input .title") ?? block],
+	}));
+}
+
 /** 問題ページの提出欄はファイルしか受け付けないので、入力欄を用意する。 */
 export class CodeforcesSite extends JudgeSiteBase {
 	readonly id = "codeforces";
@@ -81,24 +113,9 @@ export class CodeforcesSite extends JudgeSiteBase {
 	}
 
 	async samples(): Promise<readonly SampleCase[]> {
-		const samples: SampleCase[] = [];
-		for (const block of document.querySelectorAll(".sample-test")) {
-			const inputs = block.querySelectorAll(".input pre");
-			const outputs = block.querySelectorAll(".output pre");
-			const anchors = block.querySelectorAll(".input .title .input-output-copier");
-			inputs.forEach((input, index) => {
-				const output = outputs[index];
-				const anchor = anchors[index];
-				if (!output || !anchor) return;
-				samples.push({
-					title: `Sample ${samples.length + 1}`,
-					input: readSampleBlock(input),
-					output: readSampleBlock(output),
-					anchors: [anchor],
-				});
-			});
-		}
-		return samples;
+		// Run ボタンを置けない入出力例は、これまでどおり Easy Test+ では扱わない
+		return readCodeforcesSamples().filter((sample) => sample.anchors.length > 0)
+			.map((sample, index) => ({...sample, title: `Sample ${index + 1}`}));
 	}
 }
 
@@ -166,11 +183,6 @@ export class CodeforcesMobileSite extends JudgeSiteBase {
 	}
 
 	async samples(): Promise<readonly SampleCase[]> {
-		return [...document.querySelectorAll(".sample-test")].map((block, index) => ({
-			title: `Sample ${index + 1}`,
-			input: block.querySelector(".input pre.content")?.textContent ?? "",
-			output: block.querySelector(".output pre.content")?.textContent ?? "",
-			anchors: [block.querySelector(".input .title") ?? block],
-		}));
+		return readCodeforcesMobileSamples();
 	}
 }

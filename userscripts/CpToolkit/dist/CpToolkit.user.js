@@ -954,6 +954,40 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		}
 	}
 
+	// CpToolkit/src/domain/settings/migrations.ts
+	var EASY_TEST_KEYS_OFF = {testAndSubmit: "none", testAll: "none", toggleEasyTest: "none"};
+
+	function migrateToVersion2(settings) {
+		const helper = settings.features["java-submit"] ?? {};
+		const {addHeader, headerName, removePackage, renameClass, fixDebug, ...remaining} = helper.options ?? {};
+		const helperDisabled = helper.enabled === false;
+		const features = {
+			...settings.features,
+			"java-submit": {...helper, enabled: helper.enabled ?? true, options: remaining},
+		};
+		const comments = settings.features["source-comments"];
+		const commentOptions = {...comments?.options};
+		if (commentOptions.runnerHeader === undefined && (helperDisabled || addHeader === false))
+			commentOptions.runnerHeader = "none";
+		if (commentOptions.runnerHeaderName === undefined && typeof headerName === "string" && headerName !== "") {
+			commentOptions.runnerHeaderName = headerName;
+		}
+		if (comments || Object.keys(commentOptions).length > 0)
+			features["source-comments"] = {...comments, options: commentOptions};
+		const easyTest = settings.features["easy-test"];
+		const {keyboardShortcuts, ...easyTestOptions} = easyTest?.options ?? {};
+		if (easyTest) features["easy-test"] = {...easyTest, options: easyTestOptions};
+		const disabledKeys = {
+			...(helperDisabled ? {submit: "none", fold: "none"} : {}),
+			...(keyboardShortcuts === false ? EASY_TEST_KEYS_OFF : {}),
+		};
+		if (Object.keys(disabledKeys).length > 0) {
+			const shortcuts = settings.features["keyboard-shortcuts"];
+			features["keyboard-shortcuts"] = {...shortcuts, options: {...disabledKeys, ...shortcuts?.options}};
+		}
+		return {...settings, features};
+	}
+
 	// CpToolkit/src/domain/settings/legacy.ts
 	function defined(options) {
 		return Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined && value !== null));
@@ -989,6 +1023,10 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		],
 		AtCoderEasyTestForJava: (stored) => {
 			const config = parseStoredObject(stored.config);
+			const keys =
+				parseFlag(config["ui.useKeyboardShortcut"]) === false
+					? [{featureId: "keyboard-shortcuts", options: EASY_TEST_KEYS_OFF}]
+					: [];
 			return [
 				{featureId: "local-runner", options: defined({url: config["codeRunner.localRunnerURL"] || undefined})},
 				{
@@ -996,9 +1034,9 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 					enable: true,
 					options: defined({
 						precompile: parseFlag(config["codeRunner.precompile.enable"]),
-						keyboardShortcuts: parseFlag(config["ui.useKeyboardShortcut"]),
 					}),
 				},
+				...keys,
 			];
 		},
 	};
@@ -1014,34 +1052,6 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 				for (const [key, value] of Object.entries(options)) settings.setOption(featureId, key, value);
 			}
 		}
-	}
-
-	// CpToolkit/src/domain/settings/migrations.ts
-	function migrateToVersion2(settings) {
-		const helper = settings.features["java-submit"] ?? {};
-		const {addHeader, headerName, removePackage, renameClass, fixDebug, ...remaining} = helper.options ?? {};
-		const helperDisabled = helper.enabled === false;
-		const features = {
-			...settings.features,
-			"java-submit": {...helper, enabled: helper.enabled ?? true, options: remaining},
-		};
-		const comments = settings.features["source-comments"];
-		const commentOptions = {...comments?.options};
-		if (commentOptions.runnerHeader === undefined && (helperDisabled || addHeader === false))
-			commentOptions.runnerHeader = "none";
-		if (commentOptions.runnerHeaderName === undefined && typeof headerName === "string" && headerName !== "") {
-			commentOptions.runnerHeaderName = headerName;
-		}
-		if (comments || Object.keys(commentOptions).length > 0)
-			features["source-comments"] = {...comments, options: commentOptions};
-		if (helperDisabled) {
-			const shortcuts = settings.features["keyboard-shortcuts"];
-			features["keyboard-shortcuts"] = {
-				...shortcuts,
-				options: {submit: "none", fold: "none", ...shortcuts?.options},
-			};
-		}
-		return {...settings, features};
 	}
 
 	// CpToolkit/src/domain/settings/settings.ts
@@ -3704,12 +3714,36 @@ a:focus > .cp-settings-entry {
 		"submissionHelper.submitChanged": "Submission canceled because preparation could not finish.",
 		"submissionHelper.fallbackFailed": "The browser could not safely transform this source.",
 		"keyboardShortcuts.title": "Keyboard shortcuts",
-		"keyboardShortcuts.description": "Submit, open the settings and more with keys you choose.",
-		"keyboardShortcuts.submit": "Submit (empty for the site default, none to turn it off)",
-		"keyboardShortcuts.fold": "Fold Java classes and comments (none to turn it off)",
-		"keyboardShortcuts.openSettings": "Open the CP Toolkit settings (none to turn it off)",
-		"keyboardShortcuts.share": "Open a post to X for the current page (empty to turn it off)",
+		"keyboardShortcuts.description":
+			"Submit, copy samples, switch tasks, open pages and more with keys you choose. Write keys like Ctrl+Shift+Enter, or none to turn one off.",
+		"keyboardShortcuts.openSettings": "Open the CP Toolkit settings",
+		"keyboardShortcuts.submit": "Submit (empty for the site default)",
+		"keyboardShortcuts.fold": "Fold Java classes and comments",
+		"keyboardShortcuts.testAndSubmit": "Test with Easy Test+, then submit",
+		"keyboardShortcuts.testAll": "Test all samples with Easy Test+",
+		"keyboardShortcuts.toggleEasyTest": "Open or close the Easy Test+ panel",
+		"keyboardShortcuts.copyInput": "Copy a sample input (these modifiers and a number from 1 to 9)",
+		"keyboardShortcuts.copyOutput": "Copy a sample output (these modifiers and a number from 1 to 9)",
+		"keyboardShortcuts.copyStatement": "Copy the whole statement (AtCoder)",
+		"keyboardShortcuts.previousTask": "Open the previous task",
+		"keyboardShortcuts.nextTask": "Open the next task",
+		"keyboardShortcuts.openTask": "Open a task (these modifiers and its letter from A to Z)",
+		"keyboardShortcuts.openTasks": "Open the task list",
+		"keyboardShortcuts.openMySubmissions": "Open my submissions",
+		"keyboardShortcuts.openStandings": "Open the standings",
+		"keyboardShortcuts.openEditorial": "Open the editorial (AtCoder)",
+		"keyboardShortcuts.openCustomTest": "Open the custom test",
+		"keyboardShortcuts.acByTime": "Open AC submissions by execution time (AtCoder)",
+		"keyboardShortcuts.acByLength": "Open AC submissions by code length (AtCoder)",
+		"keyboardShortcuts.acByCreated": "Open AC submissions by submission time (AtCoder)",
+		"keyboardShortcuts.acByMemory": "Open AC submissions by memory (AtCoder)",
+		"keyboardShortcuts.share": "Open a post to X for the current page",
 		"keyboardShortcuts.invalidKey": "This key combination is not valid (e.g. Ctrl+Shift+Enter, Alt+S).",
+		"keyboardShortcuts.invalidModifiers": "Write only modifier keys joined with + (e.g. Ctrl+Alt).",
+		"keyboardShortcuts.sampleInput": "Sample input {number}",
+		"keyboardShortcuts.sampleOutput": "Sample output {number}",
+		"keyboardShortcuts.sampleCopied": "Copied {sample}",
+		"keyboardShortcuts.sampleMissing": "{sample} was not found",
 		"submissionHelper.title": "Submission helper",
 		"submissionHelper.description": "Prepare pasted code for submission.",
 		"submissionHelper.localRunnerRequired": "Expanding {package}.* needs Local Runner",
@@ -3728,7 +3762,6 @@ a:focus > .cp-settings-entry {
 		"easyTest.title": "Easy Test+",
 		"easyTest.description": "Run sample tests from the task page and submit when they all pass.",
 		"easyTest.precompile": "Precompile edited code with Local Runner",
-		"easyTest.keyboardShortcuts": "Use shortcuts (Ctrl+Enter, Alt+Enter, Alt+Esc)",
 		"easyTest.savedCodeLimit": "Number of tasks to keep code for",
 		"easyTest.allowableError": "Allowed error",
 		"easyTest.run": "Run",
@@ -3938,12 +3971,36 @@ a:focus > .cp-settings-entry {
 		"submissionHelper.submitChanged": "提出準備が完了しなかったため、提出を取り消しました。",
 		"submissionHelper.fallbackFailed": "ブラウザで安全に変換できませんでした。",
 		"keyboardShortcuts.title": "ショートカットキー",
-		"keyboardShortcuts.description": "提出や設定画面を開く操作を、好きなキーで行えます。",
-		"keyboardShortcuts.submit": "提出する（空欄ならサイトの既定、none で使わない）",
-		"keyboardShortcuts.fold": "Java のクラスとコメントを折りたたむ（none で使わない）",
-		"keyboardShortcuts.openSettings": "CP Toolkit の設定を開く（none で使わない）",
-		"keyboardShortcuts.share": "表示中のページを X に投稿する画面を開く（空欄なら使わない）",
+		"keyboardShortcuts.description":
+			"提出、入出力例のコピー、問題の切り替え、ページを開く操作などを、好きなキーで行えます。キーは Ctrl+Shift+Enter のように書き、none で使わなくなります。",
+		"keyboardShortcuts.openSettings": "CP Toolkit の設定を開く",
+		"keyboardShortcuts.submit": "提出する（空欄ならサイトの既定）",
+		"keyboardShortcuts.fold": "Java のクラスとコメントを折りたたむ",
+		"keyboardShortcuts.testAndSubmit": "Easy Test+ でテストしてから提出する",
+		"keyboardShortcuts.testAll": "Easy Test+ ですべての入出力例をテストする",
+		"keyboardShortcuts.toggleEasyTest": "Easy Test+ の画面を開閉する",
+		"keyboardShortcuts.copyInput": "入力例をコピーする（この修飾キーと番号の 1〜9）",
+		"keyboardShortcuts.copyOutput": "出力例をコピーする（この修飾キーと番号の 1〜9）",
+		"keyboardShortcuts.copyStatement": "問題文をすべてコピーする（AtCoder）",
+		"keyboardShortcuts.previousTask": "前の問題を開く",
+		"keyboardShortcuts.nextTask": "次の問題を開く",
+		"keyboardShortcuts.openTask": "問題を開く（この修飾キーと問題の記号の A〜Z）",
+		"keyboardShortcuts.openTasks": "問題の一覧を開く",
+		"keyboardShortcuts.openMySubmissions": "自分の提出を開く",
+		"keyboardShortcuts.openStandings": "順位表を開く",
+		"keyboardShortcuts.openEditorial": "解説を開く（AtCoder）",
+		"keyboardShortcuts.openCustomTest": "コードテストを開く",
+		"keyboardShortcuts.acByTime": "AC の提出を実行時間順に開く（AtCoder）",
+		"keyboardShortcuts.acByLength": "AC の提出をコード長順に開く（AtCoder）",
+		"keyboardShortcuts.acByCreated": "AC の提出を提出日時順に開く（AtCoder）",
+		"keyboardShortcuts.acByMemory": "AC の提出をメモリ順に開く（AtCoder）",
+		"keyboardShortcuts.share": "表示中のページを X に投稿する画面を開く",
 		"keyboardShortcuts.invalidKey": "キーの書き方が正しくありません（例：Ctrl+Shift+Enter、Alt+S）。",
+		"keyboardShortcuts.invalidModifiers": "修飾キーだけを + でつないで書いてください（例：Ctrl+Alt）。",
+		"keyboardShortcuts.sampleInput": "入力例 {number}",
+		"keyboardShortcuts.sampleOutput": "出力例 {number}",
+		"keyboardShortcuts.sampleCopied": "{sample} をコピーしました",
+		"keyboardShortcuts.sampleMissing": "{sample} が見つかりません",
 		"submissionHelper.title": "提出補助",
 		"submissionHelper.description": "貼り付けたコードを提出用に変換します。",
 		"submissionHelper.localRunnerRequired": "{package}.* の展開には Local Runner が必要です",
@@ -3962,7 +4019,6 @@ a:focus > .cp-settings-entry {
 		"easyTest.title": "Easy Test+",
 		"easyTest.description": "問題ページでサンプルを実行し、すべて通ったらそのまま提出できます。",
 		"easyTest.precompile": "Local Runner で編集中のコードを事前にコンパイルする",
-		"easyTest.keyboardShortcuts": "ショートカットを使う（Ctrl+Enter、Alt+Enter、Alt+Esc）",
 		"easyTest.savedCodeLimit": "コードを保存する問題数",
 		"easyTest.allowableError": "許容誤差",
 		"easyTest.run": "Run",
@@ -3997,6 +4053,96 @@ a:focus > .cp-settings-entry {
 
 	function createTranslator(getLocale) {
 		return (key) => MESSAGES[getLocale()][key];
+	}
+
+	// CpToolkit/src/domain/contest/pages.ts
+	var ATCODER_CONTEST = /^\/contests\/([^/?#]+)/;
+	var ATCODER_TASK = /^\/contests\/[^/]+\/tasks\/([^/?#]+)/;
+	var CODEFORCES_CONTEST = /^\/(?:group\/[^/]+\/)?(?:contest|gym)\/\d+/;
+	var CODEFORCES_PROBLEMSET = /^\/problemset\/problem\/(\d+)\//;
+
+	function contestPagesOf(judgeId, pathname) {
+		if (judgeId === "atcoder") {
+			const contest = ATCODER_CONTEST.exec(pathname)?.[1];
+			if (!contest || contest === "archive") return null;
+			const base = `/contests/${contest}`;
+			const task = ATCODER_TASK.exec(pathname)?.[1];
+			return {
+				tasks: `${base}/tasks`,
+				mySubmissions: `${base}/submissions/me`,
+				standings: `${base}/standings`,
+				editorial: task ? `${base}/tasks/${task}/editorial` : `${base}/editorial`,
+				customTest: `${base}/custom_test`,
+			};
+		}
+		if (judgeId === "codeforces") {
+			const problemset = CODEFORCES_PROBLEMSET.exec(pathname)?.[1];
+			const base = problemset ? `/contest/${problemset}` : CODEFORCES_CONTEST.exec(pathname)?.[0];
+			if (!base) return null;
+			return {
+				tasks: base,
+				mySubmissions: `${base}/my`,
+				standings: `${base}/standings`,
+				editorial: null,
+				customTest: `${base}/customtest`,
+			};
+		}
+		return null;
+	}
+
+	var TASK_PATHS = [
+		/^\/contests\/([^/]+)\/tasks\/([^/?#]+)/,
+		/^\/(?:group\/[^/]+\/)?(?:contest|gym)\/(\d+)\/problem\/([^/?#]+)/,
+		/^\/problemset\/problem\/(\d+)\/([^/?#]+)/,
+	];
+
+	function taskKeyOf(pathname) {
+		for (const pattern of TASK_PATHS) {
+			const match = pattern.exec(pathname);
+			if (match) return `${match[1]}/${match[2]?.toLowerCase()}`;
+		}
+		return null;
+	}
+
+	var ORIGIN = /^[a-z]+:\/\/[^/]+/i;
+
+	function neighborTask(tasks, pathname, offset) {
+		const current = taskKeyOf(pathname);
+		if (current === null) return null;
+		const index = tasks.findIndex((task) => taskKeyOf(task.url.replace(ORIGIN, "")) === current);
+		if (index < 0) return null;
+		return tasks[index + offset] ?? null;
+	}
+
+	function taskByLetter(tasks, letter) {
+		const wanted = letter.toLowerCase();
+		const label = (task) => task.label.trim().toLowerCase();
+		return (
+			tasks.find((task) => label(task) === wanted) ?? tasks.find((task) => label(task).startsWith(wanted)) ?? null
+		);
+	}
+
+	// CpToolkit/src/application/contest/task-list.ts
+	var isCacheEntry = isObjectOf({
+		tasks: isArrayOf(isObjectOf({url: isString, label: isString, name: isString})),
+		lastAccess: isNumber,
+	});
+	var CACHE_KEY = "task-dropdown:tasks";
+	var DAY_MS = 24 * 60 * 60 * 1000;
+
+	async function loadContestTasks(contestId, {site, state, parse, cacheDays}) {
+		const cache = readStored(state, CACHE_KEY, isRecordOf(isCacheEntry), {});
+		const now = Date.now();
+		const fresh = Object.entries(cache).filter(([, entry]) => now - entry.lastAccess < cacheDays * DAY_MS);
+		let tasks = cache[contestId]?.tasks ?? null;
+		if (!tasks) {
+			const response = await site.send({url: `/contests/${contestId}/tasks`});
+			if (response.status !== 200) return null;
+			tasks = parse(response.text);
+		}
+		const entries = tasks.length > 0 ? [...fresh, [contestId, {tasks, lastAccess: now}]] : fresh;
+		state.set(CACHE_KEY, Object.fromEntries(entries));
+		return tasks;
 	}
 
 	// CpToolkit/src/domain/execution/language.ts
@@ -4357,6 +4503,43 @@ ${reason}`
 			return result;
 		}
 	}
+
+	// CpToolkit/src/application/shortcuts/shortcut-actions.ts
+	class ShortcutActions {
+		actions = new Map();
+		keys = new Map();
+
+		register(id, action) {
+			this.actions.set(id, action);
+			return () => {
+				if (this.actions.get(id) === action) this.actions.delete(id);
+			};
+		}
+
+		run(id) {
+			return this.actions.get(id)?.() ?? false;
+		}
+
+		assign(id, key) {
+			if (key === null) this.keys.delete(id);
+			else this.keys.set(id, key);
+		}
+
+		keyOf(id) {
+			return this.keys.get(id) ?? null;
+		}
+	}
+
+	var SHORTCUT_ACTIONS = {
+		testAndSubmit: "easy-test.testAndSubmit",
+		testAll: "easy-test.testAll",
+		toggleEasyTest: "easy-test.togglePanel",
+		acByTime: "submission-shortcuts.byTime",
+		acByLength: "submission-shortcuts.byLength",
+		acByCreated: "submission-shortcuts.byCreated",
+		acByMemory: "submission-shortcuts.byMemory",
+		copyStatement: "statement-copy.copyAll",
+	};
 
 	// CpToolkit/src/application/source/paste-pipeline.ts
 	class PastePipeline {
@@ -5014,6 +5197,36 @@ ${reason}`
 			.join("");
 	}
 
+	function readCodeforcesSamples(root = document) {
+		const samples = [];
+		for (const block of root.querySelectorAll(".sample-test")) {
+			const inputs = block.querySelectorAll(".input pre");
+			const outputs = block.querySelectorAll(".output pre");
+			const anchors = block.querySelectorAll(".input .title .input-output-copier");
+			inputs.forEach((input, index) => {
+				const output = outputs[index];
+				const anchor = anchors[index];
+				if (!output) return;
+				samples.push({
+					title: `Sample ${samples.length + 1}`,
+					input: readSampleBlock(input),
+					output: readSampleBlock(output),
+					anchors: anchor ? [anchor] : [],
+				});
+			});
+		}
+		return samples;
+	}
+
+	function readCodeforcesMobileSamples(root = document) {
+		return [...root.querySelectorAll(".sample-test")].map((block, index) => ({
+			title: `Sample ${index + 1}`,
+			input: block.querySelector(".input pre.content")?.textContent ?? "",
+			output: block.querySelector(".output pre.content")?.textContent ?? "",
+			anchors: [block.querySelector(".input .title") ?? block],
+		}));
+	}
+
 	class CodeforcesSite extends JudgeSiteBase {
 		id = "codeforces";
 		buttons = document.createElement("span");
@@ -5087,24 +5300,9 @@ ${reason}`
 		}
 
 		async samples() {
-			const samples = [];
-			for (const block of document.querySelectorAll(".sample-test")) {
-				const inputs = block.querySelectorAll(".input pre");
-				const outputs = block.querySelectorAll(".output pre");
-				const anchors = block.querySelectorAll(".input .title .input-output-copier");
-				inputs.forEach((input, index) => {
-					const output = outputs[index];
-					const anchor = anchors[index];
-					if (!output || !anchor) return;
-					samples.push({
-						title: `Sample ${samples.length + 1}`,
-						input: readSampleBlock(input),
-						output: readSampleBlock(output),
-						anchors: [anchor],
-					});
-				});
-			}
-			return samples;
+			return readCodeforcesSamples()
+				.filter((sample) => sample.anchors.length > 0)
+				.map((sample, index) => ({...sample, title: `Sample ${index + 1}`}));
 		}
 	}
 
@@ -5185,12 +5383,7 @@ ${reason}`
 		}
 
 		async samples() {
-			return [...document.querySelectorAll(".sample-test")].map((block, index) => ({
-				title: `Sample ${index + 1}`,
-				input: block.querySelector(".input pre.content")?.textContent ?? "",
-				output: block.querySelector(".output pre.content")?.textContent ?? "",
-				anchors: [block.querySelector(".input .title") ?? block],
-			}));
+			return readCodeforcesMobileSamples();
 		}
 	}
 
@@ -5287,6 +5480,37 @@ ${reason}`
 			default:
 				return null;
 		}
+	}
+
+	async function readPageSamples(judgeId, judgeSite) {
+		if (judgeId === "codeforces") {
+			return CODEFORCES_MOBILE_HOST.test(location.host) ? readCodeforcesMobileSamples() : readCodeforcesSamples();
+		}
+		const site = await judgeSite();
+		return site ? await site.samples() : [];
+	}
+
+	// CpToolkit/src/adapters/page/contest-tasks.ts
+	function parseAtCoderTaskPage(html) {
+		const page = new DOMParser().parseFromString(html, "text/html");
+		return [...page.querySelectorAll("#contest-nav-tabs + .col-sm-12 tbody tr")].flatMap((row) => {
+			const [labelCell, nameCell] = row.querySelectorAll("td");
+			const link = labelCell?.querySelector("a");
+			const url = link?.getAttribute("href");
+			if (!link || !url) return [];
+			return [{url, label: link.textContent ?? "", name: nameCell?.textContent?.trim() ?? ""}];
+		});
+	}
+
+	function parseCodeforcesContestPage(html) {
+		const page = new DOMParser().parseFromString(html, "text/html");
+		return [...page.querySelectorAll("table.problems tr")].flatMap((row) => {
+			const link = row.querySelector("td.id a");
+			const url = link?.getAttribute("href");
+			if (!link || !url) return [];
+			const name = row.querySelectorAll("td")[1]?.querySelector("a")?.textContent?.trim() ?? "";
+			return [{url, label: link.textContent?.trim() ?? "", name}];
+		});
 	}
 
 	// CpToolkit/src/adapters/page/code-editors.ts
@@ -6297,7 +6521,7 @@ ${body}
 		),
 		fetchedAt: isNumber,
 	});
-	var CACHE_KEY = "easy-test:wandbox-compilers";
+	var CACHE_KEY2 = "easy-test:wandbox-compilers";
 	var HOUR_MS2 = 60 * 60 * 1000;
 	var ACL_INCLUDE_PATTERN = /^#\s*include\s*[<"]atcoder\/([^>"]+)[>"]/gm;
 
@@ -6387,12 +6611,12 @@ ${body}
 		}
 
 		async compilers() {
-			const cached = readStored(this.state, CACHE_KEY, isCompilerCache, null);
+			const cached = readStored(this.state, CACHE_KEY2, isCompilerCache, null);
 			if (cached && Date.now() - cached.fetchedAt < runnerCatalog.wandbox.cacheHours * HOUR_MS2)
 				return cached.compilers;
 			const response = await this.http.send({url: runnerCatalog.wandbox.listUrl});
 			const compilers = JSON.parse(response.text);
-			this.state.set(CACHE_KEY, {compilers, fetchedAt: Date.now()});
+			this.state.set(CACHE_KEY2, {compilers, fetchedAt: Date.now()});
 			return compilers;
 		}
 	}
@@ -7711,6 +7935,30 @@ ${inner}
 			}
 			return form;
 		};
+		let contestTasks = null;
+		const loadTasks = async () => {
+			const judgeId = page?.judge.id;
+			const contestId = contestIdOf(location.pathname);
+			if (judgeId === "atcoder" && contestId) {
+				return loadContestTasks(contestId, {
+					site,
+					state,
+					parse: parseAtCoderTaskPage,
+					cacheDays: contestCatalog.taskCacheDays,
+				});
+			}
+			const contestPage = contestPagesOf(judgeId, location.pathname)?.tasks;
+			if (judgeId !== "codeforces" || !contestPage) return null;
+			const response = await site.send({url: contestPage});
+			return response.status === 200 ? parseCodeforcesContestPage(response.text) : null;
+		};
+		const getContestTasks = () => {
+			contestTasks ??= loadTasks().catch(() => null);
+			contestTasks.then((tasks) => {
+				if (tasks === null) contestTasks = null;
+			});
+			return contestTasks;
+		};
 		let providers = null;
 		const getProviders = () => {
 			providers ??= [
@@ -7748,6 +7996,9 @@ ${inner}
 			),
 			judgeSite: getJudgeSite,
 			submissionForm: getSubmissionForm,
+			shortcuts: new ShortcutActions(),
+			samples: () => readPageSamples(page?.judge.id, getJudgeSite).catch(() => []),
+			contestTasks: getContestTasks,
 			openSettings,
 			get statementConverter() {
 				converter ??= new TurndownStatementConverter();
@@ -8321,41 +8572,6 @@ ${css}`,
 		};
 	}
 
-	// CpToolkit/src/ui/shortcuts.ts
-	var EDITOR_ELEMENTS = ".ace_editor, .monaco-editor, #editor, #editor-div";
-	var shortcuts = new Map();
-	var listening = false;
-
-	function comboOf(event) {
-		const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
-		return [event.ctrlKey && "Ctrl", event.shiftKey && "Shift", event.altKey && "Alt", key]
-			.filter(Boolean)
-			.join("+");
-	}
-
-	function isTextField(target) {
-		if (!(target instanceof HTMLElement)) return false;
-		const isEditable = target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
-		return isEditable && target.closest(EDITOR_ELEMENTS) === null;
-	}
-
-	function onKeyDown(event) {
-		const shortcut = shortcuts.get(comboOf(event));
-		if (!shortcut || (!shortcut.inTextFields && isTextField(event.target))) return;
-		if (!shortcut.handler()) return;
-		event.preventDefault();
-		event.stopPropagation();
-	}
-
-	function registerShortcut(combo, handler, {inTextFields = false} = {}) {
-		if (!listening) {
-			document.addEventListener("keydown", onKeyDown, true);
-			listening = true;
-		}
-		shortcuts.set(combo, {handler, inTextFields});
-		return () => shortcuts.delete(combo);
-	}
-
 	// CpToolkit/src/ui/tooltip/tooltip.css
 	var tooltip_default = `.tooltip {
 	position: fixed;
@@ -8377,7 +8593,7 @@ ${css}`,
 	var GAP_PX = 6;
 	var tooltips = [];
 	var bubble = null;
-	var listening2 = false;
+	var listening = false;
 	var hovered = null;
 
 	function ensureBubble() {
@@ -8423,10 +8639,10 @@ ${tooltip_default}`,
 	}
 
 	function addTooltip(anchor, text) {
-		if (!listening2) {
+		if (!listening) {
 			document.addEventListener("mouseover", onPointerMove);
 			document.addEventListener("click", refresh);
-			listening2 = true;
+			listening = true;
 		}
 		tooltips.push({anchor, text});
 	}
@@ -8936,11 +9152,8 @@ summary {
 
 	// CpToolkit/src/features/easy-test/index.ts
 	var PRECOMPILE_DELAY_MS = 180;
-	var TEST_AND_SUBMIT_KEY = "Ctrl+Enter";
-	var TEST_ALL_KEY = "Alt+Enter";
 	var featureOptions = {
 		precompile: option.boolean(true, "easyTest.precompile"),
-		keyboardShortcuts: option.boolean(true, "easyTest.keyboardShortcuts"),
 		savedCodeLimit: option.number(10, "easyTest.savedCodeLimit", {min: 0}),
 		allowableError: option.text("1e-6", "easyTest.allowableError"),
 	};
@@ -8995,7 +9208,7 @@ summary {
 			this.placeButtons();
 			this.placeSampleButtons();
 			if (this.context.options.precompile) this.watchSource();
-			if (this.context.options.keyboardShortcuts) this.registerShortcuts();
+			this.registerShortcuts();
 		}
 
 		createButton(label, className, onClick) {
@@ -9012,7 +9225,7 @@ summary {
 
 		createTestButton(label, className, shortcut, onClick) {
 			const button = this.createButton(this.context.translate(label), className, onClick);
-			if (this.context.options.keyboardShortcuts) addTooltip(() => button, shortcut);
+			addTooltip(() => button, shortcut);
 			button.style.marginLeft = "1rem";
 			return button;
 		}
@@ -9021,7 +9234,9 @@ summary {
 			const {translate} = this.context;
 			const {testButtons, sideButtons, results} = this.site.mounts;
 			if (testButtons instanceof Element) {
-				const submitKey = () => (this.session.submitPending ? null : TEST_AND_SUBMIT_KEY);
+				const {shortcuts} = this.context;
+				const submitKey = () =>
+					this.session.submitPending ? null : shortcuts.keyOf(SHORTCUT_ACTIONS.testAndSubmit);
 				this.submitButton = this.createTestButton("easyTest.testAndSubmit", "btn-info", submitKey, () => {
 					if (this.session.submitPending) this.session.cancelSubmit();
 					else this.testAndSubmit();
@@ -9031,7 +9246,7 @@ summary {
 					this.createTestButton(
 						"easyTest.testAll",
 						"btn-default btn-sm",
-						() => TEST_ALL_KEY,
+						() => shortcuts.keyOf(SHORTCUT_ACTIONS.testAll),
 						() => void this.testAll(),
 					),
 				);
@@ -9086,24 +9301,22 @@ summary {
 		}
 
 		registerShortcuts() {
+			const {shortcuts} = this.context;
 			const handled = (action) => () => {
 				action();
 				return true;
 			};
-			registerShortcut(
-				TEST_AND_SUBMIT_KEY,
+			shortcuts.register(
+				SHORTCUT_ACTIONS.testAndSubmit,
 				handled(() => void this.testAndSubmit()),
-				{inTextFields: true},
 			);
-			registerShortcut(
-				TEST_ALL_KEY,
+			shortcuts.register(
+				SHORTCUT_ACTIONS.testAll,
 				handled(() => void this.testAll()),
-				{inTextFields: true},
 			);
-			registerShortcut(
-				"Alt+Escape",
+			shortcuts.register(
+				SHORTCUT_ACTIONS.toggleEasyTest,
 				handled(() => this.dock.toggle()),
-				{inTextFields: true},
 			);
 		}
 
@@ -9602,6 +9815,18 @@ ${efficient_layout_default}`);
 		return text === "" || text.toLowerCase() === NO_SHORTCUT || normalizeShortcut(text) !== null;
 	}
 
+	function normalizeModifiers(text) {
+		const parts = text.split("+").map((part) => part.trim().toLowerCase());
+		const modifiers = MODIFIERS2.filter((name) => parts.includes(name.toLowerCase()));
+		if (modifiers.length === 0 || parts.some((part) => !MODIFIERS2.some((name) => name.toLowerCase() === part)))
+			return null;
+		return modifiers.join("+");
+	}
+
+	function isModifierSetting(text) {
+		return text.toLowerCase() === NO_SHORTCUT || normalizeModifiers(text) !== null;
+	}
+
 	// CpToolkit/src/application/ports/code-editor.ts
 	var EDITOR_SETUP_DELAY_MS = 500;
 
@@ -9676,8 +9901,60 @@ ${efficient_layout_default}`);
 		return {sourceCode, via: "fallback", failure: issue ? {diagnostics: reasons[issue], items: []} : null};
 	}
 
+	// CpToolkit/src/ui/shortcuts.ts
+	var EDITOR_ELEMENTS = ".ace_editor, .monaco-editor, #editor, #editor-div";
+	var POSITIONAL_SYMBOLS = {Comma: ",", Period: "."};
+	var shortcuts = new Map();
+	var listening2 = false;
+
+	function keyOf(event) {
+		if (/^Key[A-Z]$/.test(event.code)) return event.code.slice(3);
+		if (/^Digit[0-9]$/.test(event.code)) return event.code.slice(5);
+		const symbol = POSITIONAL_SYMBOLS[event.code];
+		if (symbol) return symbol;
+		return event.key.length === 1 ? event.key.toUpperCase() : event.key;
+	}
+
+	function comboOf(event) {
+		const key = keyOf(event);
+		return [event.ctrlKey && "Ctrl", event.shiftKey && "Shift", event.altKey && "Alt", key]
+			.filter(Boolean)
+			.join("+");
+	}
+
+	function isTextField(target) {
+		if (!(target instanceof HTMLElement)) return false;
+		const isEditable = target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
+		return isEditable && target.closest(EDITOR_ELEMENTS) === null;
+	}
+
+	function onKeyDown(event) {
+		if (event.ctrlKey && event.altKey && event.getModifierState("AltGraph")) return;
+		const shortcut = shortcuts.get(comboOf(event));
+		if (!shortcut || (!shortcut.inTextFields && isTextField(event.target))) return;
+		if (!shortcut.handler()) return;
+		event.preventDefault();
+		event.stopPropagation();
+	}
+
+	function registerShortcut(combo, handler, {inTextFields = false} = {}) {
+		if (!listening2) {
+			document.addEventListener("keydown", onKeyDown, true);
+			listening2 = true;
+		}
+		const shortcut = {handler, inTextFields};
+		shortcuts.set(combo, shortcut);
+		return () => {
+			if (shortcuts.get(combo) === shortcut) shortcuts.delete(combo);
+		};
+	}
+
 	// CpToolkit/src/features/keyboard-shortcuts/index.ts
 	var SHARE_URL = "https://x.com/intent/post";
+	var NOTICE_DURATION_MS2 = 2000;
+	var SAMPLE_NUMBERS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+	var TASK_LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+	var SAMPLE_ROUTES = ["atcoder:task", "atcoder:submit", "codeforces:problem", "yukicoder:problem"];
 
 	function resolveKey(value, fallback) {
 		if (value.toLowerCase() === NO_SHORTCUT) return null;
@@ -9689,6 +9966,42 @@ ${efficient_layout_default}`);
 			validate: isShortcutSetting,
 			invalidMessage: "keyboardShortcuts.invalidKey",
 		});
+	var modifierOption = (defaultValue, label) =>
+		option.text(defaultValue, label, {
+			validate: isModifierSetting,
+			invalidMessage: "keyboardShortcuts.invalidModifiers",
+		});
+	var PAGE_KEYS = {
+		openTasks: "tasks",
+		openMySubmissions: "mySubmissions",
+		openStandings: "standings",
+		openEditorial: "editorial",
+		openCustomTest: "customTest",
+	};
+	var featureOptions2 = {
+		openSettings: shortcutOption("Ctrl+I", "keyboardShortcuts.openSettings"),
+		submit: shortcutOption("", "keyboardShortcuts.submit"),
+		fold: shortcutOption("Ctrl+Shift+M", "keyboardShortcuts.fold"),
+		testAndSubmit: shortcutOption("Ctrl+Enter", "keyboardShortcuts.testAndSubmit"),
+		testAll: shortcutOption("Alt+Enter", "keyboardShortcuts.testAll"),
+		toggleEasyTest: shortcutOption("Alt+Escape", "keyboardShortcuts.toggleEasyTest"),
+		copyInput: modifierOption("Ctrl+Alt", "keyboardShortcuts.copyInput"),
+		copyOutput: modifierOption("Ctrl+Shift+Alt", "keyboardShortcuts.copyOutput"),
+		copyStatement: shortcutOption("Ctrl+Shift+Alt+P", "keyboardShortcuts.copyStatement"),
+		previousTask: shortcutOption("Ctrl+Alt+,", "keyboardShortcuts.previousTask"),
+		nextTask: shortcutOption("Ctrl+Alt+.", "keyboardShortcuts.nextTask"),
+		openTask: modifierOption("Ctrl+Alt", "keyboardShortcuts.openTask"),
+		openTasks: shortcutOption("Ctrl+Shift+Alt+T", "keyboardShortcuts.openTasks"),
+		openMySubmissions: shortcutOption("Ctrl+Shift+Alt+S", "keyboardShortcuts.openMySubmissions"),
+		openStandings: shortcutOption("Ctrl+Shift+Alt+R", "keyboardShortcuts.openStandings"),
+		openEditorial: shortcutOption("Ctrl+Shift+Alt+E", "keyboardShortcuts.openEditorial"),
+		openCustomTest: shortcutOption("Ctrl+Shift+Alt+C", "keyboardShortcuts.openCustomTest"),
+		acByTime: shortcutOption("Ctrl+Shift+Alt+F", "keyboardShortcuts.acByTime"),
+		acByLength: shortcutOption("Ctrl+Shift+Alt+L", "keyboardShortcuts.acByLength"),
+		acByCreated: shortcutOption("Ctrl+Shift+Alt+N", "keyboardShortcuts.acByCreated"),
+		acByMemory: shortcutOption("Ctrl+Shift+Alt+M", "keyboardShortcuts.acByMemory"),
+		share: shortcutOption("Ctrl+Shift+Alt+X", "keyboardShortcuts.share"),
+	};
 	var keyboardShortcuts = defineFeature({
 		id: "keyboard-shortcuts",
 		title: "keyboardShortcuts.title",
@@ -9705,57 +10018,123 @@ ${efficient_layout_default}`);
 			"yukicoder:problem",
 		],
 		phase: "ready",
-		options: {
-			submit: shortcutOption("", "keyboardShortcuts.submit"),
-			fold: shortcutOption("Ctrl+Shift+M", "keyboardShortcuts.fold"),
-			openSettings: shortcutOption("Ctrl+I", "keyboardShortcuts.openSettings"),
-			share: shortcutOption("", "keyboardShortcuts.share"),
-		},
-		start({options, judge, editors, submissionForm, openSettings}) {
-			const target = judge?.submission;
-			const settingsKey = resolveKey(options.openSettings, "");
-			if (settingsKey)
-				registerShortcut(settingsKey, () => {
-					openSettings();
-					return true;
+		options: featureOptions2,
+		start(services) {
+			const {options, judge, openSettings, shortcuts, isOnRoute, translate} = services;
+			const notice = (title, tone) => {
+				showToast({title, detail: "", tone, durationMs: NOTICE_DURATION_MS2});
+			};
+			const handlers = {};
+			const prefixHandlers = {};
+			const hasSamples = SAMPLE_ROUTES.some((route) => isOnRoute(route));
+			const copySample = (number, part) => {
+				if (!hasSamples) return false;
+				services.samples().then((samples) => {
+					const sample = samples[Number(number) - 1];
+					const text = part === "input" ? sample?.input : sample?.output;
+					const label = translate(
+						part === "input" ? "keyboardShortcuts.sampleInput" : "keyboardShortcuts.sampleOutput",
+					).replace("{number}", number);
+					if (text === undefined || text === null) {
+						notice(translate("keyboardShortcuts.sampleMissing").replace("{sample}", label), "warning");
+						return;
+					}
+					services.clipboard.write(text);
+					notice(translate("keyboardShortcuts.sampleCopied").replace("{sample}", label), "success");
 				});
-			const shareKey = resolveKey(options.share, "");
-			if (shareKey)
-				registerShortcut(shareKey, () => {
-					const url = `${SHARE_URL}?text=${encodeURIComponent(document.title)}&url=${encodeURIComponent(location.href)}`;
+				return true;
+			};
+			prefixHandlers.copyInput = {keys: SAMPLE_NUMBERS, handler: (number) => copySample(number, "input")};
+			prefixHandlers.copyOutput = {keys: SAMPLE_NUMBERS, handler: (number) => copySample(number, "output")};
+			const pages = contestPagesOf(judge?.id, location.pathname);
+			const goToTask = (pick) => {
+				if (!pages) return false;
+				services.contestTasks().then((tasks) => {
+					const task = tasks ? pick(tasks) : null;
+					if (task) location.assign(task.url);
+				});
+				return true;
+			};
+			prefixHandlers.openTask = {
+				keys: TASK_LETTERS,
+				handler: (letter) => goToTask((tasks) => taskByLetter(tasks, letter)),
+			};
+			handlers.previousTask = () => goToTask((tasks) => neighborTask(tasks, location.pathname, -1));
+			handlers.nextTask = () => goToTask((tasks) => neighborTask(tasks, location.pathname, 1));
+			for (const [name, page] of Object.entries(PAGE_KEYS)) {
+				handlers[name] = () => {
+					const url = pages?.[page];
+					if (!url) return false;
 					window.open(url, "_blank", "noopener");
 					return true;
+				};
+			}
+			for (const [name, id] of Object.entries(SHORTCUT_ACTIONS)) {
+				shortcuts.assign(id, resolveKey(options[name], ""));
+				handlers[name] = () => shortcuts.run(id);
+			}
+			handlers.openSettings = () => {
+				openSettings();
+				return true;
+			};
+			handlers.share = () => {
+				const url = `${SHARE_URL}?text=${encodeURIComponent(document.title)}&url=${encodeURIComponent(location.href)}`;
+				window.open(url, "_blank", "noopener");
+				return true;
+			};
+			const target = judge?.submission;
+			let submitKey = null;
+			if (target) {
+				let form = null;
+				let editor = null;
+				services.submissionForm(target).then((ready) => {
+					form = ready;
 				});
-			if (!target) return;
-			let form = null;
-			submissionForm(target).then((ready) => {
-				form = ready;
-			});
-			const submitKey = resolveKey(options.submit, target.shortcut);
-			if (submitKey) {
-				addTooltip(
-					() => form?.submitButton() ?? null,
-					() => submitKey,
-				);
-				registerShortcut(submitKey, () => {
+				submitKey = resolveKey(options.submit, target.shortcut);
+				const key = submitKey;
+				if (key)
+					addTooltip(
+						() => form?.submitButton() ?? null,
+						() => key,
+					);
+				handlers.submit = () => {
 					const button = form?.submitButton() ?? null;
 					button?.click();
 					return button !== null;
-				});
-			}
-			const foldKey = resolveKey(options.fold, "");
-			if (foldKey) {
-				editors.locate(target, {delayMs: EDITOR_SETUP_DELAY_MS}).then((editor) => {
-					if (!editor) return;
-					registerShortcut(foldKey, () => {
-						const family = form?.language(editor)?.family;
-						const lines = family ? languageSupport(family).foldStartLines?.(editor.getValue()) : undefined;
-						if (!lines) return false;
-						editor.foldLines(lines);
-						return true;
+				};
+				if (resolveKey(options.fold, "")) {
+					services.editors.locate(target, {delayMs: EDITOR_SETUP_DELAY_MS}).then((located) => {
+						editor = located;
 					});
-				});
+				}
+				handlers.fold = () => {
+					const family = editor ? form?.language(editor)?.family : undefined;
+					const lines =
+						editor && family ? languageSupport(family).foldStartLines?.(editor.getValue()) : undefined;
+					if (!editor || !lines) return false;
+					editor.foldLines(lines);
+					return true;
+				};
 			}
+			const byKey = new Map();
+			const bind = (key, handler) => {
+				byKey.set(key, [handler, ...(byKey.get(key) ?? [])]);
+			};
+			for (const name of Object.keys(featureOptions2)) {
+				if (name === "copyInput" || name === "copyOutput" || name === "openTask") {
+					const value = options[name];
+					const modifiers = value.toLowerCase() === NO_SHORTCUT ? null : normalizeModifiers(value);
+					const prefix = prefixHandlers[name];
+					if (modifiers && prefix)
+						for (const key of prefix.keys) bind(`${modifiers}+${key}`, () => prefix.handler(key));
+					continue;
+				}
+				const key = name === "submit" ? submitKey : resolveKey(options[name], "");
+				const handler = handlers[name];
+				if (key && handler) bind(key, handler);
+			}
+			for (const [key, list] of byKey)
+				registerShortcut(key, () => list.some((handler) => handler()), {inTextFields: true});
 		},
 	});
 
@@ -10101,7 +10480,7 @@ ${efficient_layout_default}`);
 	});
 
 	// CpToolkit/src/application/contest/latest-contests.ts
-	var CACHE_KEY2 = "latest-contests:cache";
+	var CACHE_KEY3 = "latest-contests:cache";
 	var HOME_URL = "/home";
 	var MINUTE_MS = 60 * 1000;
 	var isCache = isObjectOf({
@@ -10116,12 +10495,12 @@ ${efficient_layout_default}`);
 	});
 
 	async function loadLatestContests(cacheMinutes, {site, state, parse, now}) {
-		const cache = readStored(state, CACHE_KEY2, isCache, null);
+		const cache = readStored(state, CACHE_KEY3, isCache, null);
 		if (cache && now - cache.fetchedAt < cacheMinutes * MINUTE_MS) return cache.contests;
 		const response = await site.send({url: HOME_URL});
 		if (response.status !== 200) throw new Error(`Failed to load ${HOME_URL}`);
 		const contests = parse(response.text);
-		if (contests.length > 0) state.set(CACHE_KEY2, {fetchedAt: now, contests});
+		if (contests.length > 0) state.set(CACHE_KEY3, {fetchedAt: now, contests});
 		return contests;
 	}
 
@@ -11232,8 +11611,9 @@ ${efficient_layout_default}`);
 			]),
 		},
 		live: true,
-		start({options, clipboard, statementConverter, translate}) {
+		start({options, clipboard, statementConverter, translate, shortcuts}) {
 			const added = [];
+			const disposers = [];
 			const container = document.getElementById("task-statement");
 			if (!container)
 				return () => {
@@ -11282,17 +11662,24 @@ URL: ${location.href}
 
 ${body}`.trim();
 				};
-				const wrapper = h(
-					"span",
-					{className: "pull-right"},
-					createButton(translate("statementCopy.copyAll"), copyAll),
-				);
+				const copyAllButton = createButton(translate("statementCopy.copyAll"), copyAll);
+				const wrapper = h("span", {className: "pull-right"}, copyAllButton);
 				wrapper.style.fontSize = "14px";
 				title.append(wrapper);
 				added.push(wrapper);
+				addTooltip(
+					() => copyAllButton,
+					() => shortcuts.keyOf(SHORTCUT_ACTIONS.copyStatement),
+				);
+				const unregister = shortcuts.register(SHORTCUT_ACTIONS.copyStatement, () => {
+					copyAllButton.click();
+					return true;
+				});
+				disposers.push(unregister);
 			}
 			return () => {
 				for (const element of added) element.remove();
+				for (const dispose of disposers) dispose();
 			};
 		},
 	});
@@ -11520,10 +11907,30 @@ ${statement_highlight_default}`);
 
 	// CpToolkit/src/features/submission-shortcuts/index.ts
 	var ORDERS = [
-		{option: "byTime", orderBy: "time_consumption", label: "submissionShortcuts.time"},
-		{option: "byLength", orderBy: "source_length", label: "submissionShortcuts.length"},
-		{option: "byCreated", orderBy: "created", label: "submissionShortcuts.created"},
-		{option: "byMemory", orderBy: "memory_consumption", label: "submissionShortcuts.memory"},
+		{
+			option: "byTime",
+			orderBy: "time_consumption",
+			label: "submissionShortcuts.time",
+			action: SHORTCUT_ACTIONS.acByTime,
+		},
+		{
+			option: "byLength",
+			orderBy: "source_length",
+			label: "submissionShortcuts.length",
+			action: SHORTCUT_ACTIONS.acByLength,
+		},
+		{
+			option: "byCreated",
+			orderBy: "created",
+			label: "submissionShortcuts.created",
+			action: SHORTCUT_ACTIONS.acByCreated,
+		},
+		{
+			option: "byMemory",
+			orderBy: "memory_consumption",
+			label: "submissionShortcuts.memory",
+			action: SHORTCUT_ACTIONS.acByMemory,
+		},
 	];
 	var submissionShortcuts = defineFeature({
 		id: "submission-shortcuts",
@@ -11541,7 +11948,7 @@ ${statement_highlight_default}`);
 			byMemory: option.boolean(true, "submissionShortcuts.byMemory"),
 		},
 		live: true,
-		start({options, page, translate}) {
+		start({options, page, translate, shortcuts}) {
 			const task = parseAtCoderTaskUrl(location.href);
 			const title = document.querySelector(".h2");
 			const period = page.contestPeriod();
@@ -11549,23 +11956,37 @@ ${statement_highlight_default}`);
 				return () => {
 					return;
 				};
-			const orders = ORDERS.filter((order) => options[order.option]);
-			if (!task || !title || orders.length === 0)
+			if (!task)
 				return () => {
 					return;
 				};
-			const createLink = (label, orderBy) => {
+			const urlOf = (orderBy) => {
 				const query = buildAtCoderSubmissionsQuery({
 					language: options.language || undefined,
 					status: "AC",
 					orderBy,
 					task: task.taskId,
 				});
-				return h("a", {
-					className: "btn btn-default btn-sm",
-					href: `/contests/${task.contestId}/submissions?${query}`,
-					textContent: label,
-				});
+				return `/contests/${task.contestId}/submissions?${query}`;
+			};
+			const unregister = ORDERS.map(({orderBy, action}) =>
+				shortcuts.register(action, () => {
+					window.open(urlOf(orderBy), "_blank", "noopener");
+					return true;
+				}),
+			);
+			const dispose = () => {
+				for (const remove of unregister) remove();
+			};
+			const orders = ORDERS.filter((order) => options[order.option]);
+			if (!title || orders.length === 0) return dispose;
+			const createLink = (label, orderBy, action) => {
+				const link = h("a", {className: "btn btn-default btn-sm", href: urlOf(orderBy), textContent: label});
+				addTooltip(
+					() => link,
+					() => shortcuts.keyOf(action),
+				);
+				return link;
 			};
 			const label = h("span", {textContent: `${translate("submissionShortcuts.label")}:`});
 			label.style.marginRight = "6px";
@@ -11576,7 +11997,7 @@ ${statement_highlight_default}`);
 				h(
 					"span",
 					{className: "btn-group"},
-					...orders.map(({orderBy, label}) => createLink(translate(label), orderBy)),
+					...orders.map(({orderBy, label, action}) => createLink(translate(label), orderBy, action)),
 				),
 			);
 			Object.assign(wrapper.style, {
@@ -11587,7 +12008,10 @@ ${statement_highlight_default}`);
 				whiteSpace: "nowrap",
 			});
 			title.append(wrapper);
-			return () => wrapper.remove();
+			return () => {
+				wrapper.remove();
+				dispose();
+			};
 		},
 	});
 
@@ -11682,29 +12106,6 @@ ${statement_highlight_default}`);
 	function rangeIndices({begin, end}, reverse) {
 		const indices = Array.from({length: end - begin + 1}, (_, index) => begin + index);
 		return reverse ? indices.toReversed() : indices;
-	}
-
-	// CpToolkit/src/application/contest/task-list.ts
-	var isCacheEntry = isObjectOf({
-		tasks: isArrayOf(isObjectOf({url: isString, label: isString, name: isString})),
-		lastAccess: isNumber,
-	});
-	var CACHE_KEY3 = "task-dropdown:tasks";
-	var DAY_MS = 24 * 60 * 60 * 1000;
-
-	async function loadContestTasks(contestId, {site, state, parse, cacheDays}) {
-		const cache = readStored(state, CACHE_KEY3, isRecordOf(isCacheEntry), {});
-		const now = Date.now();
-		const fresh = Object.entries(cache).filter(([, entry]) => now - entry.lastAccess < cacheDays * DAY_MS);
-		let tasks = cache[contestId]?.tasks ?? null;
-		if (!tasks) {
-			const response = await site.send({url: `/contests/${contestId}/tasks`});
-			if (response.status !== 200) return null;
-			tasks = parse(response.text);
-		}
-		const entries = tasks.length > 0 ? [...fresh, [contestId, {tasks, lastAccess: now}]] : fresh;
-		state.set(CACHE_KEY3, Object.fromEntries(entries));
-		return tasks;
 	}
 
 	// CpToolkit/src/features/task-dropdown/open-tasks-modal.css
@@ -11874,17 +12275,6 @@ button.primary {
 	var REVERSE_KEY = "task-dropdown:reverse";
 	var RANGES_KEY = "task-dropdown:ranges";
 
-	function parseTaskPage(html) {
-		const page = new DOMParser().parseFromString(html, "text/html");
-		return [...page.querySelectorAll("#contest-nav-tabs + .col-sm-12 tbody tr")].flatMap((row) => {
-			const [labelCell, nameCell] = row.querySelectorAll("td");
-			const link = labelCell?.querySelector("a");
-			const url = link?.getAttribute("href");
-			if (!link || !url) return [];
-			return [{url, label: link.textContent ?? "", name: nameCell?.textContent?.trim() ?? ""}];
-		});
-	}
-
 	function turnIntoDropdown(tab) {
 		tab.className = "dropdown-toggle";
 		tab.href = "#";
@@ -11935,7 +12325,7 @@ button.primary {
 		routes: ["atcoder:contest"],
 		phase: "ready",
 		options: {},
-		async start({site, state, translate}) {
+		async start({contestTasks, state, translate}) {
 			const tab = document.querySelector('#contest-nav-tabs a[href$="tasks"]');
 			const contestId = contestIdOf(location.pathname);
 			if (!tab || !contestId) return;
@@ -11946,12 +12336,7 @@ button.primary {
 				createNewTabToggle(state, translate),
 				createTaskLink(taskTableUrl, translate("taskDropdown.taskTable"), state, "glyphicon-list"),
 			);
-			const tasks = await loadContestTasks(contestId, {
-				site,
-				state,
-				parse: parseTaskPage,
-				cacheDays: contestCatalog.taskCacheDays,
-			}).catch(() => null);
+			const tasks = await contestTasks();
 			if (!tasks) {
 				const failure = h("a", {textContent: translate("taskDropdown.loadFailed")});
 				menu.append(h("li", {className: "divider"}), h("li", {}, failure));

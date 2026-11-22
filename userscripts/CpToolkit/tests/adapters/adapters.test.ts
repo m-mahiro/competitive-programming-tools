@@ -2,7 +2,8 @@ import {afterEach, beforeEach, describe, expect, mock, test} from "bun:test";
 import {importLegacySettings} from "@application/settings/legacy-import";
 import {SettingsService} from "@application/settings/settings-service";
 import {AtCoderSite} from "@adapters/judges/atcoder";
-import {CodeforcesSite} from "@adapters/judges/codeforces";
+import {CodeforcesSite, readCodeforcesSamples} from "@adapters/judges/codeforces";
+import {parseCodeforcesContestPage} from "@adapters/page/contest-tasks";
 import {languagesOf} from "@adapters/judges/languages";
 import {YukicoderSite} from "@adapters/judges/yukicoder";
 import {PageCodeEditorLocator} from "@adapters/page/code-editors";
@@ -403,6 +404,25 @@ describe("CodeforcesSite", () => {
 		const samples = await new CodeforcesSite(bridge).samples();
 		expect(samples[0]).toMatchObject({input: "1\n2", output: "3\n"});
 	});
+
+	test("提出欄に手を加えずに入出力例を読む", () => {
+		document.body.innerHTML = `<form class="submitForm"></form><div class="sample-test">
+			<div class="input"><pre>1 2</pre></div><div class="output"><pre>3</pre></div>
+		</div>`;
+		expect(readCodeforcesSamples()).toMatchObject([{input: "1 2", output: "3", anchors: []}]);
+		expect(document.querySelector("textarea")).toBeNull();
+	});
+
+	test("コンテストのページの表から問題を順番どおりに読む", () => {
+		const html = `<table class="problems"><tr><th>#</th></tr>
+			<tr><td class="id"><a href="/contest/2000/problem/A"> A </a></td><td><div><div><a href="/contest/2000/problem/A">Alpha</a></div></div></td></tr>
+			<tr><td class="id"><a href="/contest/2000/problem/C1">C1</a></td><td><div><div><a>Gamma</a></div></div></td></tr>
+		</table>`;
+		expect(parseCodeforcesContestPage(html)).toEqual([
+			{url: "/contest/2000/problem/A", label: "A", name: "Alpha"},
+			{url: "/contest/2000/problem/C1", label: "C1", name: "Gamma"},
+		]);
+	});
 });
 
 describe("CrossTabQueue", () => {
@@ -713,7 +733,8 @@ describe("旧スクリプトの設定の引き継ぎ", () => {
 		expect(settings.storedOptions("wide-layout")).toEqual({width: "80%"});
 		expect(settings.storedOptions("paiza-language")).toEqual({language: "java"});
 		expect(settings.storedOptions("local-runner")).toEqual({url: "http://localhost:9000"});
-		expect(settings.storedOptions("easy-test")).toEqual({keyboardShortcuts: false});
+		expect(settings.storedOptions("easy-test")).toEqual({});
+		expect(settings.storedOptions("keyboard-shortcuts")).toEqual({testAndSubmit: "none", testAll: "none", toggleEasyTest: "none"});
 		expect(localStorage.getItem("cp-toolkit:legacy:AtCoderHighlighter")).toBeNull();
 	});
 

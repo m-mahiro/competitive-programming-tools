@@ -1,4 +1,5 @@
 import {parseStoredObject} from "@atcoder-tools/shared";
+import {EASY_TEST_KEYS_OFF} from "./migrations";
 
 /** 統合前のスクリプトの設定を、機能の設定へ変換した結果。 */
 export type MigratedOptions = {
@@ -39,6 +40,10 @@ export const LEGACY_SCRIPTS: Readonly<Record<string, (stored: Stored) => readonl
 	}],
 	AtCoderEasyTestForJava: (stored) => {
 		const config = parseStoredObject<Stored>(stored.config);
+		// キーはショートカットキーの機能で決める
+		const keys: MigratedOptions[] = parseFlag(config["ui.useKeyboardShortcut"]) === false
+			? [{featureId: "keyboard-shortcuts", options: EASY_TEST_KEYS_OFF}]
+			: [];
 		return [
 			{featureId: "local-runner", options: defined({url: config["codeRunner.localRunnerURL"] || undefined})},
 			{
@@ -46,9 +51,9 @@ export const LEGACY_SCRIPTS: Readonly<Record<string, (stored: Stored) => readonl
 				enable: true,
 				options: defined({
 					precompile: parseFlag(config["codeRunner.precompile.enable"]),
-					keyboardShortcuts: parseFlag(config["ui.useKeyboardShortcut"]),
 				}),
 			},
+			...keys,
 		];
 	},
 };

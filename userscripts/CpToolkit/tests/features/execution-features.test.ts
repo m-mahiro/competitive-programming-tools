@@ -2,6 +2,8 @@ import {afterEach, beforeEach, describe, expect, mock, test} from "bun:test";
 import type {JudgeLanguage, RunResult} from "@domain/execution/result";
 import {LocalRunnerClient} from "@application/execution/local-runner";
 import {PastePipeline} from "@application/source/paste-pipeline";
+import {SHORTCUT_ACTIONS, ShortcutActions} from "@application/shortcuts/shortcut-actions";
+import type {FeatureServices} from "@application/feature/definition";
 import {type CodeRunner, RunnerCatalogService} from "@application/execution/runner-catalog";
 import type {CodeEditor} from "@application/ports/code-editor";
 import type {JudgeSite, SampleCase} from "@application/ports/judge-site";
@@ -12,13 +14,19 @@ import {submissionHelper} from "@features/java-submit/index";
 import {keyboardShortcuts} from "@features/keyboard-shortcuts/index";
 import {paizaLanguage} from "@features/paiza-language/index";
 import {taskDropdown} from "@features/task-dropdown/index";
+import {loadContestTasks} from "@application/contest/task-list";
+import {parseAtCoderTaskPage} from "@adapters/page/contest-tasks";
 import {createFakePage, createFakeServices, FakeHttpClient, MemoryStore} from "../support/fakes";
 
 const wait = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const shadowRoots = (): ShadowRoot[] => [...document.body.children].flatMap((element) => element.shadowRoot ?? []);
-const pressKey = (key: string, modifiers: KeyboardEventInit = {}) => {
-	document.body.dispatchEvent(new KeyboardEvent("keydown", {key, bubbles: true, ...modifiers}));
+/** ブラウザと同じく、AltGr は altGraph を指定したときだけ押したことにする(テストの DOM は Alt を AltGr とみなす)。 */
+const pressKey = (key: string, {altGraph = false, ...modifiers}: KeyboardEventInit & {altGraph?: boolean} = {}, target: EventTarget = document.body) => {
+	const event = new KeyboardEvent("keydown", {key, bubbles: true, ...modifiers});
+	const original = event.getModifierState.bind(event);
+	Object.defineProperty(event, "getModifierState", {value: (name: string) => name === "AltGraph" ? altGraph : original(name)});
+	target.dispatchEvent(event);
 };
 const hover = (element: Element | null | undefined) => {
 	element?.dispatchEvent(new MouseEvent("mouseover", {bubbles: true}));
@@ -103,9 +111,24 @@ describe("easyTest", () => {
 	const activeTab = () => tabs().find(({dataset}) => dataset.active === "true")?.firstChild?.textContent;
 	const row = () => document.querySelector<HTMLElement>(".cp-et-row");
 
-	describe("ショートカットの説明", () => {
+	/** ショートカットキーの機能でキーを割り当ててから起動する。 */
+	async function startWithKeys(site: JudgeSite, run: CodeRunner["run"], keys: Record<string, string> = {}) {
+		const shortcuts = new ShortcutActions();
+		await keyboardShortcuts.run(keys, createFakeServices({shortcuts, openSettings: () => undefined}));
+		await start(site, run, {shortcuts});
+	}
+
+	describe("ショートカット", () => {
+		test("ショートカットキーの機能で決めたキーで実行する", async () => {
+			const site = createSite();
+			await startWithKeys(site, echo, {testAndSubmit: "Alt+T"});
+			pressKey("t", {altKey: true, code: "KeyT"});
+			await wait(30);
+			expect(site.submit).toHaveBeenCalledTimes(1);
+		});
+
 		test("カーソルを乗せるとすぐに表示し、離すと消す", async () => {
-			await start(createSite(), echo);
+			await startWithKeys(createSite(), echo);
 			hover(button("Test & Submit"));
 			expect(tooltipText()).toBe("Ctrl+Enter");
 			hover(button("Test All Samples"));
@@ -115,7 +138,7 @@ describe("easyTest", () => {
 		});
 
 		test("中止のボタンの間は表示しない", async () => {
-			await start(createSite(), () => new Promise(() => undefined));
+			await startWithKeys(createSite(), () => new Promise(() => undefined));
 			hover(button("Test & Submit"));
 			button("Test & Submit")?.click();
 			await wait();
@@ -124,14 +147,8 @@ describe("easyTest", () => {
 			expect(tooltipText()).toBeNull();
 		});
 
-		test("ショートカットを無効にしていれば表示しない", async () => {
-			await easyTest.run({keyboardShortcuts: false}, createFakeServices({
-				judgeSite: async () => createSite(),
-				openSettings: () => undefined,
-				runners: createRunners(echo),
-				localRunner: new LocalRunnerClient(new FakeHttpClient(() => ({status: 500, text: ""})), () => null),
-			}));
-			await wait();
+		test("キーを割り当てていなければ表示しない", async () => {
+			await startWithKeys(createSite(), echo, {testAndSubmit: "none"});
 			hover(button("Test & Submit"));
 			expect(tooltipText()).toBeNull();
 		});
@@ -222,7 +239,7 @@ describe("easyTest", () => {
 		test("テスト中のショートカットは無視し、二重に提出しない", async () => {
 			const site = createSite();
 			const {run, open} = createGate();
-			await start(site, run);
+			await startWithKeys(site, run);
 			pressKey("Enter", {ctrlKey: true});
 			await wait();
 			pressKey("Enter", {ctrlKey: true});
@@ -464,10 +481,10 @@ describe("easyTest", () => {
 
 	test("ショートカットは入力欄の中でも動く", async () => {
 		const site = createSite();
-		await start(site, echo);
+		await startWithKeys(site, echo);
 		const textarea = document.createElement("textarea");
 		document.body.append(textarea);
-		textarea.dispatchEvent(new KeyboardEvent("keydown", {key: "Enter", ctrlKey: true, bubbles: true}));
+		pressKey("Enter", {ctrlKey: true}, textarea);
 		await wait(30);
 		expect(site.submit).toHaveBeenCalledTimes(1);
 	});
@@ -825,16 +842,18 @@ describe("taskDropdown", () => {
 		<tr><td><a href="/contests/abc1/tasks/abc1_b">B</a></td><td><a>Second</a></td></tr>
 	</tbody></table></div></body></html>`;
 
+	const tasksFrom = (status: number, text: string) => () => loadContestTasks(location.pathname.split("/")[2] ?? "", {
+		site: new FakeHttpClient(() => ({status, text})),
+		state: new MemoryStore(),
+		parse: parseAtCoderTaskPage,
+		cacheDays: 1,
+	});
+
 	test("タブに問題の一覧を追加する", async () => {
 		history.replaceState(null, "", "/contests/abc1/tasks/abc1_a");
 		document.body.innerHTML = '<ul id="contest-nav-tabs-list"><li><a href="/contests/abc1/tasks">問題</a></li></ul>';
 		document.querySelector("ul")!.id = "contest-nav-tabs";
-		await taskDropdown.run(undefined, createFakeServices({
-			site: new FakeHttpClient(() => ({
-				status: 200,
-				text: tasksPage,
-			}))
-		}));
+		await taskDropdown.run(undefined, createFakeServices({contestTasks: tasksFrom(200, tasksPage)}));
 
 		const labels = [...document.querySelectorAll(".cp-task-menu a")].map(({textContent}) => textContent?.trim());
 		expect(labels).toEqual(["問題一覧", "まとめて開く...", "A - First", "B - Second"]);
@@ -843,12 +862,7 @@ describe("taskDropdown", () => {
 	test("読み込みに失敗したらその旨を表示する", async () => {
 		history.replaceState(null, "", "/contests/abc2/tasks/abc2_a");
 		document.body.innerHTML = '<ul id="contest-nav-tabs"><li><a href="/contests/abc2/tasks">問題</a></li></ul>';
-		await taskDropdown.run(undefined, createFakeServices({
-			site: new FakeHttpClient(() => ({
-				status: 500,
-				text: "",
-			}))
-		}));
+		await taskDropdown.run(undefined, createFakeServices({contestTasks: tasksFrom(500, "")}));
 		expect(document.querySelector(".cp-task-menu")?.textContent).toContain("読み込み失敗");
 	});
 });
@@ -878,5 +892,114 @@ describe("Easy Test の結果の表示", () => {
 		expect(memoryCell({memory: 2048})).toBe("2048 KB");
 		expect(memoryCell({allocatedMemory: 2048})).toBe("2048 KB (easyTest.allocated)");
 		expect(memoryCell({})).toBe("");
+	});
+});
+
+describe("keyboardShortcuts の追加の操作", () => {
+	const atcoder = {id: "atcoder", name: "AtCoder", matches: [], routes: {}, navigationLists: []};
+	const samples = async () => [
+		{title: "Sample 1", input: "1 2\n", output: "3\n"},
+		{title: "Sample 2", input: "5 6\n", output: null},
+	];
+	const start = async (overrides: Partial<FeatureServices>, keys: Record<string, string> = {}) => {
+		const shortcuts = new ShortcutActions();
+		await keyboardShortcuts.run(keys, createFakeServices({
+			judge: atcoder,
+			shortcuts,
+			isOnRoute: (route) => route === "atcoder:task",
+			openSettings: () => undefined,
+			...overrides,
+		}));
+		return shortcuts;
+	};
+
+	afterEach(() => {
+		history.replaceState(null, "", "/");
+	});
+
+	test("入力例と出力例を番号で分けてコピーし、提出欄の中でも反応する", async () => {
+		history.replaceState(null, "", "/contests/abc1/tasks/abc1_a");
+		const written: string[] = [];
+		await start({samples, clipboard: {write: (text) => written.push(text)}});
+		const textarea = document.body.appendChild(document.createElement("textarea"));
+		pressKey("2", {ctrlKey: true, altKey: true, code: "Digit2"}, textarea);
+		pressKey("!", {ctrlKey: true, shiftKey: true, altKey: true, code: "Digit1"}, textarea);
+		// 出力例の無い入出力例と、無い番号はコピーしない
+		pressKey("@", {ctrlKey: true, shiftKey: true, altKey: true, code: "Digit2"});
+		pressKey("9", {ctrlKey: true, altKey: true, code: "Digit9"});
+		await wait();
+		expect(written).toEqual(["5 6\n", "3\n"]);
+	});
+
+	test("AltGr で入力する文字は妨げない", async () => {
+		history.replaceState(null, "", "/contests/abc1/tasks/abc1_a");
+		const written: string[] = [];
+		await start({samples, clipboard: {write: (text) => written.push(text)}});
+		pressKey("@", {ctrlKey: true, altKey: true, code: "Digit2", altGraph: true});
+		await wait();
+		expect(written).toEqual([]);
+	});
+
+	test("コンテストのページと、ほかの機能の操作を開く", async () => {
+		history.replaceState(null, "", "/contests/abc1/tasks/abc1_b");
+		const opened: string[] = [];
+		const originalOpen = window.open;
+		window.open = ((url: string) => {
+			opened.push(url);
+			return null;
+		}) as typeof window.open;
+		try {
+			const shortcuts = await start({}, {openEditorial: "Alt+E"});
+			shortcuts.register(SHORTCUT_ACTIONS.acByTime, () => {
+				opened.push("ac");
+				return true;
+			});
+			pressKey("r", {ctrlKey: true, shiftKey: true, altKey: true, code: "KeyR"});
+			pressKey("e", {altKey: true, code: "KeyE"});
+			pressKey("f", {ctrlKey: true, shiftKey: true, altKey: true, code: "KeyF"});
+			expect(opened).toEqual(["/contests/abc1/standings", "/contests/abc1/tasks/abc1_b/editorial", "ac"]);
+			expect(shortcuts.keyOf(SHORTCUT_ACTIONS.acByTime)).toBe("Ctrl+Shift+Alt+F");
+		} finally {
+			window.open = originalOpen;
+		}
+	});
+
+	test("前後の問題と、記号で選んだ問題へ移る", async () => {
+		history.replaceState(null, "", "/contests/abc1/tasks/abc1_b");
+		const tasks = ["a", "b", "c"].map((id) => ({url: `/contests/abc1/tasks/abc1_${id}`, label: id.toUpperCase(), name: ""}));
+		const visited: string[] = [];
+		const assign = mock((url: string | URL) => visited.push(String(url)));
+		const original = Object.getOwnPropertyDescriptor(window.location, "assign");
+		Object.defineProperty(window.location, "assign", {value: assign, configurable: true});
+		try {
+			await start({contestTasks: async () => tasks});
+			pressKey(".", {ctrlKey: true, altKey: true, code: "Period"});
+			pressKey(",", {ctrlKey: true, altKey: true, code: "Comma"});
+			pressKey("a", {ctrlKey: true, altKey: true, code: "KeyA"});
+			await wait();
+			expect(visited).toEqual(["/contests/abc1/tasks/abc1_c", "/contests/abc1/tasks/abc1_a", "/contests/abc1/tasks/abc1_a"]);
+		} finally {
+			if (original) Object.defineProperty(window.location, "assign", original);
+		}
+	});
+});
+
+describe("keyboardShortcuts の重なったキー", () => {
+	test("後の項目がそのページで使えなければ、前の項目の操作を行う", async () => {
+		document.body.innerHTML = '<button id="submit"></button>';
+		const click = mock(() => undefined);
+		document.querySelector("#submit")?.addEventListener("click", click);
+		const paiza = {id: "paiza", name: "paiza", matches: [], routes: {}, navigationLists: [], submission: {
+			editor: "ace" as const, editorElements: ["#editor"], shortcut: "Ctrl+Enter", submitButtons: ["#submit"],
+		}};
+		await keyboardShortcuts.run(undefined, createFakeServices({
+			judge: paiza,
+			isOnRoute: () => false,
+			openSettings: () => undefined,
+			editors: {locate: async () => null},
+		}));
+		await wait();
+		pressKey("Enter", {ctrlKey: true});
+		expect(click).toHaveBeenCalledTimes(1);
 	});
 });

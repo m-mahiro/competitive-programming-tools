@@ -6,9 +6,9 @@ import {type EnvironmentView, RunnerSelection} from "@application/execution/runn
 import {TestSession} from "@application/execution/test-session";
 import {defineFeature, type FeatureContext} from "@application/feature/definition";
 import type {JudgeSite, SampleCase} from "@application/ports/judge-site";
+import {SHORTCUT_ACTIONS} from "@application/shortcuts/shortcut-actions";
 import {createDock, type Dock, type DockTab} from "@ui/dock/dock";
 import {h, injectStyle} from "@ui/element";
-import {registerShortcut} from "@ui/shortcuts";
 import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
 import {addTooltip} from "@ui/tooltip/tooltip";
 import css from "./easy-test.css" with {type: "text"};
@@ -17,12 +17,9 @@ import {SavedCodes} from "./saved-code";
 import {createResultRow, createResultView, createTestPanel, type TestPanel, toneOf} from "./views";
 
 const PRECOMPILE_DELAY_MS = 180;
-const TEST_AND_SUBMIT_KEY = "Ctrl+Enter";
-const TEST_ALL_KEY = "Alt+Enter";
 
 const featureOptions = {
 	precompile: option.boolean(true, "easyTest.precompile"),
-	keyboardShortcuts: option.boolean(true, "easyTest.keyboardShortcuts"),
 	savedCodeLimit: option.number(10, "easyTest.savedCodeLimit", {min: 0}),
 	allowableError: option.text("1e-6", "easyTest.allowableError"),
 };
@@ -77,7 +74,7 @@ class EasyTest {
 		this.placeButtons();
 		this.placeSampleButtons();
 		if (this.context.options.precompile) this.watchSource();
-		if (this.context.options.keyboardShortcuts) this.registerShortcuts();
+		this.registerShortcuts();
 	}
 
 	/** 実行中でも次の実行を受け付けるので、見た目だけを切り替える。 */
@@ -95,7 +92,7 @@ class EasyTest {
 
 	private createTestButton(label: MessageKey, className: string, shortcut: () => string | null, onClick: () => void): HTMLButtonElement {
 		const button = this.createButton(this.context.translate(label), className, onClick);
-		if (this.context.options.keyboardShortcuts) addTooltip(() => button, shortcut);
+		addTooltip(() => button, shortcut);
 		button.style.marginLeft = "1rem";
 		return button;
 	}
@@ -105,14 +102,15 @@ class EasyTest {
 		const {testButtons, sideButtons, results} = this.site.mounts;
 		if (testButtons instanceof Element) {
 			// 中止のボタンの間は、ショートカットでは中止できない
-			const submitKey = (): string | null => this.session.submitPending ? null : TEST_AND_SUBMIT_KEY;
+			const {shortcuts} = this.context;
+			const submitKey = (): string | null => this.session.submitPending ? null : shortcuts.keyOf(SHORTCUT_ACTIONS.testAndSubmit);
 			this.submitButton = this.createTestButton("easyTest.testAndSubmit", "btn-info", submitKey, () => {
 				if (this.session.submitPending) this.session.cancelSubmit();
 				else void this.testAndSubmit();
 			});
 			testButtons.append(
 				this.submitButton,
-				this.createTestButton("easyTest.testAll", "btn-default btn-sm", () => TEST_ALL_KEY, () => void this.testAll()),
+				this.createTestButton("easyTest.testAll", "btn-default btn-sm", () => shortcuts.keyOf(SHORTCUT_ACTIONS.testAll), () => void this.testAll()),
 			);
 		}
 		if (sideButtons instanceof Element) {
@@ -156,14 +154,16 @@ class EasyTest {
 		schedule();
 	}
 
+	/** キーはショートカットキーの機能の設定で決める。 */
 	private registerShortcuts(): void {
+		const {shortcuts} = this.context;
 		const handled = (action: () => void) => () => {
 			action();
 			return true;
 		};
-		registerShortcut(TEST_AND_SUBMIT_KEY, handled(() => void this.testAndSubmit()), {inTextFields: true});
-		registerShortcut(TEST_ALL_KEY, handled(() => void this.testAll()), {inTextFields: true});
-		registerShortcut("Alt+Escape", handled(() => this.dock.toggle()), {inTextFields: true});
+		shortcuts.register(SHORTCUT_ACTIONS.testAndSubmit, handled(() => void this.testAndSubmit()));
+		shortcuts.register(SHORTCUT_ACTIONS.testAll, handled(() => void this.testAll()));
+		shortcuts.register(SHORTCUT_ACTIONS.toggleEasyTest, handled(() => this.dock.toggle()));
 	}
 
 	private refreshEnvironment(): Promise<void> {

@@ -224,7 +224,7 @@ Tampermonkey の「設定を開く」、または AtCoder のヘッダーにあ�
 </tr>
 <tr>
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/keyboard-shortcuts.md"><strong>ショートカットキー</strong></a>&emsp;</td>
-<td>提出や設定画面を開く操作を、好きなキーで行えます。</td>
+<td>提出、入出力例のコピー、問題の切り替え、ページを開く操作などを、好きなキーで行えます。</td>
 </tr>
 <tr style="background-color: rgba(128, 128, 128, 0.1)">
 <td><a href="https://github.com/nsubaru11/competitive-programming-tools/blob/main/userscripts/CpToolkit/docs/features/paiza-language.md"><strong>paiza の言語選択</strong></a>&emsp;</td>

@@ -11,6 +11,7 @@
 - Choose “Copy” beside a section heading to copy that section.
 - “Copy All” includes the task title, URL and all sections before the first sample in the displayed language.
 - Choose Markdown or plain text in the detailed settings.
+- You can also run “Copy All” with [Keyboard shortcuts](keyboard-shortcuts.en.md).
 
 ## Detailed settings
 

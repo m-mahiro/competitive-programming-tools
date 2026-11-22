@@ -8,6 +8,7 @@ import type {ScriptHost} from "@application/ports/script-host";
 import type {HttpClient, HttpRequest, HttpResponse, Ticker} from "@application/ports/services";
 import {UpdateChecker} from "@application/update/update-checker";
 import type {SubmissionForm} from "@application/ports/submission-form";
+import {ShortcutActions} from "@application/shortcuts/shortcut-actions";
 import type {SubmissionTarget} from "@domain/page/route";
 import {createSubmissionForm} from "@adapters/page/submission-form";
 
@@ -124,6 +125,7 @@ export function createFakeServices(overrides: Partial<FeatureServices> = {}): Fe
 		isOnRoute: () => false,
 		judge: null,
 		state: new MemoryStore(),
+		shortcuts: new ShortcutActions(),
 		...overrides,
 	};
 	// 提出欄の操作は、渡したサイトとページから本物を組み立てる

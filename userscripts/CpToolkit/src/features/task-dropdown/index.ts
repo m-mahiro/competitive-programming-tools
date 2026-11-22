@@ -3,7 +3,6 @@ import {contestCatalog} from "@catalog/tables";
 import {contestCategory, isTaskRange} from "@domain/contest/category";
 import {contestIdOf} from "@domain/page/route";
 import {isRecordOf} from "@domain/validation/guards";
-import {type ContestTask, loadContestTasks} from "@application/contest/task-list";
 import {defineFeature} from "@application/feature/definition";
 import {type KeyValueStore, readStored} from "@application/ports/key-value-store";
 import {h, injectStyle} from "@ui/element";
@@ -13,17 +12,6 @@ import css from "./task-dropdown.css" with {type: "text"};
 const NEW_TAB_KEY = "task-dropdown:newTab";
 const REVERSE_KEY = "task-dropdown:reverse";
 const RANGES_KEY = "task-dropdown:ranges";
-
-function parseTaskPage(html: string): readonly ContestTask[] {
-	const page = new DOMParser().parseFromString(html, "text/html");
-	return [...page.querySelectorAll("#contest-nav-tabs + .col-sm-12 tbody tr")].flatMap((row) => {
-		const [labelCell, nameCell] = row.querySelectorAll("td");
-		const link = labelCell?.querySelector("a");
-		const url = link?.getAttribute("href");
-		if (!link || !url) return [];
-		return [{url, label: link.textContent ?? "", name: nameCell?.textContent?.trim() ?? ""}];
-	});
-}
 
 function turnIntoDropdown(tab: HTMLAnchorElement): HTMLElement {
 	tab.className = "dropdown-toggle";
@@ -76,7 +64,7 @@ export const taskDropdown = defineFeature({
 	routes: ["atcoder:contest"],
 	phase: "ready",
 	options: {},
-	async start({site, state, translate}) {
+	async start({contestTasks, state, translate}) {
 		const tab = document.querySelector<HTMLAnchorElement>('#contest-nav-tabs a[href$="tasks"]');
 		const contestId = contestIdOf(location.pathname);
 		if (!tab || !contestId) return;
@@ -89,12 +77,7 @@ export const taskDropdown = defineFeature({
 			createTaskLink(taskTableUrl, translate("taskDropdown.taskTable"), state, "glyphicon-list"),
 		);
 
-		const tasks = await loadContestTasks(contestId, {
-			site,
-			state,
-			parse: parseTaskPage,
-			cacheDays: contestCatalog.taskCacheDays,
-		}).catch(() => null);
+		const tasks = await contestTasks();
 		if (!tasks) {
 			const failure = h("a", {textContent: translate("taskDropdown.loadFailed")});
 			menu.append(h("li", {className: "divider"}), h("li", {}, failure));
