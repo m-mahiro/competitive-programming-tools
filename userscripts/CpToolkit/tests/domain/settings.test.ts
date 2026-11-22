@@ -59,10 +59,10 @@ describe("3.0 への移行", () => {
 		expect(withoutHeader.features["source-comments"]?.options).toEqual({runnerHeader: "none"});
 	});
 
-	test("提出補助を OFF にしていた人は、ヘッダーも提出と折りたたみのキーも使わないままにする", () => {
+	test("提出補助を OFF にしていた人は、ヘッダーも提出のキーも使わないままにする", () => {
 		const migrated = parseSettings({version: 1, features: {"java-submit": {enabled: false}}});
 		expect(migrated.features["source-comments"]?.options).toEqual({runnerHeader: "none"});
-		expect(migrated.features["keyboard-shortcuts"]?.options).toEqual({submit: "none", fold: "none"});
+		expect(migrated.features["keyboard-shortcuts"]?.options).toEqual({submit: "none"});
 	});
 
 	test("Easy Test+ のショートカットを OFF にしていた人は、Easy Test+ のキーを使わないままにする", () => {

@@ -198,8 +198,9 @@ submissionHelper.fallbackFailed: ブラウザで安全に変換できません�
 keyboardShortcuts.title: ショートカットキー
 keyboardShortcuts.description: 提出、入出力例のコピー、問題の切り替え、ページを開く操作などを、好きなキーで行えます。キーは Ctrl+Shift+Enter のように書き、none で使わなくなります。
 keyboardShortcuts.openSettings: CP Toolkit の設定を開く
-keyboardShortcuts.submit: 提出する（空欄ならサイトの既定）
-keyboardShortcuts.fold: Java のクラスとコメントを折りたたむ
+keyboardShortcuts.submit: 提出する
+keyboardShortcuts.fold: カーソルのあるブロックを折りたたむ
+keyboardShortcuts.unfold: カーソルの行の折りたたみを開く
 keyboardShortcuts.testAndSubmit: Easy Test+ でテストしてから提出する
 keyboardShortcuts.testAll: Easy Test+ ですべての入出力例をテストする
 keyboardShortcuts.toggleEasyTest: Easy Test+ の画面を開閉する
@@ -208,7 +209,7 @@ keyboardShortcuts.copyOutput: 出力例をコピーする（この修飾キー�
 keyboardShortcuts.copyStatement: 問題文をすべてコピーする（AtCoder）
 keyboardShortcuts.previousTask: 前の問題を開く
 keyboardShortcuts.nextTask: 次の問題を開く
-keyboardShortcuts.openTask: 問題を開く（この修飾キーと問題の記号の A〜Z）
+keyboardShortcuts.openTask: 問題を開く（この修飾キーと A〜Z。一覧の上から順に A、B、C…）
 keyboardShortcuts.openTasks: 問題の一覧を開く
 keyboardShortcuts.openMySubmissions: 自分の提出を開く
 keyboardShortcuts.openStandings: 順位表を開く

@@ -1,12 +1,11 @@
 import type {MessageKey} from "@catalog/messages";
-import {type ContestPages, contestPagesOf, neighborTask, taskByLetter} from "@domain/contest/pages";
+import {type ContestPages, contestPagesOf, type ContestTaskLink, neighborTask} from "@domain/contest/pages";
 import {option} from "@domain/settings/option";
 import {isModifierSetting, isShortcutSetting, NO_SHORTCUT, normalizeModifiers, normalizeShortcut} from "@domain/settings/shortcut";
 import {defineFeature} from "@application/feature/definition";
 import {type CodeEditor, EDITOR_SETUP_DELAY_MS} from "@application/ports/code-editor";
 import type {SubmissionForm} from "@application/ports/submission-form";
 import {SHORTCUT_ACTIONS} from "@application/shortcuts/shortcut-actions";
-import {languageSupport} from "@application/source/submission-transform";
 import {registerShortcut, type ShortcutHandler} from "@ui/shortcuts";
 import {showToast} from "@ui/toast/toast";
 import {addTooltip} from "@ui/tooltip/tooltip";
@@ -18,10 +17,10 @@ const TASK_LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 /** 入出力例のある問題のページ。提出ページは、Easy Test+ と同じく問題のページから読む。 */
 const SAMPLE_ROUTES = ["atcoder:task", "atcoder:submit", "codeforces:problem", "yukicoder:problem"] as const;
 
-/** 空欄なら fallback を使う。none なら使わない。 */
-function resolveKey(value: string, fallback: string): string | null {
+/** 空欄と none なら使わない。 */
+function resolveKey(value: string): string | null {
 	if (value.toLowerCase() === NO_SHORTCUT) return null;
-	return normalizeShortcut(value || fallback);
+	return normalizeShortcut(value);
 }
 
 const shortcutOption = (defaultValue: string, label: MessageKey) => option.text(defaultValue, label, {
@@ -46,16 +45,17 @@ const PAGE_KEYS = {
 /** 設定画面に並べる順番。キーが重なれば、後の項目から試す。 */
 const featureOptions = {
 	openSettings: shortcutOption("Ctrl+I", "keyboardShortcuts.openSettings"),
-	submit: shortcutOption("", "keyboardShortcuts.submit"),
-	fold: shortcutOption("Ctrl+Shift+M", "keyboardShortcuts.fold"),
+	submit: shortcutOption("Ctrl+Shift+Enter", "keyboardShortcuts.submit"),
+	fold: shortcutOption("Ctrl+Shift+[", "keyboardShortcuts.fold"),
+	unfold: shortcutOption("Ctrl+Shift+]", "keyboardShortcuts.unfold"),
 	testAndSubmit: shortcutOption("Ctrl+Enter", "keyboardShortcuts.testAndSubmit"),
 	testAll: shortcutOption("Alt+Enter", "keyboardShortcuts.testAll"),
 	toggleEasyTest: shortcutOption("Alt+Escape", "keyboardShortcuts.toggleEasyTest"),
 	copyInput: modifierOption("Ctrl+Alt", "keyboardShortcuts.copyInput"),
 	copyOutput: modifierOption("Ctrl+Shift+Alt", "keyboardShortcuts.copyOutput"),
 	copyStatement: shortcutOption("Ctrl+Shift+Alt+P", "keyboardShortcuts.copyStatement"),
-	previousTask: shortcutOption("Ctrl+Alt+,", "keyboardShortcuts.previousTask"),
-	nextTask: shortcutOption("Ctrl+Alt+.", "keyboardShortcuts.nextTask"),
+	previousTask: shortcutOption("Ctrl+Shift+Alt+Left", "keyboardShortcuts.previousTask"),
+	nextTask: shortcutOption("Ctrl+Shift+Alt+Right", "keyboardShortcuts.nextTask"),
 	openTask: modifierOption("Ctrl+Alt", "keyboardShortcuts.openTask"),
 	openTasks: shortcutOption("Ctrl+Shift+Alt+T", "keyboardShortcuts.openTasks"),
 	openMySubmissions: shortcutOption("Ctrl+Shift+Alt+S", "keyboardShortcuts.openMySubmissions"),
@@ -110,7 +110,7 @@ export const keyboardShortcuts = defineFeature({
 		prefixHandlers.copyOutput = {keys: SAMPLE_NUMBERS, handler: (number) => copySample(number, "output")};
 
 		const pages = contestPagesOf(judge?.id, location.pathname);
-		const goToTask = (pick: (tasks: Parameters<typeof taskByLetter>[0]) => {url: string} | null): boolean => {
+		const goToTask = (pick: (tasks: readonly ContestTaskLink[]) => ContestTaskLink | null | undefined): boolean => {
 			if (!pages) return false;
 			void services.contestTasks().then((tasks) => {
 				const task = tasks ? pick(tasks) : null;
@@ -118,7 +118,8 @@ export const keyboardShortcuts = defineFeature({
 			});
 			return true;
 		};
-		prefixHandlers.openTask = {keys: TASK_LETTERS, handler: (letter) => goToTask((tasks) => taskByLetter(tasks, letter))};
+		// 問題の記号は見ず、一覧の上から順に A、B、C… とする
+		prefixHandlers.openTask = {keys: TASK_LETTERS, handler: (letter) => goToTask((tasks) => tasks[TASK_LETTERS.indexOf(letter)])};
 		handlers.previousTask = () => goToTask((tasks) => neighborTask(tasks, location.pathname, -1));
 		handlers.nextTask = () => goToTask((tasks) => neighborTask(tasks, location.pathname, 1));
 
@@ -134,7 +135,7 @@ export const keyboardShortcuts = defineFeature({
 
 		// ほかの機能の操作は、その機能が動いているページでだけ反応する
 		for (const [name, id] of Object.entries(SHORTCUT_ACTIONS) as Array<[keyof typeof SHORTCUT_ACTIONS, string]>) {
-			shortcuts.assign(id, resolveKey(options[name], ""));
+			shortcuts.assign(id, resolveKey(options[name]));
 			handlers[name] = () => shortcuts.run(id);
 		}
 
@@ -149,7 +150,6 @@ export const keyboardShortcuts = defineFeature({
 		};
 
 		const target = judge?.submission;
-		let submitKey: string | null = null;
 		if (target) {
 			// 提出欄とエディタはページの読み込み後に作られることがあるので、押したときに探す
 			let form: SubmissionForm | null = null;
@@ -157,26 +157,21 @@ export const keyboardShortcuts = defineFeature({
 			void services.submissionForm(target).then((ready) => {
 				form = ready;
 			});
-			submitKey = resolveKey(options.submit, target.shortcut);
-			const key = submitKey;
-			if (key) addTooltip(() => form?.submitButton() as HTMLElement | null ?? null, () => key);
+			const submitKey = resolveKey(options.submit);
+			if (submitKey) addTooltip(() => form?.submitButton() as HTMLElement | null ?? null, () => submitKey);
 			handlers.submit = () => {
 				const button = form?.submitButton() as HTMLElement | null ?? null;
 				button?.click();
 				return button !== null;
 			};
-			if (resolveKey(options.fold, "")) {
+			if (resolveKey(options.fold) || resolveKey(options.unfold)) {
 				void services.editors.locate(target, {delayMs: EDITOR_SETUP_DELAY_MS}).then((located) => {
 					editor = located;
 				});
 			}
-			handlers.fold = () => {
-				const family = editor ? form?.language(editor)?.family : undefined;
-				const lines = editor && family ? languageSupport(family).foldStartLines?.(editor.getValue()) : undefined;
-				if (!editor || !lines) return false;
-				editor.foldLines(lines);
-				return true;
-			};
+			// エディタが扱えなければ、エディタ自身のキー操作に任せる(yukicoder の CodeMirror など)
+			handlers.fold = () => editor?.foldAtCursor?.() ?? false;
+			handlers.unfold = () => editor?.unfoldAtCursor?.() ?? false;
 		}
 
 		// 同じキーの操作は後の項目から試し、そのページで使えない操作なら前の項目へ回す(paiza の提出と Easy Test+ の Ctrl+Enter など)
@@ -192,7 +187,7 @@ export const keyboardShortcuts = defineFeature({
 				if (modifiers && prefix) for (const key of prefix.keys) bind(`${modifiers}+${key}`, () => prefix.handler(key));
 				continue;
 			}
-			const key = name === "submit" ? submitKey : resolveKey(options[name], "");
+			const key = resolveKey(options[name]);
 			const handler = handlers[name];
 			if (key && handler) bind(key, handler);
 		}

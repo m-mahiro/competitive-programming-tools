@@ -1,5 +1,5 @@
 import {describe, expect, test} from "bun:test";
-import {contestPagesOf, neighborTask, taskByLetter, taskKeyOf} from "@domain/contest/pages";
+import {contestPagesOf, neighborTask, taskKeyOf} from "@domain/contest/pages";
 import {isModifierSetting, isShortcutSetting, normalizeModifiers, normalizeShortcut} from "@domain/settings/shortcut";
 
 describe("キーの書き方", () => {
@@ -7,12 +7,15 @@ describe("キーの書き方", () => {
 		expect(normalizeShortcut("shift+ctrl+enter")).toBe("Ctrl+Shift+Enter");
 		expect(normalizeShortcut("alt+ctrl+,")).toBe("Ctrl+Alt+,");
 		expect(normalizeShortcut("ctrl+shift+alt+p")).toBe("Ctrl+Shift+Alt+P");
+		expect(normalizeShortcut("command+p")).toBe("Cmd+P");
+		expect(normalizeShortcut("option+cmd+ctrl+[")).toBe("Ctrl+Alt+Cmd+[");
 		expect(normalizeShortcut("meta+p")).toBeNull();
 		expect(isShortcutSetting("None")).toBe(true);
 	});
 
 	test("修飾キーだけの設定は、修飾キーが1つ以上あり、ほかのキーを含まない", () => {
 		expect(normalizeModifiers("alt + ctrl")).toBe("Ctrl+Alt");
+		expect(normalizeModifiers("Cmd+Option")).toBe("Alt+Cmd");
 		expect(normalizeModifiers("Ctrl+Alt+1")).toBeNull();
 		expect(normalizeModifiers("")).toBeNull();
 		expect(isModifierSetting("none")).toBe(true);
@@ -52,12 +55,6 @@ describe("問題の切り替え", () => {
 		expect(neighborTask(atcoder, "/contests/abc1/tasks/abc1_a", -1)).toBeNull();
 		expect(neighborTask(atcoder, "/contests/abc1/tasks", 1)).toBeNull();
 		expect(neighborTask(codeforces, "/problemset/problem/2000/b", 1)?.label).toBe("C1");
-	});
-
-	test("記号で選び、完全に一致するものが無ければ記号で始まる問題を選ぶ", () => {
-		expect(taskByLetter(atcoder, "b")?.url).toBe("/contests/abc1/tasks/abc1_b");
-		expect(taskByLetter(codeforces, "C")?.label).toBe("C1");
-		expect(taskByLetter(codeforces, "Z")).toBeNull();
 	});
 
 	test("URL の書き方が違っても同じ問題とみなす", () => {

@@ -518,7 +518,6 @@ describe("submissionHelper", () => {
 	const target = {
 		editor: "ace",
 		editorElements: ["#editor"],
-		shortcut: "Ctrl+Shift+Enter",
 		submitButtons: ["#submit"],
 	} as const;
 	const judge = {id: "atcoder", name: "AtCoder", matches: [], routes: {}, navigationLists: [], submission: target};
@@ -964,23 +963,56 @@ describe("keyboardShortcuts の追加の操作", () => {
 		}
 	});
 
-	test("前後の問題と、記号で選んだ問題へ移る", async () => {
+	test("前後の問題と、順番で選んだ問題へ移る", async () => {
 		history.replaceState(null, "", "/contests/abc1/tasks/abc1_b");
-		const tasks = ["a", "b", "c"].map((id) => ({url: `/contests/abc1/tasks/abc1_${id}`, label: id.toUpperCase(), name: ""}));
+		const tasks = ["a", "b", "x"].map((id) => ({url: `/contests/abc1/tasks/abc1_${id}`, label: id.toUpperCase(), name: ""}));
 		const visited: string[] = [];
 		const assign = mock((url: string | URL) => visited.push(String(url)));
 		const original = Object.getOwnPropertyDescriptor(window.location, "assign");
 		Object.defineProperty(window.location, "assign", {value: assign, configurable: true});
 		try {
 			await start({contestTasks: async () => tasks});
-			pressKey(".", {ctrlKey: true, altKey: true, code: "Period"});
-			pressKey(",", {ctrlKey: true, altKey: true, code: "Comma"});
-			pressKey("a", {ctrlKey: true, altKey: true, code: "KeyA"});
+			pressKey("ArrowRight", {ctrlKey: true, shiftKey: true, altKey: true});
+			pressKey("ArrowLeft", {ctrlKey: true, shiftKey: true, altKey: true});
+			// 記号は見ず、一覧の上から順に A、B、C とする
+			pressKey("c", {ctrlKey: true, altKey: true, code: "KeyC"});
+			pressKey("d", {ctrlKey: true, altKey: true, code: "KeyD"});
 			await wait();
-			expect(visited).toEqual(["/contests/abc1/tasks/abc1_c", "/contests/abc1/tasks/abc1_a", "/contests/abc1/tasks/abc1_a"]);
+			expect(visited).toEqual(["/contests/abc1/tasks/abc1_x", "/contests/abc1/tasks/abc1_a", "/contests/abc1/tasks/abc1_x"]);
 		} finally {
 			if (original) Object.defineProperty(window.location, "assign", original);
 		}
+	});
+});
+
+describe("keyboardShortcuts の折りたたみと Mac のキー", () => {
+	const target = {editor: "ace" as const, editorElements: ["#editor"], submitButtons: []};
+	const site = {id: "atcoder", name: "AtCoder", matches: [], routes: {}, navigationLists: [], submission: target};
+
+	test("カーソルの位置のブロックを折りたたみ、開く。記号のキーは Shift で変わった文字でも照合する", async () => {
+		const fold = mock(() => true);
+		const unfold = mock(() => true);
+		const editor = {foldAtCursor: fold, unfoldAtCursor: unfold} as unknown as CodeEditor;
+		await keyboardShortcuts.run(undefined, createFakeServices({
+			judge: site,
+			isOnRoute: () => false,
+			openSettings: () => undefined,
+			editors: {locate: async () => editor},
+		}));
+		await wait(600);
+		pressKey("{", {ctrlKey: true, shiftKey: true, code: "BracketRight"});
+		pressKey("}", {ctrlKey: true, shiftKey: true, code: "Backslash"});
+		expect(fold).toHaveBeenCalledTimes(1);
+		expect(unfold).toHaveBeenCalledTimes(1);
+	});
+
+	test("Cmd を書け、Cmd を押したときは Cmd を書いたキーだけが反応する", async () => {
+		const openSettings = mock(() => undefined);
+		await keyboardShortcuts.run({openSettings: "command+i"}, createFakeServices({judge: null, isOnRoute: () => false, openSettings}));
+		pressKey("i", {ctrlKey: true, code: "KeyI"});
+		expect(openSettings).not.toHaveBeenCalled();
+		pressKey("i", {metaKey: true, code: "KeyI"});
+		expect(openSettings).toHaveBeenCalledTimes(1);
 	});
 });
 
@@ -990,9 +1022,10 @@ describe("keyboardShortcuts の重なったキー", () => {
 		const click = mock(() => undefined);
 		document.querySelector("#submit")?.addEventListener("click", click);
 		const paiza = {id: "paiza", name: "paiza", matches: [], routes: {}, navigationLists: [], submission: {
-			editor: "ace" as const, editorElements: ["#editor"], shortcut: "Ctrl+Enter", submitButtons: ["#submit"],
+			editor: "ace" as const, editorElements: ["#editor"], submitButtons: ["#submit"],
 		}};
-		await keyboardShortcuts.run(undefined, createFakeServices({
+		// Easy Test+ の動かないページで、提出を Easy Test+ と同じキーにする
+		await keyboardShortcuts.run({submit: "Ctrl+Enter"}, createFakeServices({
 			judge: paiza,
 			isOnRoute: () => false,
 			openSettings: () => undefined,

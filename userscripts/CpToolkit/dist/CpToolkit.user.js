@@ -978,7 +978,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		const {keyboardShortcuts, ...easyTestOptions} = easyTest?.options ?? {};
 		if (easyTest) features["easy-test"] = {...easyTest, options: easyTestOptions};
 		const disabledKeys = {
-			...(helperDisabled ? {submit: "none", fold: "none"} : {}),
+			...(helperDisabled ? {submit: "none"} : {}),
 			...(keyboardShortcuts === false ? EASY_TEST_KEYS_OFF : {}),
 		};
 		if (Object.keys(disabledKeys).length > 0) {
@@ -3350,7 +3350,6 @@ a:focus > .cp-settings-entry {
 		submission: {
 			editor: "ace",
 			editorElements: ["#editor", "#editor-div"],
-			shortcut: "Ctrl+Enter",
 			submitButtons: [".editorFooter .submitBtn", "#submit_button"],
 		},
 	};
@@ -3382,7 +3381,6 @@ a:focus > .cp-settings-entry {
 			textarea: "#plain-textarea",
 			commentMount: ".editor-buttons",
 			taskSelect: "#select-task",
-			shortcut: "Ctrl+Shift+Enter",
 			submitButtons: ["#submit"],
 		},
 		samples: [
@@ -3444,7 +3442,6 @@ a:focus > .cp-settings-entry {
 			textarea:
 				'.submit-form textarea[name="source"], .submitForm textarea[name="source"], form._SubmitPage_submitForm textarea[name="source"], textarea[data-cp-easy-test-source]',
 			taskSelect: '[name="submittedProblemIndex"], [name="problemIndex"]',
-			shortcut: "Ctrl+Shift+Enter",
 			submitButtons: [
 				".submit-form .submit",
 				".submitForm .submit",
@@ -3465,7 +3462,6 @@ a:focus > .cp-settings-entry {
 		submission: {
 			editor: "monaco",
 			editorElements: [],
-			shortcut: "Ctrl+Shift+Alt+Enter",
 			submitButtons: [],
 			labeledSubmit: {
 				selector: 'form button[type="submit"], form input[type="submit"]',
@@ -3485,7 +3481,6 @@ a:focus > .cp-settings-entry {
 		submission: {
 			editor: "ace",
 			editorElements: ["#editor-div", "#editor"],
-			shortcut: "Ctrl+Enter",
 			submitButtons: ["#handin", '[onclick*="hand_in_code"]'],
 			labeledSubmit: {
 				selector: 'a, button, input[type="button"], input[type="submit"]',
@@ -3511,7 +3506,6 @@ a:focus > .cp-settings-entry {
 			editorElements: [".cm-source-editor .cm-content"],
 			textarea: "#source",
 			commentMount: "#toggle_source_editor",
-			shortcut: "",
 			submitButtons: ['#submit_form input[type="submit"]'],
 		},
 	};
@@ -3717,8 +3711,9 @@ a:focus > .cp-settings-entry {
 		"keyboardShortcuts.description":
 			"Submit, copy samples, switch tasks, open pages and more with keys you choose. Write keys like Ctrl+Shift+Enter, or none to turn one off.",
 		"keyboardShortcuts.openSettings": "Open the CP Toolkit settings",
-		"keyboardShortcuts.submit": "Submit (empty for the site default)",
-		"keyboardShortcuts.fold": "Fold Java classes and comments",
+		"keyboardShortcuts.submit": "Submit",
+		"keyboardShortcuts.fold": "Fold the block at the cursor",
+		"keyboardShortcuts.unfold": "Unfold the fold on the cursor line",
 		"keyboardShortcuts.testAndSubmit": "Test with Easy Test+, then submit",
 		"keyboardShortcuts.testAll": "Test all samples with Easy Test+",
 		"keyboardShortcuts.toggleEasyTest": "Open or close the Easy Test+ panel",
@@ -3727,7 +3722,8 @@ a:focus > .cp-settings-entry {
 		"keyboardShortcuts.copyStatement": "Copy the whole statement (AtCoder)",
 		"keyboardShortcuts.previousTask": "Open the previous task",
 		"keyboardShortcuts.nextTask": "Open the next task",
-		"keyboardShortcuts.openTask": "Open a task (these modifiers and its letter from A to Z)",
+		"keyboardShortcuts.openTask":
+			"Open a task (these modifiers and A to Z: A, B, C… from the top of the task list)",
 		"keyboardShortcuts.openTasks": "Open the task list",
 		"keyboardShortcuts.openMySubmissions": "Open my submissions",
 		"keyboardShortcuts.openStandings": "Open the standings",
@@ -3974,8 +3970,9 @@ a:focus > .cp-settings-entry {
 		"keyboardShortcuts.description":
 			"提出、入出力例のコピー、問題の切り替え、ページを開く操作などを、好きなキーで行えます。キーは Ctrl+Shift+Enter のように書き、none で使わなくなります。",
 		"keyboardShortcuts.openSettings": "CP Toolkit の設定を開く",
-		"keyboardShortcuts.submit": "提出する（空欄ならサイトの既定）",
-		"keyboardShortcuts.fold": "Java のクラスとコメントを折りたたむ",
+		"keyboardShortcuts.submit": "提出する",
+		"keyboardShortcuts.fold": "カーソルのあるブロックを折りたたむ",
+		"keyboardShortcuts.unfold": "カーソルの行の折りたたみを開く",
 		"keyboardShortcuts.testAndSubmit": "Easy Test+ でテストしてから提出する",
 		"keyboardShortcuts.testAll": "Easy Test+ ですべての入出力例をテストする",
 		"keyboardShortcuts.toggleEasyTest": "Easy Test+ の画面を開閉する",
@@ -3984,7 +3981,7 @@ a:focus > .cp-settings-entry {
 		"keyboardShortcuts.copyStatement": "問題文をすべてコピーする（AtCoder）",
 		"keyboardShortcuts.previousTask": "前の問題を開く",
 		"keyboardShortcuts.nextTask": "次の問題を開く",
-		"keyboardShortcuts.openTask": "問題を開く（この修飾キーと問題の記号の A〜Z）",
+		"keyboardShortcuts.openTask": "問題を開く（この修飾キーと A〜Z。一覧の上から順に A、B、C…）",
 		"keyboardShortcuts.openTasks": "問題の一覧を開く",
 		"keyboardShortcuts.openMySubmissions": "自分の提出を開く",
 		"keyboardShortcuts.openStandings": "順位表を開く",
@@ -4112,14 +4109,6 @@ a:focus > .cp-settings-entry {
 		const index = tasks.findIndex((task) => taskKeyOf(task.url.replace(ORIGIN, "")) === current);
 		if (index < 0) return null;
 		return tasks[index + offset] ?? null;
-	}
-
-	function taskByLetter(tasks, letter) {
-		const wanted = letter.toLowerCase();
-		const label = (task) => task.label.trim().toLowerCase();
-		return (
-			tasks.find((task) => label(task) === wanted) ?? tasks.find((task) => label(task).startsWith(wanted)) ?? null
-		);
 	}
 
 	// CpToolkit/src/application/contest/task-list.ts
@@ -5601,6 +5590,35 @@ ${reason}`
 				}
 			}
 		}
+
+		foldAtCursor() {
+			const session = this.editor.getSession();
+			const row = this.editor.getCursorPosition().row;
+			const folded = new Set(session.getAllFolds().map((fold) => fold.start.row));
+			for (let start = row; start >= 0; start--) {
+				if (folded.has(start) || session.getFoldWidget(start) !== "start") continue;
+				const range = session.getFoldWidgetRange(start);
+				if (!range || range.end.row < row) continue;
+				try {
+					session.addFold("...", range);
+					break;
+				} catch {
+				}
+			}
+			return true;
+		}
+
+		unfoldAtCursor() {
+			const session = this.editor.getSession();
+			const row = this.editor.getCursorPosition().row;
+			const folds = session.getAllFolds().filter((fold) => fold.start.row <= row && row <= fold.end.row);
+			const innermost = folds.reduce(
+				(inner, fold) => (!inner || fold.start.row > inner.start.row ? fold : inner),
+				null,
+			);
+			if (innermost) session.expandFold(innermost);
+			return true;
+		}
 	}
 
 	class MonacoCodeEditor {
@@ -5678,6 +5696,23 @@ ${reason}`
 			})().catch(() => {
 				return;
 			});
+		}
+
+		foldAtCursor() {
+			return this.runAction("editor.fold");
+		}
+
+		unfoldAtCursor() {
+			return this.runAction("editor.unfold");
+		}
+
+		runAction(id) {
+			const action = this.editor.getAction(id);
+			if (!action) return false;
+			action.run().catch(() => {
+				return;
+			});
+			return true;
 		}
 	}
 
@@ -5787,6 +5822,8 @@ ${reason}`
 			isReadOnly: () => current()?.isReadOnly() ?? true,
 			setWritable: () => current()?.setWritable(),
 			foldLines: (lines) => current()?.foldLines(lines),
+			foldAtCursor: () => current()?.foldAtCursor?.() ?? false,
+			unfoldAtCursor: () => current()?.unfoldAtCursor?.() ?? false,
 			onChange: (listener) => current()?.onChange(listener),
 			onPaste(listener) {
 				document.addEventListener(
@@ -9774,7 +9811,15 @@ ${efficient_layout_default}`);
 	});
 
 	// CpToolkit/src/domain/settings/shortcut.ts
-	var MODIFIERS2 = ["Ctrl", "Shift", "Alt"];
+	var MODIFIERS2 = ["Ctrl", "Shift", "Alt", "Cmd"];
+	var MODIFIER_ALIASES = {
+		ctrl: "Ctrl",
+		shift: "Shift",
+		alt: "Alt",
+		option: "Alt",
+		cmd: "Cmd",
+		command: "Cmd",
+	};
 	var NAMED_KEYS = {
 		enter: "Enter",
 		escape: "Escape",
@@ -9797,18 +9842,24 @@ ${efficient_layout_default}`);
 	function normalizeShortcut(text) {
 		const parts = text.split("+").map((part) => part.trim());
 		const key = parts.pop() ?? "";
-		const modifiers = new Set();
-		for (const part of parts) {
-			const modifier = MODIFIERS2.find((name) => name.toLowerCase() === part.toLowerCase());
-			if (!modifier) return null;
-			modifiers.add(modifier);
-		}
+		const modifiers = readModifiers(parts);
+		if (!modifiers) return null;
 		const named = NAMED_KEYS[key.toLowerCase()];
 		const normalizedKey =
 			named ??
 			(/^\S$/u.test(key) ? key.toUpperCase() : /^F([1-9]|1[0-2])$/i.test(key) ? key.toUpperCase() : null);
 		if (!normalizedKey) return null;
-		return [...MODIFIERS2.filter((name) => modifiers.has(name)), normalizedKey].join("+");
+		return [...modifiers, normalizedKey].join("+");
+	}
+
+	function readModifiers(parts) {
+		const modifiers = new Set();
+		for (const part of parts) {
+			const modifier = MODIFIER_ALIASES[part.toLowerCase()];
+			if (!modifier) return null;
+			modifiers.add(modifier);
+		}
+		return MODIFIERS2.filter((name) => modifiers.has(name));
 	}
 
 	function isShortcutSetting(text) {
@@ -9816,11 +9867,8 @@ ${efficient_layout_default}`);
 	}
 
 	function normalizeModifiers(text) {
-		const parts = text.split("+").map((part) => part.trim().toLowerCase());
-		const modifiers = MODIFIERS2.filter((name) => parts.includes(name.toLowerCase()));
-		if (modifiers.length === 0 || parts.some((part) => !MODIFIERS2.some((name) => name.toLowerCase() === part)))
-			return null;
-		return modifiers.join("+");
+		const modifiers = readModifiers(text.split("+").map((part) => part.trim()));
+		return modifiers && modifiers.length > 0 ? modifiers.join("+") : null;
 	}
 
 	function isModifierSetting(text) {
@@ -9830,94 +9878,25 @@ ${efficient_layout_default}`);
 	// CpToolkit/src/application/ports/code-editor.ts
 	var EDITOR_SETUP_DELAY_MS = 500;
 
-	// CpToolkit/src/domain/source/fold-lines.ts
-	var FOLDABLE_TYPE_PATTERN =
-		/^\s*(?:(?:public|protected|private|abstract|final|static|sealed|non-sealed|strictfp)\s+)*(?:class|interface|enum|record|@interface)\b/;
-	var BLOCK_COMMENT_PATTERN = /^\s*\/\*/;
-
-	function findFoldStartLines(source) {
-		return source
-			.split(
-				`
-`,
-			)
-			.flatMap((line, index) => {
-				return FOLDABLE_TYPE_PATTERN.test(line) || BLOCK_COMMENT_PATTERN.test(line) ? [index] : [];
-			});
-	}
-
-	// CpToolkit/src/application/source/submission-transform.ts
-	var LANGUAGE_SUPPORT = {
-		java: {
-			fallback: (code, {debugFlag}) => transformJavaForSubmission(code, {debugFlag}),
-			needsLocalRunner: (code, {libraryPackage}) => libraryPackage !== "" && importsPackage(code, libraryPackage),
-			unresolvedImports,
-			foldStartLines: findFoldStartLines,
-		},
-	};
-
-	function languageSupport(family) {
-		return LANGUAGE_SUPPORT[family] ?? {};
-	}
-
-	async function transformSubmission(code, language, localRunner, options) {
-		if (localRunner.isAvailable()) {
-			try {
-				const compilerName = await localRunner.compilerFor(language);
-				if (compilerName !== null) {
-					const transformed = await localRunner.transform(code, compilerName);
-					if (transformed.status === "success")
-						return {sourceCode: transformed.sourceCode, via: "localRunner", failure: null};
-					return {
-						sourceCode: code,
-						via: "localRunner",
-						failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems},
-					};
-				}
-			} catch (error) {
-				if (!(error instanceof LocalRunnerError && error.status === 0)) {
-					return {
-						sourceCode: code,
-						via: "localRunner",
-						failure: {
-							diagnostics: error instanceof Error ? error.message : String(error),
-							items: [],
-							notify: !(error instanceof LocalRunnerError) || error.notify,
-						},
-					};
-				}
-			}
-		}
-		const fallback = languageSupport(language.family).fallback;
-		if (!fallback) return {sourceCode: code, via: "none", failure: null};
-		const {sourceCode, issue} = fallback(code, options);
-		const reasons = {
-			mainNotFound: "No supported Java main method was found.",
-			ambiguousMain: "More than one Java entry point was found.",
-			nameCollision: "Renaming the entry class would cause a name collision.",
-			ambiguousReference: "The browser cannot reliably resolve references to the entry class.",
-			unsupportedSyntax: "This Java syntax requires Local Runner for a safe transform.",
-		};
-		return {sourceCode, via: "fallback", failure: issue ? {diagnostics: reasons[issue], items: []} : null};
-	}
-
 	// CpToolkit/src/ui/shortcuts.ts
 	var EDITOR_ELEMENTS = ".ace_editor, .monaco-editor, #editor, #editor-div";
 	var POSITIONAL_SYMBOLS = {Comma: ",", Period: "."};
+	var SHIFTED_SYMBOLS = {"{": "[", "}": "]"};
+	var IS_MAC = /Mac|iPhone|iPad/.test(navigator.userAgent);
 	var shortcuts = new Map();
 	var listening2 = false;
 
 	function keyOf(event) {
 		if (/^Key[A-Z]$/.test(event.code)) return event.code.slice(3);
 		if (/^Digit[0-9]$/.test(event.code)) return event.code.slice(5);
-		const symbol = POSITIONAL_SYMBOLS[event.code];
+		const symbol = POSITIONAL_SYMBOLS[event.code] ?? (event.shiftKey ? SHIFTED_SYMBOLS[event.key] : undefined);
 		if (symbol) return symbol;
 		return event.key.length === 1 ? event.key.toUpperCase() : event.key;
 	}
 
 	function comboOf(event) {
 		const key = keyOf(event);
-		return [event.ctrlKey && "Ctrl", event.shiftKey && "Shift", event.altKey && "Alt", key]
+		return [event.ctrlKey && "Ctrl", event.shiftKey && "Shift", event.altKey && "Alt", event.metaKey && "Cmd", key]
 			.filter(Boolean)
 			.join("+");
 	}
@@ -9929,7 +9908,7 @@ ${efficient_layout_default}`);
 	}
 
 	function onKeyDown(event) {
-		if (event.ctrlKey && event.altKey && event.getModifierState("AltGraph")) return;
+		if (!IS_MAC && event.ctrlKey && event.altKey && event.getModifierState("AltGraph")) return;
 		const shortcut = shortcuts.get(comboOf(event));
 		if (!shortcut || (!shortcut.inTextFields && isTextField(event.target))) return;
 		if (!shortcut.handler()) return;
@@ -9956,9 +9935,9 @@ ${efficient_layout_default}`);
 	var TASK_LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 	var SAMPLE_ROUTES = ["atcoder:task", "atcoder:submit", "codeforces:problem", "yukicoder:problem"];
 
-	function resolveKey(value, fallback) {
+	function resolveKey(value) {
 		if (value.toLowerCase() === NO_SHORTCUT) return null;
-		return normalizeShortcut(value || fallback);
+		return normalizeShortcut(value);
 	}
 
 	var shortcutOption = (defaultValue, label) =>
@@ -9980,16 +9959,17 @@ ${efficient_layout_default}`);
 	};
 	var featureOptions2 = {
 		openSettings: shortcutOption("Ctrl+I", "keyboardShortcuts.openSettings"),
-		submit: shortcutOption("", "keyboardShortcuts.submit"),
-		fold: shortcutOption("Ctrl+Shift+M", "keyboardShortcuts.fold"),
+		submit: shortcutOption("Ctrl+Shift+Enter", "keyboardShortcuts.submit"),
+		fold: shortcutOption("Ctrl+Shift+[", "keyboardShortcuts.fold"),
+		unfold: shortcutOption("Ctrl+Shift+]", "keyboardShortcuts.unfold"),
 		testAndSubmit: shortcutOption("Ctrl+Enter", "keyboardShortcuts.testAndSubmit"),
 		testAll: shortcutOption("Alt+Enter", "keyboardShortcuts.testAll"),
 		toggleEasyTest: shortcutOption("Alt+Escape", "keyboardShortcuts.toggleEasyTest"),
 		copyInput: modifierOption("Ctrl+Alt", "keyboardShortcuts.copyInput"),
 		copyOutput: modifierOption("Ctrl+Shift+Alt", "keyboardShortcuts.copyOutput"),
 		copyStatement: shortcutOption("Ctrl+Shift+Alt+P", "keyboardShortcuts.copyStatement"),
-		previousTask: shortcutOption("Ctrl+Alt+,", "keyboardShortcuts.previousTask"),
-		nextTask: shortcutOption("Ctrl+Alt+.", "keyboardShortcuts.nextTask"),
+		previousTask: shortcutOption("Ctrl+Shift+Alt+Left", "keyboardShortcuts.previousTask"),
+		nextTask: shortcutOption("Ctrl+Shift+Alt+Right", "keyboardShortcuts.nextTask"),
 		openTask: modifierOption("Ctrl+Alt", "keyboardShortcuts.openTask"),
 		openTasks: shortcutOption("Ctrl+Shift+Alt+T", "keyboardShortcuts.openTasks"),
 		openMySubmissions: shortcutOption("Ctrl+Shift+Alt+S", "keyboardShortcuts.openMySubmissions"),
@@ -10057,7 +10037,7 @@ ${efficient_layout_default}`);
 			};
 			prefixHandlers.openTask = {
 				keys: TASK_LETTERS,
-				handler: (letter) => goToTask((tasks) => taskByLetter(tasks, letter)),
+				handler: (letter) => goToTask((tasks) => tasks[TASK_LETTERS.indexOf(letter)]),
 			};
 			handlers.previousTask = () => goToTask((tasks) => neighborTask(tasks, location.pathname, -1));
 			handlers.nextTask = () => goToTask((tasks) => neighborTask(tasks, location.pathname, 1));
@@ -10070,7 +10050,7 @@ ${efficient_layout_default}`);
 				};
 			}
 			for (const [name, id] of Object.entries(SHORTCUT_ACTIONS)) {
-				shortcuts.assign(id, resolveKey(options[name], ""));
+				shortcuts.assign(id, resolveKey(options[name]));
 				handlers[name] = () => shortcuts.run(id);
 			}
 			handlers.openSettings = () => {
@@ -10083,38 +10063,30 @@ ${efficient_layout_default}`);
 				return true;
 			};
 			const target = judge?.submission;
-			let submitKey = null;
 			if (target) {
 				let form = null;
 				let editor = null;
 				services.submissionForm(target).then((ready) => {
 					form = ready;
 				});
-				submitKey = resolveKey(options.submit, target.shortcut);
-				const key = submitKey;
-				if (key)
+				const submitKey = resolveKey(options.submit);
+				if (submitKey)
 					addTooltip(
 						() => form?.submitButton() ?? null,
-						() => key,
+						() => submitKey,
 					);
 				handlers.submit = () => {
 					const button = form?.submitButton() ?? null;
 					button?.click();
 					return button !== null;
 				};
-				if (resolveKey(options.fold, "")) {
+				if (resolveKey(options.fold) || resolveKey(options.unfold)) {
 					services.editors.locate(target, {delayMs: EDITOR_SETUP_DELAY_MS}).then((located) => {
 						editor = located;
 					});
 				}
-				handlers.fold = () => {
-					const family = editor ? form?.language(editor)?.family : undefined;
-					const lines =
-						editor && family ? languageSupport(family).foldStartLines?.(editor.getValue()) : undefined;
-					if (!editor || !lines) return false;
-					editor.foldLines(lines);
-					return true;
-				};
+				handlers.fold = () => editor?.foldAtCursor?.() ?? false;
+				handlers.unfold = () => editor?.unfoldAtCursor?.() ?? false;
 			}
 			const byKey = new Map();
 			const bind = (key, handler) => {
@@ -10129,7 +10101,7 @@ ${efficient_layout_default}`);
 						for (const key of prefix.keys) bind(`${modifiers}+${key}`, () => prefix.handler(key));
 					continue;
 				}
-				const key = name === "submit" ? submitKey : resolveKey(options[name], "");
+				const key = resolveKey(options[name]);
 				const handler = handlers[name];
 				if (key && handler) bind(key, handler);
 			}
@@ -10206,6 +10178,77 @@ ${efficient_layout_default}`);
 		)
 			return null;
 		return `${code.slice(0, index)}${next}${code.slice(index + current.length)}`;
+	}
+
+	// CpToolkit/src/domain/source/fold-lines.ts
+	var FOLDABLE_TYPE_PATTERN =
+		/^\s*(?:(?:public|protected|private|abstract|final|static|sealed|non-sealed|strictfp)\s+)*(?:class|interface|enum|record|@interface)\b/;
+	var BLOCK_COMMENT_PATTERN = /^\s*\/\*/;
+
+	function findFoldStartLines(source) {
+		return source
+			.split(
+				`
+`,
+			)
+			.flatMap((line, index) => {
+				return FOLDABLE_TYPE_PATTERN.test(line) || BLOCK_COMMENT_PATTERN.test(line) ? [index] : [];
+			});
+	}
+
+	// CpToolkit/src/application/source/submission-transform.ts
+	var LANGUAGE_SUPPORT = {
+		java: {
+			fallback: (code, {debugFlag}) => transformJavaForSubmission(code, {debugFlag}),
+			needsLocalRunner: (code, {libraryPackage}) => libraryPackage !== "" && importsPackage(code, libraryPackage),
+			unresolvedImports,
+			foldStartLines: findFoldStartLines,
+		},
+	};
+
+	function languageSupport(family) {
+		return LANGUAGE_SUPPORT[family] ?? {};
+	}
+
+	async function transformSubmission(code, language, localRunner, options) {
+		if (localRunner.isAvailable()) {
+			try {
+				const compilerName = await localRunner.compilerFor(language);
+				if (compilerName !== null) {
+					const transformed = await localRunner.transform(code, compilerName);
+					if (transformed.status === "success")
+						return {sourceCode: transformed.sourceCode, via: "localRunner", failure: null};
+					return {
+						sourceCode: code,
+						via: "localRunner",
+						failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems},
+					};
+				}
+			} catch (error) {
+				if (!(error instanceof LocalRunnerError && error.status === 0)) {
+					return {
+						sourceCode: code,
+						via: "localRunner",
+						failure: {
+							diagnostics: error instanceof Error ? error.message : String(error),
+							items: [],
+							notify: !(error instanceof LocalRunnerError) || error.notify,
+						},
+					};
+				}
+			}
+		}
+		const fallback = languageSupport(language.family).fallback;
+		if (!fallback) return {sourceCode: code, via: "none", failure: null};
+		const {sourceCode, issue} = fallback(code, options);
+		const reasons = {
+			mainNotFound: "No supported Java main method was found.",
+			ambiguousMain: "More than one Java entry point was found.",
+			nameCollision: "Renaming the entry class would cause a name collision.",
+			ambiguousReference: "The browser cannot reliably resolve references to the entry class.",
+			unsupportedSyntax: "This Java syntax requires Local Runner for a safe transform.",
+		};
+		return {sourceCode, via: "fallback", failure: issue ? {diagnostics: reasons[issue], items: []} : null};
 	}
 
 	// CpToolkit/src/features/java-submit/index.ts

@@ -89,7 +89,7 @@ describe("PaizaRunnerProvider の確認", () => {
 
 describe("PageCodeEditorLocator", () => {
 	const globals = globalThis as {unsafeWindow?: unknown};
-	const target = {editor: "ace", editorElements: ["#editor"], shortcut: "", submitButtons: []} as const;
+	const target = {editor: "ace", editorElements: ["#editor"], submitButtons: []} as const;
 
 	afterEach(() => {
 		delete globals.unsafeWindow;

@@ -12,7 +12,6 @@ navigationLists: []
 submission:
   editor: ace
   editorElements: ['#editor-div', '#editor']
-  shortcut: Ctrl+Enter
   submitButtons:
     - '#handin'
     - '[onclick*="hand_in_code"]'

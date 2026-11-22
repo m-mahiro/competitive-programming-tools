@@ -5,7 +5,6 @@ export type SubmissionTarget = {
 	readonly textarea?: string;
 	readonly taskSelect?: string;
 	readonly commentMount?: string;
-	readonly shortcut: string;
 	readonly submitButtons: readonly string[];
 	/** セレクタだけでは特定できない場合に、表示文言で探す。 */
 	readonly labeledSubmit?: {

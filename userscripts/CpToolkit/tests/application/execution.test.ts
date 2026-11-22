@@ -240,7 +240,7 @@ describe("loadContestTasks", () => {
 });
 
 describe("PastePipeline", () => {
-	const target = {editor: "ace", editorElements: ["#editor"], shortcut: "Ctrl+Enter", submitButtons: []} as const;
+	const target = {editor: "ace", editorElements: ["#editor"], submitButtons: []} as const;
 
 	function createEditor(initial: string) {
 		let value = initial;

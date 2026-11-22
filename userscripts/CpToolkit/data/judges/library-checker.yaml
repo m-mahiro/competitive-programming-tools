@@ -12,7 +12,6 @@ navigationLists: []
 submission:
   editor: monaco
   editorElements: []
-  shortcut: Ctrl+Shift+Alt+Enter
   submitButtons: []
   labeledSubmit:
     selector: 'form button[type="submit"], form input[type="submit"]'

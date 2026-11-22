@@ -28,6 +28,12 @@ export interface CodeEditor {
 
 	/** 指定した行(0 始まり)から始まるブロックを折りたたむ。 */
 	foldLines(lines: readonly number[]): void;
+
+	/** カーソルを含む、まだ折りたたんでいない最も内側のブロックを折りたたむ。エディタが扱えなければ false。 */
+	foldAtCursor?(): boolean;
+
+	/** カーソルの行にある折りたたみを開く。エディタが扱えなければ false。 */
+	unfoldAtCursor?(): boolean;
 }
 
 export type EditorLookup = {

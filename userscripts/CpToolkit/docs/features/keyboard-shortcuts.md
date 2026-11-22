@@ -8,17 +8,17 @@
 
 ## 使い方
 
-- 詳細設定で、操作ごとにキーを書きます。`Ctrl`、`Shift`、`Alt` と、文字や `Enter`、`Escape`、矢印（`Left` など）を `+` でつなぎます（例：`Ctrl+Shift+Enter`、`Alt+S`）。大文字と小文字は区別しません。
+- 詳細設定で、操作ごとにキーを書きます。`Ctrl`、`Shift`、`Alt`、`Cmd` と、文字や `Enter`、`Escape`、矢印（`Left` など）を `+` でつなぎます（例：`Ctrl+Shift+Enter`、`Alt+S`）。大文字と小文字は区別しません。
+- Mac では、`Ctrl` は control キー、`Alt` は option キー、`Cmd` は command キーです。`Option`、`Command` とも書けます。既定のキーは control と option の組み合わせなので、Mac でもそのまま使えます。
 - `none` と書くと、その操作にはキーを使いません。
 - どのキーも、提出欄やエディタの中にいても反応します。サイトや Easy Test+ のキーと重ならないよう、多くの操作は修飾キーを3つ使います。
-- 文字と数字のキーは、Shift などで変わる文字ではなく、押したキーの位置で照合します。
+- 文字と数字のキーは、Shift などで変わる文字ではなく、押したキーの位置で照合します。`[` と `]` は、Shift を押したときも Shift を押さない記号で書きます（例：`Ctrl+Shift+[`）。
 - ボタンのある操作は、ボタンにカーソルを乗せると割り当てたキーを表示します。
 
 ### 提出とテスト
 
-- 提出のキーを空欄にすると、サイトの既定のキーを使います。AtCoder と Codeforces は <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd>、AOJ と paiza は <kbd>Ctrl</kbd>+<kbd>Enter</kbd>、Library Checker は <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> です。yukicoder には既定のキーはありません。
 - [提出補助](java-submit.md)が貼り付けたコードを変換している間に提出のキーを押すと、変換が終わってから提出します。
-- 折りたたみは、Java のクラスと複数行コメントを折りたたみます。
+- 折りたたみは、カーソルを含むブロック（`{}` やコメントなど）のうち、まだ折りたたんでいない最も内側のものを折りたたみます。開くキーは、カーソルの行にある折りたたみを開きます。言語は問いません。yukicoder のエディタでは動きません。
 - テストのキーは、[Easy Test+](easy-test.md) を有効にしたページで動きます。
 
 ### 入出力例と問題文のコピー
@@ -29,7 +29,7 @@
 
 ### 問題の切り替えとページ
 
-- 前後の問題は、問題のページで使えます。問題の記号のキーは、修飾キーの後ろに記号（A〜Z）を押します。Codeforces の C1 のように記号が完全に一致しなければ、その文字で始まる最初の問題を開きます。
+- 前後の問題は、問題のページで使えます。問題を開くキーは、修飾キーの後ろに A〜Z を押します。問題の記号は見ず、問題の一覧の上から順に A、B、C… とします。27問目より後は開けません。
 - 問題は同じタブで開きます。問題の一覧、自分の提出、順位表、解説、コードテスト、AC の提出は、表示中のページを残すため新しいタブで開きます。
 - 解説は、問題のページならその問題の解説を開きます。Codeforces には解説のページがないので、このキーは動きません。
 - AC の提出は、[AC 提出へのボタン](submission-shortcuts.md)と同じ一覧を開きます。ボタンを出さない並び順でも使えます。
@@ -39,32 +39,33 @@
 
 設定画面でこの機能の「詳細設定」を開きます。
 
-| 項目                                                 | 既定値           |
-|------------------------------------------------------|------------------|
-| CP Toolkit の設定を開く                              | Ctrl+I           |
-| 提出する（空欄ならサイトの既定）                     | （空欄）         |
-| Java のクラスとコメントを折りたたむ                  | Ctrl+Shift+M     |
-| Easy Test+ でテストしてから提出する                  | Ctrl+Enter       |
-| Easy Test+ ですべての入出力例をテストする            | Alt+Enter        |
-| Easy Test+ の画面を開閉する                          | Alt+Escape       |
-| 入力例をコピーする（この修飾キーと番号の 1〜9）      | Ctrl+Alt         |
-| 出力例をコピーする（この修飾キーと番号の 1〜9）      | Ctrl+Shift+Alt   |
-| 問題文をすべてコピーする（AtCoder）                  | Ctrl+Shift+Alt+P |
-| 前の問題を開く                                       | Ctrl+Alt+,       |
-| 次の問題を開く                                       | Ctrl+Alt+.       |
-| 問題を開く（この修飾キーと問題の記号の A〜Z）        | Ctrl+Alt         |
-| 問題の一覧を開く                                     | Ctrl+Shift+Alt+T |
-| 自分の提出を開く                                     | Ctrl+Shift+Alt+S |
-| 順位表を開く                                         | Ctrl+Shift+Alt+R |
-| 解説を開く（AtCoder）                                | Ctrl+Shift+Alt+E |
-| コードテストを開く                                   | Ctrl+Shift+Alt+C |
-| AC の提出を実行時間順に開く（AtCoder）               | Ctrl+Shift+Alt+F |
-| AC の提出をコード長順に開く（AtCoder）               | Ctrl+Shift+Alt+L |
-| AC の提出を提出日時順に開く（AtCoder）               | Ctrl+Shift+Alt+N |
-| AC の提出をメモリ順に開く（AtCoder）                 | Ctrl+Shift+Alt+M |
-| 表示中のページを X に投稿する画面を開く              | Ctrl+Shift+Alt+X |
+| 項目                                                         | 既定値               |
+|--------------------------------------------------------------|----------------------|
+| CP Toolkit の設定を開く                                      | Ctrl+I               |
+| 提出する                                                     | Ctrl+Shift+Enter     |
+| カーソルのあるブロックを折りたたむ                           | Ctrl+Shift+[         |
+| カーソルの行の折りたたみを開く                               | Ctrl+Shift+]         |
+| Easy Test+ でテストしてから提出する                          | Ctrl+Enter           |
+| Easy Test+ ですべての入出力例をテストする                    | Alt+Enter            |
+| Easy Test+ の画面を開閉する                                  | Alt+Escape           |
+| 入力例をコピーする（この修飾キーと番号の 1〜9）              | Ctrl+Alt             |
+| 出力例をコピーする（この修飾キーと番号の 1〜9）              | Ctrl+Shift+Alt       |
+| 問題文をすべてコピーする（AtCoder）                          | Ctrl+Shift+Alt+P     |
+| 前の問題を開く                                               | Ctrl+Shift+Alt+Left  |
+| 次の問題を開く                                               | Ctrl+Shift+Alt+Right |
+| 問題を開く（この修飾キーと A〜Z。一覧の上から順に A、B、C…） | Ctrl+Alt             |
+| 問題の一覧を開く                                             | Ctrl+Shift+Alt+T     |
+| 自分の提出を開く                                             | Ctrl+Shift+Alt+S     |
+| 順位表を開く                                                 | Ctrl+Shift+Alt+R     |
+| 解説を開く（AtCoder）                                        | Ctrl+Shift+Alt+E     |
+| コードテストを開く                                           | Ctrl+Shift+Alt+C     |
+| AC の提出を実行時間順に開く（AtCoder）                       | Ctrl+Shift+Alt+F     |
+| AC の提出をコード長順に開く（AtCoder）                       | Ctrl+Shift+Alt+L     |
+| AC の提出を提出日時順に開く（AtCoder）                       | Ctrl+Shift+Alt+N     |
+| AC の提出をメモリ順に開く（AtCoder）                         | Ctrl+Shift+Alt+M     |
+| 表示中のページを X に投稿する画面を開く                      | Ctrl+Shift+Alt+X     |
 
-同じキーを複数の操作に割り当てると、表の下の操作から試し、そのページで使えなければ上の操作を行います。例えば paiza では、Easy Test+ が動かないので <kbd>Ctrl</kbd>+<kbd>Enter</kbd> で提出します。
+同じキーを複数の操作に割り当てると、表の下の操作から試し、そのページで使えなければ上の操作を行います。
 
 ## 動くページ
 

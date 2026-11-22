@@ -14,5 +14,4 @@ submission:
   editorElements: ['.cm-source-editor .cm-content']
   textarea: '#source'
   commentMount: '#toggle_source_editor'
-  shortcut: ''
   submitButtons: ['#submit_form input[type="submit"]']

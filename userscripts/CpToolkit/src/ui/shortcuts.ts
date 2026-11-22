@@ -9,6 +9,10 @@ type Shortcut = {
 const EDITOR_ELEMENTS = ".ace_editor, .monaco-editor, #editor, #editor-div";
 
 const POSITIONAL_SYMBOLS: Readonly<Record<string, string>> = {Comma: ",", Period: "."};
+/** Shift で変わる括弧。JIS と US で同じ組になる。設定は Shift を押さない記号で書く(例: Ctrl+Shift+[)。 */
+const SHIFTED_SYMBOLS: Readonly<Record<string, string>> = {"{": "[", "}": "]"};
+/** Mac の Option は AltGraph として届くことがあるが、AltGr とは違い Ctrl と組み合わせても文字を入力しない。 */
+const IS_MAC = /Mac|iPhone|iPad/.test(navigator.userAgent);
 
 const shortcuts = new Map<string, Shortcut>();
 let listening = false;
@@ -21,14 +25,14 @@ function keyOf(event: KeyboardEvent): string {
 	if (/^Key[A-Z]$/.test(event.code)) return event.code.slice(3);
 	if (/^Digit[0-9]$/.test(event.code)) return event.code.slice(5);
 	// 記号は配列で位置が違うので、JIS と US で同じ位置のものだけを位置で読む
-	const symbol = POSITIONAL_SYMBOLS[event.code];
+	const symbol = POSITIONAL_SYMBOLS[event.code] ?? (event.shiftKey ? SHIFTED_SYMBOLS[event.key] : undefined);
 	if (symbol) return symbol;
 	return event.key.length === 1 ? event.key.toUpperCase() : event.key;
 }
 
 function comboOf(event: KeyboardEvent): string {
 	const key = keyOf(event);
-	return [event.ctrlKey && "Ctrl", event.shiftKey && "Shift", event.altKey && "Alt", key].filter(Boolean).join("+");
+	return [event.ctrlKey && "Ctrl", event.shiftKey && "Shift", event.altKey && "Alt", event.metaKey && "Cmd", key].filter(Boolean).join("+");
 }
 
 function isTextField(target: EventTarget | null): boolean {
@@ -39,7 +43,7 @@ function isTextField(target: EventTarget | null): boolean {
 
 function onKeyDown(event: KeyboardEvent): void {
 	// Windows では AltGr が Ctrl+Alt として届くので、AltGr で入力する文字(@ や { など)を妨げない
-	if (event.ctrlKey && event.altKey && event.getModifierState("AltGraph")) return;
+	if (!IS_MAC && event.ctrlKey && event.altKey && event.getModifierState("AltGraph")) return;
 	const shortcut = shortcuts.get(comboOf(event));
 	if (!shortcut || (!shortcut.inTextFields && isTextField(event.target))) return;
 	if (!shortcut.handler()) return;

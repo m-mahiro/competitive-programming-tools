@@ -61,26 +61,16 @@ export function taskKeyOf(pathname: string): string | null {
 
 const ORIGIN = /^[a-z]+:\/\/[^/]+/i;
 
-type TaskLink = {
+/** 問題の一覧の1件。切り替えに使うのは URL だけ。 */
+export type ContestTaskLink = {
 	readonly url: string;
-	readonly label: string;
 };
 
 /** 表示中の問題から offset だけ離れた問題。端を越えるか、表示中の問題が一覧に無ければ null。 */
-export function neighborTask<T extends TaskLink>(tasks: readonly T[], pathname: string, offset: number): T | null {
+export function neighborTask<T extends ContestTaskLink>(tasks: readonly T[], pathname: string, offset: number): T | null {
 	const current = taskKeyOf(pathname);
 	if (current === null) return null;
 	const index = tasks.findIndex((task) => taskKeyOf(task.url.replace(ORIGIN, "")) === current);
 	if (index < 0) return null;
 	return tasks[index + offset] ?? null;
-}
-
-/**
- * 問題の記号が letter の問題。記号が完全に一致するものを優先し、無ければ letter で始まる最初の問題(Codeforces の C1 など)。
- * 大文字と小文字は区別しない。
- */
-export function taskByLetter<T extends TaskLink>(tasks: readonly T[], letter: string): T | null {
-	const wanted = letter.toLowerCase();
-	const label = (task: T) => task.label.trim().toLowerCase();
-	return tasks.find((task) => label(task) === wanted) ?? tasks.find((task) => label(task).startsWith(wanted)) ?? null;
 }

@@ -1,7 +1,7 @@
 import {sleep} from "@atcoder-tools/shared";
 import type {SubmissionTarget} from "@domain/page/route";
 import type {CodeEditor, CodeEditorLocator, EditorLookup} from "@application/ports/code-editor";
-import {type AceEditor, type CodeMirrorContent, type CodeMirrorView, type MonacoEditor, pageGlobals} from "./globals";
+import {type AceEditor, type AceFold, type CodeMirrorContent, type CodeMirrorView, type MonacoEditor, pageGlobals} from "./globals";
 
 const EDITOR_FAMILIES: Readonly<Record<string, string>> = {
 	python: "python3", csharp: "csharp", sh: "bash", shell: "bash",
@@ -75,6 +75,34 @@ class AceCodeEditor implements CodeEditor {
 			}
 		}
 	}
+
+	foldAtCursor(): boolean {
+		const session = this.editor.getSession();
+		const row = this.editor.getCursorPosition().row;
+		const folded = new Set(session.getAllFolds().map((fold) => fold.start.row));
+		// カーソルの行から上へ、カーソルの行まで続くブロックを探す
+		for (let start = row; start >= 0; start--) {
+			if (folded.has(start) || session.getFoldWidget(start) !== "start") continue;
+			const range = session.getFoldWidgetRange(start) as AceFold | null;
+			if (!range || range.end.row < row) continue;
+			try {
+				session.addFold("...", range);
+				break;
+			} catch {
+				// 既存の折りたたみと重なるブロックは、さらに外側を探す
+			}
+		}
+		return true;
+	}
+
+	unfoldAtCursor(): boolean {
+		const session = this.editor.getSession();
+		const row = this.editor.getCursorPosition().row;
+		const folds = session.getAllFolds().filter((fold) => fold.start.row <= row && row <= fold.end.row);
+		const innermost = folds.reduce<AceFold | null>((inner, fold) => !inner || fold.start.row > inner.start.row ? fold : inner, null);
+		if (innermost) session.expandFold(innermost);
+		return true;
+	}
 }
 
 class MonacoCodeEditor implements CodeEditor {
@@ -147,6 +175,21 @@ class MonacoCodeEditor implements CodeEditor {
 				this.editor.setPosition(position);
 			}
 		})().catch(() => undefined);
+	}
+
+	foldAtCursor(): boolean {
+		return this.runAction("editor.fold");
+	}
+
+	unfoldAtCursor(): boolean {
+		return this.runAction("editor.unfold");
+	}
+
+	private runAction(id: string): boolean {
+		const action = this.editor.getAction(id);
+		if (!action) return false;
+		void action.run().catch(() => undefined);
+		return true;
 	}
 }
 
@@ -228,6 +271,8 @@ function findEditor(target: SubmissionTarget): CodeEditor | null {
 		isReadOnly: () => current()?.isReadOnly() ?? true,
 		setWritable: () => current()?.setWritable(),
 		foldLines: (lines) => current()?.foldLines(lines),
+		foldAtCursor: () => current()?.foldAtCursor?.() ?? false,
+		unfoldAtCursor: () => current()?.unfoldAtCursor?.() ?? false,
 		onChange: (listener) => current()?.onChange(listener),
 		onPaste(listener) {
 			document.addEventListener("paste", (event) => {

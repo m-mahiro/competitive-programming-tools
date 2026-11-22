@@ -6,15 +6,22 @@ export type AceSession = {
 	getValue(): string;
 	setValue(value: string): void;
 	getMode(): {$id?: string};
-	getAllFolds(): Array<{start: {row: number}}>;
+	getAllFolds(): AceFold[];
+	expandFold(fold: AceFold): void;
 	getFoldWidget(row: number): unknown;
 	getFoldWidgetRange(row: number): unknown;
 	addFold(placeholder: string, range: unknown): void;
 	on(event: string, listener: () => void): void;
 };
 
+export type AceFold = {
+	readonly start: {readonly row: number};
+	readonly end: {readonly row: number};
+};
+
 export type AceEditor = {
 	getSession(): AceSession;
+	getCursorPosition(): {row: number; column: number};
 	getValue(): string;
 	/** cursor が -1 なら先頭へカーソルを移す。省略すると全体を選択する。 */
 	setValue(value: string, cursor?: number): void;

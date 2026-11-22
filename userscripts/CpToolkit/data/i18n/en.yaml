@@ -197,8 +197,9 @@ submissionHelper.fallbackFailed: The browser could not safely transform this sou
 keyboardShortcuts.title: Keyboard shortcuts
 keyboardShortcuts.description: "Submit, copy samples, switch tasks, open pages and more with keys you choose. Write keys like Ctrl+Shift+Enter, or none to turn one off."
 keyboardShortcuts.openSettings: Open the CP Toolkit settings
-keyboardShortcuts.submit: Submit (empty for the site default)
-keyboardShortcuts.fold: Fold Java classes and comments
+keyboardShortcuts.submit: Submit
+keyboardShortcuts.fold: Fold the block at the cursor
+keyboardShortcuts.unfold: Unfold the fold on the cursor line
 keyboardShortcuts.testAndSubmit: "Test with Easy Test+, then submit"
 keyboardShortcuts.testAll: Test all samples with Easy Test+
 keyboardShortcuts.toggleEasyTest: Open or close the Easy Test+ panel
@@ -207,7 +208,7 @@ keyboardShortcuts.copyOutput: Copy a sample output (these modifiers and a number
 keyboardShortcuts.copyStatement: Copy the whole statement (AtCoder)
 keyboardShortcuts.previousTask: Open the previous task
 keyboardShortcuts.nextTask: Open the next task
-keyboardShortcuts.openTask: Open a task (these modifiers and its letter from A to Z)
+keyboardShortcuts.openTask: "Open a task (these modifiers and A to Z: A, B, C… from the top of the task list)"
 keyboardShortcuts.openTasks: Open the task list
 keyboardShortcuts.openMySubmissions: Open my submissions
 keyboardShortcuts.openStandings: Open the standings

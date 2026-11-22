@@ -33,7 +33,6 @@ submission:
   textarea: '#plain-textarea'
   commentMount: '.editor-buttons'
   taskSelect: '#select-task'
-  shortcut: Ctrl+Shift+Enter
   submitButtons: ['#submit']
 
 # 一言語分の問題文を起点に、書式に合うセレクタまで順に試す
