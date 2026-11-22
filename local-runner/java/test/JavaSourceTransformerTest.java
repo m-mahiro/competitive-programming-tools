@@ -304,7 +304,8 @@ public final class JavaSourceTransformerTest {
 			return stdout;
 		} finally {
 			try (var files = Files.walk(folder)) {
-				for (final Path path : files.sorted(java.util.Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
+				for (final Path path : files.sorted(java.util.Comparator.reverseOrder()).toList())
+					Files.deleteIfExists(path);
 			}
 		}
 	}

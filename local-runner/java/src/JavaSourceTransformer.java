@@ -58,7 +58,8 @@ final class JavaSourceTransformer {
 			final Analysis analysis = analyze(source, index.classPath());
 			// 複数の public 型を貼った場合は、入口以外の public を展開時に外して Main.java として検証する。
 			if (analysis.hasErrors() && analysis.diagnosticItems().stream().anyMatch(item -> item.kind().equals("ERROR")
-					&& !item.code().equals("compiler.err.class.public.should.be.in.file"))) return failure(source, analysis);
+					&& !item.code().equals("compiler.err.class.public.should.be.in.file")))
+				return failure(source, analysis);
 			final Map<Path, JavaBundleNames.Unit> libraries = new HashMap<>();
 			final List<Path> dependencies = collectDependencies(analysis, index, libraries);
 			final BundleOutput bundled = bundle(source, analysis, dependencies, libraries, index, debug, debugFlag);
@@ -172,7 +173,8 @@ final class JavaSourceTransformer {
 			if (!required.add(path)) continue;
 			final String code = normalize(Files.readString(path, UTF_8));
 			final Analysis library = analyze(code, index.classPath());
-			if (library.hasErrors()) throw new IOException("library dependency analysis failed: " + path + "\n" + library.diagnostics());
+			if (library.hasErrors())
+				throw new IOException("library dependency analysis failed: " + path + "\n" + library.diagnostics());
 			libraries.put(path, new JavaBundleNames.Unit(code, library));
 			final Set<Path> dependencies = index.dependencies().computeIfAbsent(path, key -> {
 				final Set<Path> referenced = referencedLibrarySources(library.solution(), library.trees(), index);
@@ -418,7 +420,7 @@ final class JavaSourceTransformer {
 	}
 
 	private List<CompilerDiagnostic> diagnosticItems(final DiagnosticCollector<JavaFileObject> diagnostics,
-												   final CompilationUnitTree unit, final SourcePositions positions) {
+													 final CompilationUnitTree unit, final SourcePositions positions) {
 		final List<CompilerDiagnostic> result = new ArrayList<>();
 		for (final Diagnostic<? extends JavaFileObject> diagnostic : diagnostics.getDiagnostics()) {
 			String importName = null;
@@ -488,8 +490,8 @@ final class JavaSourceTransformer {
 	private record BundleOutput(String source, List<String> inlined, JavaBundleNames names) {}
 
 	record Analysis(CompilationUnitTree solution, Trees trees,
-							SourcePositions positions, Elements elements, Types types, String diagnostics, boolean hasErrors,
-							List<CompilerDiagnostic> diagnosticItems) {}
+					SourcePositions positions, Elements elements, Types types, String diagnostics, boolean hasErrors,
+					List<CompilerDiagnostic> diagnosticItems) {}
 
 	private record MainClass(ClassTree tree, TypeElement element) {}
 

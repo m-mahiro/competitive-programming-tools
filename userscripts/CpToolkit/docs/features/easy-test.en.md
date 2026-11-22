@@ -36,11 +36,11 @@ Easy Test+ is based on [AtCoder Easy Test v2](https://greasyfork.org/scripts/433
 
 Open this feature’s “Detailed settings” in CP Toolkit.
 
-| Setting                                        | Default |
-|------------------------------------------------|---------|
-| Precompile edited code with Local Runner       | On      |
-| Number of tasks to keep code for               | `10`    |
-| Allowed error                                  | `1e-6`  |
+| Setting                                  | Default |
+|------------------------------------------|---------|
+| Precompile edited code with Local Runner | On      |
+| Number of tasks to keep code for         | `10`    |
+| Allowed error                            | `1e-6`  |
 
 ## Pages
 
