@@ -142,6 +142,8 @@ export type LocalRunnerTransformResponse = {
 	summary?: LocalRunnerTransformSummary;
 	/** ヘッダーを付けたときだけ。 */
 	header?: LocalRunnerHeaderInfo;
+	/** 処理は続けたが、利用者に知らせること(ヘッダーのファイルが無いなど)。 */
+	warnings?: string[];
 };
 
 export type LocalRunnerPrepareResponse = LocalRunnerTransformResponse & {

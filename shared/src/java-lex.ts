@@ -5,11 +5,14 @@ const JAVA_LEXEME = /\s+|\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$)|"""(?:\\[\s\S]|(?!"""
 const PAIRS: Readonly<Record<string, string>> = {")": "(", "]": "[", "}": "{"};
 export const JAVA_IDENTIFIER = /^[\p{ID_Start}\p{Sc}\p{Pc}$][\p{ID_Continue}\p{Sc}\p{Pc}$]*$/u;
 
-export function scanJava(source: string): {tokens: JavaToken[]; complete: boolean} {
+/**
+ * Java の字句を読む。Unicode エスケープはコメントや引用符より先に Java コンパイラが解釈するので、
+ * 訳していないソースにエスケープがあれば読み切れないものとする。decoded なら、decodeUnicodeEscapes で訳したあとのソースとして読む。
+ */
+export function scanJava(source: string, decoded = false): {tokens: JavaToken[]; complete: boolean} {
 	const tokens: JavaToken[] = [];
 	const stack: number[] = [];
-	// Unicode エスケープはコメントや引用符より先に Java コンパイラが解釈する。
-	let complete = !/\\u+[\da-fA-F]{4}/.test(source);
+	let complete = decoded || !/\\u+[\da-fA-F]{4}/.test(source);
 	for (const m of source.matchAll(JAVA_LEXEME)) {
 		const text = m[0];
 		if (text.startsWith("/*") && !text.endsWith("*/")) complete = false;
@@ -48,12 +51,34 @@ export function qualifiedName(tokens: JavaToken[], start: number): {name: string
 	return tokens[index]?.text === ";" ? {name, end: index} : null;
 }
 
+/** Unicode エスケープ(バックスラッシュ、1つ以上の u、16進数4桁)。 */
+const UNICODE_ESCAPE = /^\\u+([\da-fA-F]{4})/;
+
 /**
- * Unicode エスケープ(\uXXXX)を、同じ長さの x に置き換える。位置と行を変えずに、字句を読み切れるようにする。
- * 文字列の中の × などのためで、引用符や改行を表すエスケープ("、\u000a)は読み違える。字句の位置を使う処理だけに使う。
+ * Unicode エスケープを、javac と同じく文字に訳す。前にバックスラッシュが奇数個続くもの(文字列の中の二重のバックスラッシュの後)は訳さない。
+ * offsets[i] は、訳した文字列の i 文字目が元のソースで始まる位置。offsets[text.length] は元のソースの長さ。
+ * 引用符や改行を表すエスケープも訳すので、javac と同じ字句として読める。位置は offsets で元のソースへ戻す。
  */
-export function maskUnicodeEscapes(source: string): string {
-	return source.replace(/\\u+[\da-fA-F]{4}/g, (escape) => "x".repeat(escape.length));
+export function decodeUnicodeEscapes(source: string): {text: string; offsets: number[]} {
+	const chars: string[] = [];
+	const offsets: number[] = [];
+	let backslashes = 0;
+	for (let i = 0; i < source.length;) {
+		const escape = source[i] === "\\" && backslashes % 2 === 0 ? UNICODE_ESCAPE.exec(source.slice(i, i + 32)) : null;
+		if (escape) {
+			chars.push(String.fromCharCode(Number.parseInt(escape[1]!, 16)));
+			offsets.push(i);
+			i += escape[0].length;
+			backslashes = 0;
+			continue;
+		}
+		backslashes = source[i] === "\\" ? backslashes + 1 : 0;
+		chars.push(source[i]!);
+		offsets.push(i);
+		i++;
+	}
+	offsets.push(source.length);
+	return {text: chars.join(""), offsets};
 }
 
 /**
@@ -61,7 +86,8 @@ export function maskUnicodeEscapes(source: string): string {
  * Local Runner の変換は、この行より前(import と package)だけで行数を変えるので、前後の差がそれより後のずれになる。
  */
 export function firstDeclarationLine(source: string): number | null {
-	const {tokens, complete} = scanJava(maskUnicodeEscapes(source));
+	const {text, offsets} = decodeUnicodeEscapes(source);
+	const {tokens, complete} = scanJava(text, true);
 	if (!complete) return null;
 	let index = 0;
 	while (tokens[index]?.text === "package" || tokens[index]?.text === "import" || tokens[index]?.text === ";") {
@@ -73,5 +99,6 @@ export function firstDeclarationLine(source: string): number | null {
 		index++;
 	}
 	const token = tokens[index];
-	return token === undefined ? null : source.slice(0, token.start).split("\n").length;
+	// 行は元のソースの改行で数える(javac の行番号と同じ)
+	return token === undefined ? null : source.slice(0, offsets[token.start]).split("\n").length;
 }

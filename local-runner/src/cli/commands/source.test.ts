@@ -33,7 +33,7 @@ describe("describeTransform", () => {
 	test("変えていない項目は出さず、AtCoder の上限を超えたら知らせる", () => {
 		const big = "x".repeat(513 * 1024);
 		const lines = describeTransform({...base, sourceCode: big, inlinedClasses: [], summary: {entryName: "Main", debugFlag: null}}, "Main.java", big);
-		expect(lines).toEqual(["Source: Main.java 1 lines -> 1 lines, 513.0 KiB (over the AtCoder limit of 512.0 KiB)"]);
+		expect(lines).toEqual(["Source: Main.java 1 line -> 1 line, 513.0 KiB (over the AtCoder limit of 512.0 KiB)"]);
 	});
 
 	test("コンパイルの失敗では、行数と大きさを出さない", () => {

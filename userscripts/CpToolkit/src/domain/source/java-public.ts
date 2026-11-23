@@ -1,4 +1,4 @@
-import {type JavaToken, maskUnicodeEscapes, scanJava} from "@atcoder-tools/shared";
+import {decodeUnicodeEscapes, type JavaToken, scanJava} from "@atcoder-tools/shared";
 
 const TYPE_KEYWORDS = new Set(["class", "interface", "enum", "record"]);
 /** 型の宣言で public の後に続けられる修飾子。non-sealed は non、-、sealed の3つの字句になる。 */
@@ -28,8 +28,9 @@ function typeKeywordAfter(tokens: readonly JavaToken[], index: number): number {
  * コメント、文字列、テキストブロックの中と、型の中のメンバーには触れない。字句を読み切れないソースは変えない。
  */
 export function withoutPublicTypes(source: string): string {
-	// 文字列の中の Unicode エスケープ(× など)があっても外せるよう、位置を変えずに読む
-	const {tokens, complete} = scanJava(maskUnicodeEscapes(source));
+	// Unicode エスケープは javac と同じく訳してから読み、位置は元のソースへ戻す
+	const {text, offsets} = decodeUnicodeEscapes(source);
+	const {tokens, complete} = scanJava(text, true);
 	if (!complete) return source;
 	const parts: string[] = [];
 	let cursor = 0;
@@ -37,9 +38,10 @@ export function withoutPublicTypes(source: string): string {
 	for (const [i, token] of tokens.entries()) {
 		if (i < skipTo) continue;
 		if (token.text === "public" && typeKeywordAfter(tokens, i) >= 0) {
-			let end = token.end;
+			const start = offsets[token.start]!;
+			let end = offsets[token.end]!;
 			while (source[end] === " " || source[end] === "\t") end++;
-			parts.push(source.slice(cursor, token.start));
+			parts.push(source.slice(cursor, start));
 			cursor = end;
 		}
 		// 括弧の中(型の本体、注釈の引数)は外側の宣言ではない

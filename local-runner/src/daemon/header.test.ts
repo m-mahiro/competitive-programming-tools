@@ -80,17 +80,19 @@ describe("applySubmissionHeader", () => {
 		expect(applySubmissionHeader(withHeader, true, ["java"]).sourceCode).toBe(withHeader.sourceCode);
 	});
 
-	test("指定した名前に設定が無ければ失敗にする", () => {
+	test("指定した名前に設定が無ければ、付けずに続けて警告する", () => {
 		const result = applySubmissionHeader(success, "short", ["java"]);
-		expect(result.status).toBe("compileError");
-		expect(result.diagnostics).toContain("setheader short <file>");
+		expect(result.status).toBe("success");
+		expect(result.sourceCode).toBe(SOURCE);
+		expect(result.warnings?.join("")).toContain("setheader short <file>");
 	});
 
-	test("設定したファイルが無くなっていれば失敗にする", () => {
+	test("設定したファイルが無くなっていれば、付けずに続けて警告する", () => {
 		writeUserSettings(settingsFile, {headers: {java: path.join(dir, "missing.txt")}});
 		const result = applySubmissionHeader(success, true, ["java"]);
-		expect(result.status).toBe("compileError");
-		expect(result.diagnostics).toContain("Header file not found");
+		expect(result.status).toBe("success");
+		expect(result.warnings?.join("")).toContain(`Header file not found: ${path.join(dir, "missing.txt")}. The header was not added.`);
+		expect(result.warnings?.join("")).toContain("--no-header");
 	});
 
 	test("付けるヘッダーの文を返し、設定が無ければ null を返す", () => {
@@ -101,8 +103,8 @@ describe("applySubmissionHeader", () => {
 	});
 
 	test("名前の形式を検査し、オブジェクトの既定のプロパティを読まない", () => {
-		expect(applySubmissionHeader(success, "../secret", ["java"]).diagnostics).toContain("Invalid header name");
-		expect(applySubmissionHeader(success, "constructor", ["java"]).diagnostics).toContain("Header is not set");
+		expect(applySubmissionHeader(success, "../secret", ["java"]).warnings?.join("")).toContain("Invalid header name");
+		expect(applySubmissionHeader(success, "constructor", ["java"]).warnings?.join("")).toContain("Header is not set");
 	});
 });
 
@@ -138,12 +140,13 @@ describe("prepareWithSubmissionHeader", () => {
 		expect(calls.map(({header}) => header)).toEqual([null, null]);
 	});
 
-	test("ヘッダーを読めないときは、コンパイルせずに失敗として返す", async () => {
+	test("ヘッダーを読めないときは、ヘッダーを付けずに実行して警告する", async () => {
 		const {calls, prepare} = recorder();
 		const response = await prepareWithSubmissionHeader(SOURCE, "missing", ["java"], prepare);
-		expect(response.status).toBe("compileError");
-		expect(response.diagnostics).toContain("Header is not set");
-		expect(calls).toEqual([]);
+		expect(response.status).toBe("success");
+		expect(calls).toEqual([{sourceCode: SOURCE, header: null}]);
+		expect(response.warnings?.join("")).toContain("Header is not set");
+		expect(response.header).toBeUndefined();
 	});
 
 	test("コンパイルの間にヘッダーのファイルが変わっても、読んだときの文を使う", async () => {

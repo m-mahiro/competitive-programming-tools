@@ -53,14 +53,20 @@ export function applySubmissionHeader<T extends LocalRunnerTransformResponse>(
 ): T {
 	if (response.status !== "success") return response;
 	const read = readSubmissionHeader(header, languageKeys);
-	if ("error" in read) return {...response, status: "compileError", diagnostics: read.error};
+	if ("error" in read) return withHeaderWarning(response, read.error);
 	const headered = prependSubmissionHeader(response.sourceCode, read.text);
 	return withHeaderLines({...response, sourceCode: headered.sourceCode}, headered.lines, read.name);
 }
 
+/** ヘッダーを読めなかったことを、警告として足す。ヘッダーは実行に要らないので、処理は止めない。 */
+function withHeaderWarning<T extends LocalRunnerTransformResponse>(response: T, error: string): T {
+	const warning = `${error.replace(/\.?$/, ".")} The header was not added. Fix it with setheader, or use --no-header.`;
+	return {...response, warnings: [...response.warnings ?? [], warning]};
+}
+
 /**
  * ヘッダーを1回だけ読んでから、変換、ヘッダーの付与、コンパイルを行う(prepare)。
- * 読めなければコンパイルせずに止める。コンパイルの間にファイルが変わっても、読んだ文で付ける。
+ * 読めなければ、ヘッダーを付けずに続けて警告を返す。コンパイルの間にファイルが変わっても、読んだ文で付ける。
  * prepare は、変換したソースの先頭にヘッダーを付けてからコンパイルする。
  */
 export async function prepareWithSubmissionHeader(
@@ -70,7 +76,7 @@ export async function prepareWithSubmissionHeader(
 	prepare: (sourceCode: string, header: string | null) => Promise<LocalRunnerPrepareResponse>,
 ): Promise<LocalRunnerPrepareResponse> {
 	const read = readSubmissionHeader(header, languageKeys);
-	if ("error" in read) return {status: "compileError", sourceCode, diagnostics: read.error, inlinedClasses: [], diagnosticItems: []};
+	if ("error" in read) return withHeaderWarning(await prepare(sourceCode, null), read.error);
 	const response = await prepare(sourceCode, read.text);
 	// 付けた行数は prepare が数える(変換のあとに付けるので、元のソースがヘッダーで始まっていれば付けない)
 	const lines = response.lineOffset?.header ?? 0;

@@ -1,5 +1,5 @@
 import {describe, expect, test} from "bun:test";
-import {firstDeclarationLine, maskUnicodeEscapes} from "@atcoder-tools/shared";
+import {decodeUnicodeEscapes, firstDeclarationLine} from "@atcoder-tools/shared";
 
 describe("firstDeclarationLine", () => {
 	test("package と import の後の、最初の宣言の行を返す", () => {
@@ -15,7 +15,22 @@ describe("firstDeclarationLine", () => {
 
 	test("文字列の中の Unicode エスケープがあっても数える", () => {
 		expect(firstDeclarationLine('import java.util.*;\n\nclass Main { String s = "\\u00d7"; }\n')).toBe(3);
-		expect(maskUnicodeEscapes('"\\u00d7"')).toBe('"xxxxxx"');
+	});
+
+	test("コメントの中の改行のエスケープは、javac と同じく改行として読み、行は元のソースで数える", () => {
+		// 1行目のコメントは改行のエスケープで終わり、その後ろの import は文になる
+		expect(firstDeclarationLine("// c \\u000a import java.util.*;\nclass Main {}\n")).toBe(2);
+	});
+});
+
+describe("decodeUnicodeEscapes", () => {
+	test("エスケープを文字に訳し、元の位置を返す", () => {
+		expect(decodeUnicodeEscapes("a\\u0041b")).toEqual({text: "aAb", offsets: [0, 1, 7, 8]});
+		expect(decodeUnicodeEscapes("\\uuu0022").text).toBe('"');
+	});
+
+	test("前にバックスラッシュが奇数個あるものは訳さない", () => {
+		expect(decodeUnicodeEscapes('"\\\\u0041"').text).toBe('"\\\\u0041"');
 	});
 
 	test("宣言が無いか、字句を読み切れなければ null を返す", () => {

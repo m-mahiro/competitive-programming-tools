@@ -109,6 +109,12 @@ describe("Java の public な型", () => {
 		expect(withoutPublicTypes(source)).toBe(source.replace("public class Main", "class Main"));
 	});
 
+	test("引用符と改行のエスケープも javac と同じく読む", () => {
+		// '\u0022' は引用符1文字の文字リテラル。コメントの中の改行のエスケープの後ろは、コメントではなく宣言になる
+		const source = "public class Main {\n\tstatic char q = '\\u0022';\n}\n// note \\u000a public class Other {}\n";
+		expect(withoutPublicTypes(source)).toBe("class Main {\n\tstatic char q = '\\u0022';\n}\n// note \\u000a class Other {}\n");
+	});
+
 	test("public な型がなければ変えない", () => {
 		const source = "class Main {\n\tpublic int value;\n}\n";
 		expect(withoutPublicTypes(source)).toBe(source);

@@ -787,10 +787,10 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	var PAIRS = {")": "(", "]": "[", "}": "{"};
 	var JAVA_IDENTIFIER = /^[\p{ID_Start}\p{Sc}\p{Pc}$][\p{ID_Continue}\p{Sc}\p{Pc}$]*$/u;
 
-	function scanJava(source) {
+	function scanJava(source, decoded = false) {
 		const tokens = [];
 		const stack = [];
-		let complete = !/\\u+[\da-fA-F]{4}/.test(source);
+		let complete = decoded || !/\\u+[\da-fA-F]{4}/.test(source);
 		for (const m of source.matchAll(JAVA_LEXEME)) {
 			const text = m[0];
 			if (text.startsWith("/*") && !text.endsWith("*/")) complete = false;
@@ -828,8 +828,29 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return tokens[index]?.text === ";" ? {name, end: index} : null;
 	}
 
-	function maskUnicodeEscapes(source) {
-		return source.replace(/\\u+[\da-fA-F]{4}/g, (escape) => "x".repeat(escape.length));
+	var UNICODE_ESCAPE = /^\\u+([\da-fA-F]{4})/;
+
+	function decodeUnicodeEscapes(source) {
+		const chars = [];
+		const offsets = [];
+		let backslashes = 0;
+		for (let i = 0; i < source.length;) {
+			const escape =
+				source[i] === "\\" && backslashes % 2 === 0 ? UNICODE_ESCAPE.exec(source.slice(i, i + 32)) : null;
+			if (escape) {
+				chars.push(String.fromCharCode(Number.parseInt(escape[1], 16)));
+				offsets.push(i);
+				i += escape[0].length;
+				backslashes = 0;
+				continue;
+			}
+			backslashes = source[i] === "\\" ? backslashes + 1 : 0;
+			chars.push(source[i]);
+			offsets.push(i);
+			i++;
+		}
+		offsets.push(source.length);
+		return {text: chars.join(""), offsets};
 	}
 
 	// ../shared/src/java-imports.ts
@@ -7004,7 +7025,8 @@ def __run(source):
 	}
 
 	function withoutPublicTypes(source) {
-		const {tokens, complete} = scanJava(maskUnicodeEscapes(source));
+		const {text, offsets} = decodeUnicodeEscapes(source);
+		const {tokens, complete} = scanJava(text, true);
 		if (!complete) return source;
 		const parts = [];
 		let cursor = 0;
@@ -7012,9 +7034,10 @@ def __run(source):
 		for (const [i, token] of tokens.entries()) {
 			if (i < skipTo) continue;
 			if (token.text === "public" && typeKeywordAfter(tokens, i) >= 0) {
-				let end = token.end;
+				const start = offsets[token.start];
+				let end = offsets[token.end];
 				while (source[end] === " " || source[end] === "\t") end++;
-				parts.push(source.slice(cursor, token.start));
+				parts.push(source.slice(cursor, start));
 				cursor = end;
 			}
 			if (token.pair > i) skipTo = token.pair;

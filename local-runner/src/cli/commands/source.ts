@@ -63,6 +63,11 @@ function countLines(text: string): number {
 	return text === "" ? 0 : text.replace(/\n$/, "").split("\n").length;
 }
 
+function formatLineCount(text: string): string {
+	const lines = countLines(text);
+	return lines === 1 ? "1 line" : `${lines} lines`;
+}
+
 function formatKiB(bytes: number): string {
 	return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KiB`;
 }
@@ -80,7 +85,7 @@ export function describeTransform(result: ServerResult, originalFileName: string
 	if (summary?.packageRemoved) changes.push("package removed");
 	if (summary?.bundleCommand) changes.push("bundle command");
 	if (changes.length > 0) lines.push(`Transform: ${changes.join(", ")}`);
-	if (result.header) lines.push(`Header: ${result.header.name} (${result.header.lines} lines)`);
+	if (result.header) lines.push(`Header: ${result.header.name} (${result.header.lines === 1 ? "1 line" : `${result.header.lines} lines`})`);
 	if (summary?.addedImports && summary.addedImports.length > 0) lines.push(`Added imports: ${summary.addedImports.join(", ")}`);
 	if (result.inlinedClasses.length > 0) {
 		const files = summary?.bundledFiles ?? [];
@@ -89,7 +94,7 @@ export function describeTransform(result: ServerResult, originalFileName: string
 	if (result.status === "success") {
 		const bytes = Buffer.byteLength(result.sourceCode, "utf8");
 		const over = bytes > ATCODER_SOURCE_LIMIT_BYTES ? ` (over the AtCoder limit of ${formatKiB(ATCODER_SOURCE_LIMIT_BYTES)})` : "";
-		lines.push(`Source: ${originalFileName} ${countLines(originalSource)} lines -> ${countLines(result.sourceCode)} lines, ${formatKiB(bytes)}${over}`);
+		lines.push(`Source: ${originalFileName} ${formatLineCount(originalSource)} -> ${formatLineCount(result.sourceCode)}, ${formatKiB(bytes)}${over}`);
 	}
 	return lines;
 }
@@ -125,6 +130,8 @@ async function requestSource(
 	const originalFileName = path.basename(resolvedSourcePath);
 	const restoreNames = createNameRestorer(language, originalFileName);
 	const result = await request();
+	// ヘッダーのファイルが無いなど、続けたが知らせることは警告の色で出す
+	for (const warning of result.warnings ?? []) console.log(color.colorizeWarning(`Warning: ${warning}`, "cli"));
 	for (const line of describeTransform(result, originalFileName, sourceText)) {
 		console.log(line.includes("over the AtCoder limit") ? color.colorizeWarning(line, "cli") : line);
 	}
