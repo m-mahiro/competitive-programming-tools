@@ -168,6 +168,19 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 		expect(engine.size).toBe(1);
 	});
 
+	test("変換(DEBUG の書き換え)のあとに仕上げたソースをコンパイルして実行する", async () => {
+		const engine = createEngine();
+		const finished: string[] = [];
+		const prepared = await engine.prepare(pythonLanguage, "DEBUG = True\nprint(DEBUG)\n", false, undefined, (transformed) => {
+			finished.push(transformed);
+			return `# header\n\n${transformed}`;
+		});
+		expect(finished).toEqual(["DEBUG = False\nprint(DEBUG)\n"]);
+		if (prepared.status !== "success") throw new Error(prepared.diagnostics);
+		expect(prepared.sourceCode).toBe("# header\n\nDEBUG = False\nprint(DEBUG)\n");
+		expect((await engine.run(prepared.programId, ""))?.stdout).toBe("False\n");
+	});
+
 	test("使い回したプログラムは、追い出す順番の最後に回す", async () => {
 		const engine = createEngine({maxPrograms: 2});
 		const ids: string[] = [];

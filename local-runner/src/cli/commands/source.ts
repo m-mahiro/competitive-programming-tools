@@ -117,10 +117,13 @@ export async function transformSource(sourceFilePath: string, options: SourceOpt
 	return source;
 }
 
-/** 実行のためにコンパイルする(run、test、localtest、crosscheck、submit)。ヘッダーは既定で付けない。test と submit は付けるよう指定する。 */
+/**
+ * 実行のためにコンパイルする(run、test、localtest、crosscheck、submit)。
+ * どのコマンドも、ライブラリの展開、ヘッダーの付与、コンパイルの順に行い、提出するソースそのもので実行する。ヘッダーは既定で付ける。
+ */
 export async function compileSource(sourceFilePath: string, debug: boolean, options: SourceOptions = {}): Promise<CompiledSource> {
 	const {source, result, request} = await requestSource(sourceFilePath, "prepare", debug, {
-		header: options.header ?? false,
+		header: options.header ?? true,
 		...(options.lang !== undefined && {lang: options.lang}),
 		validate: false,
 	});

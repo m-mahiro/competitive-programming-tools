@@ -6,6 +6,8 @@ import {CanceledError} from "./processRunner";
 export type PrepareOptions = {
 	readonly debug: boolean;
 	readonly validate: boolean;
+	/** 変換のあと、コンパイルの前に付けるヘッダー。付けなければ null。 */
+	readonly header: string | null;
 };
 
 /** 変換とコンパイルを行う。signal が中断されたら、できるだけ早く CanceledError を投げる。 */
@@ -25,8 +27,8 @@ type Job = {
 	settled: boolean;
 };
 
-function keyOf(language: string, sourceCode: string, {debug, validate}: PrepareOptions): string {
-	const digest = crypto.createHash("md5").update(sourceCode).digest("hex");
+function keyOf(language: string, sourceCode: string, {debug, validate, header}: PrepareOptions): string {
+	const digest = crypto.createHash("md5").update(sourceCode).update("\u0000").update(header ?? "").digest("hex");
 	return `${language}:${debug ? 1 : 0}${validate ? 1 : 0}:${digest}`;
 }
 

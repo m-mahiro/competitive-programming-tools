@@ -138,10 +138,20 @@ export class CommandEngine {
 			: {ok: true, sourceCode: rewritten};
 	}
 
-	/** ソースを変換してコンパイルし、実行に使う programId を返す。中断されたら CanceledError を投げる。 */
-	async prepare(language: CommandLanguage, sourceCode: string, debug: boolean, signal?: AbortSignal): Promise<PrepareResult> {
-		const transformed = await this.transformSource(language, sourceCode, debug, signal);
-		if (!transformed.ok) return {status: "compileError", diagnostics: transformed.diagnostics, sourceCode};
+	/**
+	 * ソースを変換してコンパイルし、実行に使う programId を返す。中断されたら CanceledError を投げる。
+	 * finish は、変換したソースをコンパイルの前に仕上げる(ヘッダーを付けるなど)。
+	 */
+	async prepare(
+		language: CommandLanguage,
+		sourceCode: string,
+		debug: boolean,
+		signal?: AbortSignal,
+		finish: (transformed: string) => string = (transformed) => transformed,
+	): Promise<PrepareResult> {
+		const result = await this.transformSource(language, sourceCode, debug, signal);
+		if (!result.ok) return {status: "compileError", diagnostics: result.diagnostics, sourceCode};
+		const transformed = {sourceCode: finish(result.sourceCode)};
 
 		const compileTemplate = this.compileTemplate(language, debug);
 		const programId = this.programId(language, compileTemplate, transformed.sourceCode);

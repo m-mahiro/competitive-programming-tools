@@ -159,6 +159,15 @@ export function includesSubmissionHeader(code: string, header: string, offset = 
 	return code.startsWith(header, offset) && (end === code.length || code[end] === "\n" || code.startsWith("\r\n", end));
 }
 
+/**
+ * ソースの先頭にヘッダーと空行を付け、増えた行数と返す。すでにそのヘッダーで始まるソース(toclip の出力など)には
+ * 重ねて付けない(増えた行数は 0)。ヘッダーが null か空白だけなら付けない。
+ */
+export function prependSubmissionHeader(sourceCode: string, header: string | null): {sourceCode: string; lines: number} {
+	if (header === null || !header.trim() || includesSubmissionHeader(sourceCode, header)) return {sourceCode, lines: 0};
+	return {sourceCode: `${header}\n\n${sourceCode}`, lines: header.split("\n").length + 1};
+}
+
 /** コンパイル済みのプログラムが消えていて、ソースから作り直す必要がある応答か。 */
 export function isStaleProgramResponse(response: {status: string; stderr?: string}): boolean {
 	return response.status === "badRequest" && response.stderr?.startsWith(STALE_PROGRAM_MESSAGE) === true;

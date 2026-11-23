@@ -111,61 +111,48 @@ describe("prepareWithSubmissionHeader", () => {
 		fs.rmSync(settingsFile, {force: true});
 	});
 
-	const compiled = (sourceCode: string) => Promise.resolve({...success, sourceCode, programId: `id:${sourceCode.length}`});
+	/** 呼ばれたときの元のソースとヘッダーを覚え、変換のあとにヘッダーを付けたものを返す代役。 */
+	function recorder() {
+		const calls: Array<{sourceCode: string; header: string | null}> = [];
+		const prepare = (sourceCode: string, header: string | null) => {
+			calls.push({sourceCode, header});
+			const finished = header === null ? sourceCode : `${header}\n\n${sourceCode}`;
+			return Promise.resolve({...success, sourceCode: finished, programId: "id"});
+		};
+		return {calls, prepare};
+	}
 
-	test("ヘッダーまで付けたソースをコンパイルし、同じソースを返す", async () => {
-		writeUserSettings(settingsFile, {headers: {python3: writeHeader("python.txt", "print(2)")}});
-		const sources: string[] = [];
-		const response = await prepareWithSubmissionHeader("print(1)\n", true, ["python3"], (code) => {
-			sources.push(code);
-			return compiled(code);
-		});
-		expect(sources).toEqual(["print(2)\n\nprint(1)\n"]);
-		expect(response.sourceCode).toBe(sources[0]);
-		expect(response.programId).toBe(`id:${sources[0].length}`);
-		// ヘッダーの1行と空行の2行だけ、元のソースより増える
-		expect(response.lineOffset).toEqual({header: 2, transform: 0});
-	});
-
-	test("変換で増えた行数は、ヘッダーの行数と別に返す", async () => {
+	test("元のソースと、読んだヘッダーの文を渡す(変換のあとに付ける)", async () => {
 		writeUserSettings(settingsFile, {headers: {java: writeHeader("java.txt", "// a\n// b")}});
-		const response = await prepareWithSubmissionHeader(SOURCE, true, ["java"], (code) =>
-			compiled(code).then((prepared) => ({...prepared, lineOffset: {header: 0, transform: null}})));
-		expect(response.lineOffset).toEqual({header: 3, transform: null});
+		const {calls, prepare} = recorder();
+		const response = await prepareWithSubmissionHeader(SOURCE, true, ["java"], prepare);
+		expect(calls).toEqual([{sourceCode: SOURCE, header: "// a\n// b"}]);
+		expect(response.sourceCode).toBe(`// a\n// b\n\n${SOURCE}`);
 	});
 
-	test("ヘッダーを付けないときは元のソースをコンパイルする", async () => {
-		writeUserSettings(settingsFile, {headers: {java: writeHeader("java.txt", "// java")}});
-		const response = await prepareWithSubmissionHeader(SOURCE, false, ["java"], compiled);
-		expect(response.sourceCode).toBe(SOURCE);
-	});
-
-	test("変換でヘッダーが先頭から外れたら、コンパイルの失敗として返す", async () => {
-		writeUserSettings(settingsFile, {headers: {java: writeHeader("java.txt", "// java")}});
-		const response = await prepareWithSubmissionHeader(SOURCE, true, ["java"], () => compiled(SOURCE));
-		expect(response.status).toBe("compileError");
-		expect(response.programId).toBeUndefined();
+	test("ヘッダーを付けない指定や、空白だけのヘッダーなら null を渡す", async () => {
+		writeUserSettings(settingsFile, {headers: {java: writeHeader("java.txt", "  \n")}});
+		const {calls, prepare} = recorder();
+		await prepareWithSubmissionHeader(SOURCE, true, ["java"], prepare);
+		await prepareWithSubmissionHeader(SOURCE, false, ["java"], prepare);
+		expect(calls.map(({header}) => header)).toEqual([null, null]);
 	});
 
 	test("ヘッダーを読めないときは、コンパイルせずに失敗として返す", async () => {
-		const sources: string[] = [];
-		const response = await prepareWithSubmissionHeader(SOURCE, "missing", ["java"], (code) => {
-			sources.push(code);
-			return compiled(code);
-		});
+		const {calls, prepare} = recorder();
+		const response = await prepareWithSubmissionHeader(SOURCE, "missing", ["java"], prepare);
 		expect(response.status).toBe("compileError");
 		expect(response.diagnostics).toContain("Header is not set");
-		expect(sources).toEqual([]);
+		expect(calls).toEqual([]);
 	});
 
-	test("コンパイルの間にヘッダーのファイルが変わっても、読んだときの文で付けて確かめる", async () => {
+	test("コンパイルの間にヘッダーのファイルが変わっても、読んだときの文を使う", async () => {
 		const file = writeHeader("java.txt", "// first");
 		writeUserSettings(settingsFile, {headers: {java: file}});
-		const response = await prepareWithSubmissionHeader(SOURCE, true, ["java"], (code) => {
+		const response = await prepareWithSubmissionHeader(SOURCE, true, ["java"], (sourceCode, header) => {
 			fs.writeFileSync(file, "// second");
-			return compiled(code);
+			return recorder().prepare(sourceCode, header);
 		});
-		expect(response.status).toBe("success");
 		expect(response.sourceCode).toBe(`// first\n\n${SOURCE}`);
 	});
 });

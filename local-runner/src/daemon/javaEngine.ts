@@ -27,26 +27,31 @@ export async function transformJavaCode(sourceCode: string, debug: boolean, vali
 	};
 }
 
-/** Java の変換とコンパイル。常駐 JVM の中の処理は止められないので、中断は区切りごとに確かめる。 */
+/**
+ * Java の変換とコンパイル。常駐 JVM の中の処理は止められないので、中断は区切りごとに確かめる。
+ * finish は、変換したソースをコンパイルの前に仕上げる(ヘッダーを付けるなど)。返すソースは仕上げたもの。
+ */
 export async function prepareJavaCode(
 	sourceCode: string,
 	debug: boolean,
 	validate: boolean,
 	signal: AbortSignal,
+	finish: (transformed: string) => string = (transformed) => transformed,
 ): Promise<LocalRunnerPrepareResponse> {
 	const transformed = await transformJavaCode(sourceCode, debug, validate);
 	if (transformed.status !== "success") return transformed;
 	if (signal.aborted) throw new CanceledError();
 
-	const entry = await compiler.getCompiledEntry(transformed.sourceCode);
+	const finished = {...transformed, sourceCode: finish(transformed.sourceCode)};
+	const entry = await compiler.getCompiledEntry(finished.sourceCode);
 	if (entry.status === "error") {
 		return {
-			...transformed,
+			...finished,
 			status: "compileError",
 			diagnostics: entry.error || "Java compilation failed.",
 		};
 	}
-	return {...transformed, programId: compiler.getProgramId(transformed.sourceCode)};
+	return {...finished, programId: compiler.getProgramId(finished.sourceCode)};
 }
 
 /** コンパイル済みの Java のプログラムを実行する。programId が Java のものでなければ null を返す。 */

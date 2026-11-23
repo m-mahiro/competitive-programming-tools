@@ -155,8 +155,8 @@ update
 | `-f`, `--force`               | `submit`、`tomain`                          | `submit`: サンプルが AC でなくても提出します。`tomain`: 既存のファイルを上書きします。      |
 | `-d`, `--debug[=true\|false]` | `test`、`localtest`、`run`                  | デバッグの有効と無効を切り替えます(既定は有効)。                                            |
 | `--lang=<name>`               | ソースを受け取るコマンド                    | 言語を設定での名前で選びます(既定は拡張子から)。`crosscheck` の比較相手は `--expected-lang` |
-| `--no-header`                 | `test`、`submit`、`tomain`、`toclip`        | 先頭にヘッダーを付けません。                                                                |
-| `--header=<name>`             | `test`、`submit`、`tomain`、`toclip`        | `setheader` で `<name>` に設定したファイルをヘッダーに使います(既定は言語のヘッダー)。      |
+| `--no-header`                 | ソースを受け取るコマンド                    | 先頭にヘッダーを付けません。                                                                |
+| `--header=<name>`             | ソースを受け取るコマンド                    | `setheader` で `<name>` に設定したファイルをヘッダーに使います(既定は言語のヘッダー)。      |
 | `--full`                      | `test`、`localtest`、`submit`、`crosscheck` | WA の差分を折りたたまず、全行を表示します(`--max-lines` より優先)。                         |
 | `--wa-only`                   | `test`、`localtest`、`submit`、`crosscheck` | WA の差分のうち、一致しない行だけを表示します。                                             |
 | `--max-lines=N`               | `test`、`localtest`、`submit`、`crosscheck` | WA の差分を折りたたむ行数を変えます(既定は 20)。                                            |
@@ -269,7 +269,7 @@ setlib C:\path\to\library\src
 
 ## 提出用ヘッダー
 
-提出物の先頭に付けるコメントなどのファイルを、`setheader` で設定できます。言語の既定のヘッダーと、名前付きのヘッダーの2通りがあります。`test`、`submit`、`tomain`、`toclip` と CP Toolkit の「コードのヘッダーとフッター」が使います。言語の名前には、設定での名前(`java`、`cpp`、`pypy` など)か、言語の種類(`python3` など)を書きます。
+提出物の先頭に付けるコメントなどのファイルを、`setheader` で設定できます。言語の既定のヘッダーと、名前付きのヘッダーの2通りがあります。ソースを受け取るコマンド(`run`、`test`、`localtest`、`crosscheck`、`submit`、`tomain`、`toclip`)と CP Toolkit の「コードのヘッダーとフッター」が使います。言語の名前には、設定での名前(`java`、`cpp`、`pypy` など)か、言語の種類(`python3` など)を書きます。
 
 ```bash
 # java の既定のヘッダー。--header を付けなければこれを使う
@@ -285,10 +285,9 @@ setheader short C:\path\to\short.txt
 - 設定が無ければヘッダーは付けません。設定したファイルが見つからないときはエラーで止まります。
 - 名前付きのヘッダーは `--header=<name>` や CP Toolkit の「ヘッダーの名前」で選べます。設定が無い名前はエラーになります。
 - `--no-header` で、ヘッダーを付けずに出力します。
-- ソースがヘッダーの1行目で始まるときは、重ねて付けません。
-- `test` と `submit` は、ヘッダーを付けたソースでサンプルを実行し、`submit` は同じソースを提出します。CP Toolkit で同じヘッダーを入れたコードと同じなら、コンパイルの結果を共有します。ヘッダーの分だけ、エラーの行番号は元のソースとずれます。
-- `run`、`localtest`、`crosscheck` には付けません。
-- エラーの行番号が元のソースとずれるときは、ずれた行数を `Line offset: header +2, imports +4` のように表示します。エラーの行番号からこの行数を引くと、元のソースの行になります。`imports` は、Java でライブラリが使う import を足した分などです。表示する行数は、そのエラーを出したソースに合わせます(Java の変換の前に見つかったコンパイルエラーなら、ヘッダーの分だけ)。変換でずれる行数が分からないときは、Java は `imports (unknown)`、`bundle` を設定した言語は `bundle (unknown)` と表示します。
+- 変換後のソースがヘッダーの全文で始まるとき(`toclip` の出力をそのまま使ったときなど)は、重ねて付けません。
+- どのコマンドも、ライブラリの展開(変換)、ヘッダーの付与、コンパイルの順に行い、提出するソースそのものを1回だけ実行します。`submit` は、サンプルを実行したソースをそのまま提出します。
+- エラーの行番号が元のソースとずれるときは、ずれた行数を `Line offset: header +2, imports +4.` のように表示します。エラーの行番号からこの行数を引くと、元のソースの行になります。`imports` は、Java でライブラリが使う import を足した分などです。Java の変換で見つかったコンパイルエラー(名前の誤りなど)は元のソースの行のままなので、表示しません。変換でずれる行数が分からないときは、Java は `imports (unknown)`、`bundle` を設定した言語は `bundle (unknown)` と表示します。
 
 ## 実行時間の警告
 

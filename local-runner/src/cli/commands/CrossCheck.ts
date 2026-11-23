@@ -1,3 +1,4 @@
+import type {LocalRunnerHeaderOption} from "@atcoder-tools/shared";
 import {CliUsageError, Command} from "./Command";
 import * as options from "./options";
 import * as sampleJudge from "../sampleJudge";
@@ -18,7 +19,7 @@ import type {SampleResult} from "../../types";
 export class CrossCheck implements Command {
 	readonly name = "crosscheck";
 	readonly usageLines = [
-		"  crosscheck  [--lang=<name>] [--expected-lang=<name>] [--full] [--wa-only] [--max-lines=N] [--time-limit=N] <actualSourceFile> <expectedSourceFile> [testDir]",
+		"  crosscheck  [--lang=<name>] [--expected-lang=<name>] [--no-header|--header=<name>] [--full] [--wa-only] [--max-lines=N] [--time-limit=N] <actualSourceFile> <expectedSourceFile> [testDir]",
 		"                                          (run both on the same input and compare stdout; cases where expected fails are reported without comparing)",
 	];
 
@@ -28,6 +29,7 @@ export class CrossCheck implements Command {
 		const display: sampleJudge.SampleDisplayOptions = {};
 		let lang: string | undefined;
 		let expectedLang: string | undefined;
+		let header: LocalRunnerHeaderOption = true;
 		for (const arg of args) {
 			const l = options.parseLangFlag(arg);
 			if (l !== undefined) {
@@ -39,6 +41,11 @@ export class CrossCheck implements Command {
 				expectedLang = e;
 				continue;
 			}
+			const h = options.parseHeaderFlag(arg);
+			if (h !== undefined) {
+				header = h;
+				continue;
+			}
 			if (options.parseDisplayFlag(arg, display)) continue;
 			if (arg.startsWith("-")) throw new CliUsageError(`Unknown option: ${arg}`);
 			positionals.push(arg);
@@ -46,8 +53,8 @@ export class CrossCheck implements Command {
 		const [actualSourceFile, expectedSourceFile, testDir] = positionals;
 		if (!actualSourceFile || !expectedSourceFile) throw new CliUsageError();
 
-		const actual = await source.compileSource(actualSourceFile, false, {lang});
-		const expected = await source.compileSource(expectedSourceFile, false, {lang: expectedLang});
+		const actual = await source.compileSource(actualSourceFile, false, {lang, header});
+		const expected = await source.compileSource(expectedSourceFile, false, {lang: expectedLang, header});
 		// テストケース（.in）はテスト対象である actual 側のソースの近傍/指定 testDir から探す。
 		// .out は無視する（あっても比較対象は「もう一方の実行結果」であって .out ではない）。
 		const samples = localSamples.loadLocalSamples(actual.resolvedSourcePath, testDir);

@@ -159,12 +159,12 @@ export function createRunnerServer(requestShutdown: () => void): http.Server {
 			} else if (request.mode === "prepare" && typeof request.sourceCode === "string") {
 				const language = requireLanguage(request.compilerName);
 				const options = {debug: !!request.debug, validate: request.validate === true};
-				// ヘッダーを付ける要求(test、submit)は、提出するソースそのものをコンパイルし、サンプルもその結果で動かす。
+				// 展開、ヘッダーの付与、コンパイルの順に行い、提出するソースそのもので実行する。
 				response = await prepareWithSubmissionHeader(
 					request.sourceCode,
 					request.header ?? false,
 					headerKeys(language),
-					(sourceCode) => prepareSource(language, sourceCode, options),
+					(sourceCode, header) => prepareSource(language, sourceCode, {...options, header}),
 				);
 			} else if (request.mode === "run" && typeof request.sourceCode === "string") {
 				const language = requireLanguage(request.compilerName);

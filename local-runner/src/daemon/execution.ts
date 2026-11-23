@@ -1,5 +1,6 @@
 import {
 	firstDeclarationLine,
+	prependSubmissionHeader,
 	type LocalRunnerLineOffset,
 	type LocalRunnerPrepareResponse,
 	type LocalRunnerRunResponse,
@@ -19,7 +20,8 @@ import {compileErrorResponse, missingProgramResponse, toRunResponse} from "./run
 // 覚えておくコンパイルの結果の数。言語ごとの実行環境が持つコンパイル結果の数と揃える。
 const PREPARE_CACHE_MAX = 10;
 // 事前コンパイルと、実行の前のコンパイルは、言語によらず同じ条件で行う。CLI の prepare と同じ条件にして結果を共有する。
-const RUN_PREPARE_OPTIONS = {validate: false} as const;
+// ブラウザから届くコードは、ヘッダーがあればすでに入っているので、付けない。
+const RUN_PREPARE_OPTIONS = {validate: false, header: null} as const;
 
 // 使える言語は、起動時に設定から決める(lifecycle.ts)。
 let runnerLanguages: readonly RunnerLanguage[] = [];
@@ -84,8 +86,10 @@ function transformOffset(language: RunnerLanguage, sourceCode: string, transform
 	return before === null || after === null ? null : after - before;
 }
 
-function withLineOffset<T extends LocalRunnerTransformResponse>(language: RunnerLanguage, sourceCode: string, response: T): T {
-	const lineOffset: LocalRunnerLineOffset = {header: 0, transform: transformOffset(language, sourceCode, response.sourceCode)};
+/** header は、変換のあとに付けたヘッダーの行数。返すソースはヘッダーを含むので、変換の行数からは除く。 */
+export function withLineOffset<T extends LocalRunnerTransformResponse>(language: RunnerLanguage, sourceCode: string, response: T, header = 0): T {
+	const transform = transformOffset(language, sourceCode, response.sourceCode);
+	const lineOffset: LocalRunnerLineOffset = {header, transform: transform === null || language.command !== null ? transform : transform - header};
 	return {...response, lineOffset};
 }
 
@@ -101,8 +105,9 @@ async function prepareCommandCode(
 	sourceCode: string,
 	debug: boolean,
 	signal: AbortSignal,
+	finish: (transformed: string) => string,
 ): Promise<LocalRunnerPrepareResponse> {
-	const result = await commandEngine!.prepare(language, sourceCode, debug, signal);
+	const result = await commandEngine!.prepare(language, sourceCode, debug, signal, finish);
 	return result.status === "success"
 		? {...NO_JAVA_TRANSFORM, status: "success", sourceCode: result.sourceCode, diagnostics: "", programId: result.programId}
 		: {...NO_JAVA_TRANSFORM, status: "compileError", sourceCode: result.sourceCode, diagnostics: result.diagnostics};
@@ -122,14 +127,23 @@ async function runCommandProgram(programId: string, stdin: string, receivedAt: n
 	return response;
 }
 
-/** 言語に合った経路で、変換とコンパイルを行う。コンパイルの順番待ちの中から呼ばれる。 */
-const prepareInQueue: PrepareFunction = async (name, sourceCode, {debug, validate}, signal) => {
+/**
+ * 言語に合った経路で、ライブラリの展開(変換)、ヘッダーの付与、コンパイルの順に行う。コンパイルの順番待ちの中から呼ばれる。
+ * 実行するのは提出するソースそのもので、増えた行数はヘッダーと変換に分けて返す。
+ */
+const prepareInQueue: PrepareFunction = async (name, sourceCode, {debug, validate, header}, signal) => {
 	const language = findLanguage(name);
 	if (!language) throw new Error(`Unknown language: "${name}".`);
+	let headerLines = 0;
+	const finish = (transformed: string): string => {
+		const headered = prependSubmissionHeader(transformed, header);
+		headerLines = headered.lines;
+		return headered.sourceCode;
+	};
 	const prepared = language.command === null
-		? prepareJavaCode(sourceCode, debug, validate, signal)
-		: prepareCommandCode(language.command, sourceCode, debug, signal);
-	return withLineOffset(language, sourceCode, await prepared);
+		? prepareJavaCode(sourceCode, debug, validate, signal, finish)
+		: prepareCommandCode(language.command, sourceCode, debug, signal, finish);
+	return withLineOffset(language, sourceCode, await prepared, headerLines);
 };
 
 const preparations = new PreparationQueue(prepareInQueue, PREPARE_CACHE_MAX);

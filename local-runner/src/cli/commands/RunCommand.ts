@@ -1,3 +1,4 @@
+import type {LocalRunnerHeaderOption} from "@atcoder-tools/shared";
 import fs from "node:fs";
 import path from "node:path";
 import * as color from "../../utils/color";
@@ -30,7 +31,7 @@ function runStatusLabel(status: string): string {
 export class RunCommand implements Command {
 	readonly name = "run";
 	readonly usageLines = [
-		"  run [-d|--debug[=true|false]] [--lang=<name>] [--time-limit=N] <sourceFile> [inputFile]",
+		"  run [-d|--debug[=true|false]] [--lang=<name>] [--no-header|--header=<name>] [--time-limit=N] <sourceFile> [inputFile]",
 		"                                          (run once and show the output; inputFile is optional; DEBUG is on by default)",
 	];
 
@@ -39,10 +40,16 @@ export class RunCommand implements Command {
 		let debug = true; // 既定で DEBUG 有効。-d/--debug で上書き。
 		let timeLimitMs: number | undefined;
 		let lang: string | undefined;
+		let header: LocalRunnerHeaderOption = true;
 		for (const arg of args) {
 			const l = options.parseLangFlag(arg);
 			if (l !== undefined) {
 				lang = l;
+				continue;
+			}
+			const h = options.parseHeaderFlag(arg);
+			if (h !== undefined) {
+				header = h;
 				continue;
 			}
 			const d = options.parseBoolFlag(arg, "--debug", "-d");
@@ -61,7 +68,7 @@ export class RunCommand implements Command {
 		const [sourceFilePath, inputFile] = positionals;
 		if (!sourceFilePath) throw new CliUsageError();
 
-		const {program, restoreNames} = await source.compileSource(sourceFilePath, debug, {lang});
+		const {program, restoreNames} = await source.compileSource(sourceFilePath, debug, {lang, header});
 		const stdin = inputFile
 			? shared.normalizeNewlines(fs.readFileSync(path.resolve(inputFile), "utf8"))
 			: "";
