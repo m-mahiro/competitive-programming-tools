@@ -99,12 +99,24 @@ export type LocalRunnerRequest =
 	| LocalRunnerPrepareRequest
 	| LocalRunnerRunRequest;
 
+/**
+ * 実行したソースで、元のソースより増えた行数。エラーの行番号からこれを引くと、元のソースの行になる。
+ * 増えるのは最初の型の宣言より前だけなので、それより後の行は同じだけずれる。
+ */
+export type LocalRunnerLineOffset = {
+	/** 先頭に付けたヘッダーと、その後の空行の行数。付けなければ 0。 */
+	header: number;
+	/** 変換で増えた行数(Java がライブラリのために足した import、消した package の行など)。bundle を通すと分からないので null。 */
+	transform: number | null;
+};
+
 export type LocalRunnerTransformResponse = {
 	status: "success" | "compileError";
 	sourceCode: string;
 	diagnostics: string;
 	inlinedClasses: string[];
 	diagnosticItems: CompilerDiagnostic[];
+	lineOffset?: LocalRunnerLineOffset;
 };
 
 export type LocalRunnerPrepareResponse = LocalRunnerTransformResponse & {
@@ -133,6 +145,8 @@ export type LocalRunnerRunResponse = {
 	memory: number;
 	/** プロセスが同時に使った物理メモリの最大値(KB)。プロセスとして実行する言語が返す。 */
 	peakMemory?: number;
+	/** sourceCode を渡した実行で、実行したソースが元のソースより増えた行数。 */
+	lineOffset?: LocalRunnerLineOffset;
 };
 
 /** 指定した programId のプログラムがサーバーにないときの stderr の先頭。サーバーの再起動やキャッシュの追い出しで起こる。 */

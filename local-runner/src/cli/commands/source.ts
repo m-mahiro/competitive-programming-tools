@@ -36,6 +36,25 @@ export type SourceOptions = {
 
 type ServerResult = shared.LocalRunnerTransformResponse | shared.LocalRunnerPrepareResponse;
 
+function formatLines(lines: number): string {
+	return lines > 0 ? `+${lines}` : String(lines);
+}
+
+/**
+ * 実行したソースで増えた行数を、利用者への1行の案内にする。増えていなければ null。
+ * Java のコンパイルエラーは変換の前のソースで javac が調べるので、ヘッダーの分だけずれる。
+ */
+export function describeLineOffset(offset: shared.LocalRunnerLineOffset | undefined, isJava: boolean, fileName: string): string | null {
+	if (!offset) return null;
+	const parts: string[] = [];
+	if (offset.header !== 0) parts.push(`header ${formatLines(offset.header)}`);
+	if (offset.transform === null) parts.push("bundle (unknown)");
+	else if (offset.transform !== 0) parts.push(`imports ${formatLines(offset.transform)}`);
+	if (parts.length === 0) return null;
+	const javaNote = isJava && offset.transform !== 0 ? " Java compile errors are shifted only by the header." : "";
+	return `Line offset: ${parts.join(", ")}. Subtract it from line numbers in errors to find the line in ${fileName}.${javaNote}`;
+}
+
 function createNameRestorer(language: SourceLanguage, originalFileName: string): (text: string) => string {
 	const runtimeFileName = language.runtimeFileName;
 	if (language.isJava) {
@@ -67,6 +86,9 @@ async function requestSource(
 	const originalFileName = path.basename(resolvedSourcePath);
 	const restoreNames = createNameRestorer(language, originalFileName);
 	const result = await request();
+	// 実行するもの(prepare)だけ、エラーの行番号が元のソースからずれる行数を示す
+	const offset = mode === "prepare" ? describeLineOffset(result.lineOffset, language.isJava, originalFileName) : null;
+	if (offset) console.log(offset);
 	if (result.status !== "success") {
 		// Java の診断は、変換の前のソースについて javac が返したものなので、名前を戻さない。
 		const diagnostics = language.isJava ? result.diagnostics : restoreNames(result.diagnostics);

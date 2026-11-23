@@ -123,6 +123,15 @@ describe("prepareWithSubmissionHeader", () => {
 		expect(sources).toEqual(["print(2)\n\nprint(1)\n"]);
 		expect(response.sourceCode).toBe(sources[0]);
 		expect(response.programId).toBe(`id:${sources[0].length}`);
+		// ヘッダーの1行と空行の2行だけ、元のソースより増える
+		expect(response.lineOffset).toEqual({header: 2, transform: 0});
+	});
+
+	test("変換で増えた行数は、ヘッダーの行数と別に返す", async () => {
+		writeUserSettings(settingsFile, {headers: {java: writeHeader("java.txt", "// a\n// b")}});
+		const response = await prepareWithSubmissionHeader(SOURCE, true, ["java"], (code) =>
+			compiled(code).then((prepared) => ({...prepared, lineOffset: {header: 0, transform: null}})));
+		expect(response.lineOffset).toEqual({header: 3, transform: null});
 	});
 
 	test("ヘッダーを付けないときは元のソースをコンパイルする", async () => {

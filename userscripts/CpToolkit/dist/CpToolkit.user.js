@@ -4218,6 +4218,8 @@ a:focus > .cp-settings-entry {
 		"easyTest.noSource": "The source code is empty, so nothing was run.",
 		"easyTest.internalError":
 			"The code could not be run because the environment failed. Choose another environment and try again.",
+		"easyTest.lineOffset":
+			"Local Runner added imports for the library, so line numbers in errors are shifted by {lines} from the editor.",
 		"easyTest.restoreConfirm": "Your current code will be replaced. Continue?",
 		"paizaLanguage.title": "paiza language selection",
 		"paizaLanguage.description": "Automatically select your preferred language on paiza submission pages.",
@@ -4478,6 +4480,8 @@ a:focus > .cp-settings-entry {
 		"easyTest.noSource": "ソースコードが空なので、実行していません。",
 		"easyTest.internalError":
 			"実行環境でエラーが起きたので、コードを実行できませんでした。別の実行環境を選んでやり直してください。",
+		"easyTest.lineOffset":
+			"Local Runner がライブラリのための import を足したので、エラーの行番号はエディタより {lines} 行ずれています。",
 		"easyTest.restoreConfirm": "現在のコードを置き換えます。よろしいですか?",
 		"paizaLanguage.title": "paiza の言語選択",
 		"paizaLanguage.description": "paiza の提出ページで、あらかじめ指定した言語を自動選択します。",
@@ -6881,6 +6885,12 @@ def __run(source):
 		}
 	}
 
+	function lineOffsetOf({lineOffset}) {
+		if (!lineOffset || lineOffset.transform === null) return {};
+		const lines = lineOffset.header + lineOffset.transform;
+		return lines === 0 ? {} : {lineOffset: lines};
+	}
+
 	class LocalCodeRunner {
 		kind = "local";
 		id;
@@ -6917,6 +6927,7 @@ def __run(source):
 				input,
 				output: response.stdout ?? "",
 				error: response.stderr ?? "",
+				...lineOffsetOf(response),
 			};
 		}
 	}
@@ -9504,7 +9515,14 @@ summary {
 					expected.element.hidden = false;
 				}
 				const internalError = result.status === "IE" ? translate("easyTest.internalError") : "";
-				const errorText = [internalError, result.error].filter(Boolean).join(`
+				const lineOffset =
+					result.error && result.lineOffset
+						? translate("easyTest.lineOffset").replace(
+								"{lines}",
+								result.lineOffset > 0 ? `+${result.lineOffset}` : String(result.lineOffset),
+							)
+						: "";
+				const errorText = [internalError, lineOffset, result.error].filter(Boolean).join(`
 `);
 				if (errorText) {
 					error.textarea.value = errorText;

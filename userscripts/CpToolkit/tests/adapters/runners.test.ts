@@ -333,6 +333,23 @@ describe("実行環境", () => {
 		expect((await runWith(false, true)).status).toBe("OK");
 	});
 
+	test("Local Runner の変換で増えた行数を返し、0 や分からないときは返さない", async () => {
+		const runWith = async (lineOffset: unknown) => {
+			const client = new LocalRunnerClient(new FakeHttpClient(({body}) => {
+				if (body?.includes('"list"')) {
+					return {status: 200, text: JSON.stringify([{language: "Java", compilerName: "java24", label: "Java 24"}])};
+				}
+				return {status: 200, text: JSON.stringify({status: "runtimeError", exitCode: 1, stdout: "", stderr: "at Main.main(Main.java:12)", time: 1, memory: 0, lineOffset})};
+			}), () => "http://localhost:8080");
+			const [runner] = await new LocalRunnerProvider(client).runnersFor(java);
+			return runner!.run("code", "", {});
+		};
+		expect((await runWith({header: 0, transform: 4})).lineOffset).toBe(4);
+		expect((await runWith({header: 0, transform: 0})).lineOffset).toBeUndefined();
+		expect((await runWith({header: 0, transform: null})).lineOffset).toBeUndefined();
+		expect((await runWith(undefined)).lineOffset).toBeUndefined();
+	});
+
 	test("Local Runner を使わない設定なら候補にしない", async () => {
 		const client = new LocalRunnerClient(noHttp, () => null);
 		expect(await new LocalRunnerProvider(client).runnersFor(java)).toEqual([]);

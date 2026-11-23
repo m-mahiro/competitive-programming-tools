@@ -1,4 +1,4 @@
-import {buildQueryString, sleep, toEasyTestStatus} from "@atcoder-tools/shared";
+import {buildQueryString, type LocalRunnerRunResponse, sleep, toEasyTestStatus} from "@atcoder-tools/shared";
 import {runnerCatalog} from "@catalog/tables";
 import type {JudgeLanguage, RunOptions, RunResult} from "@domain/execution/result";
 import type {LocalRunnerClient} from "@application/execution/local-runner";
@@ -93,6 +93,13 @@ export class PaizaRunnerProvider implements RunnerProvider {
 	}
 }
 
+/** 実行したソースで増えた行数。0 か、bundle で分からないときは付けない。 */
+function lineOffsetOf({lineOffset}: LocalRunnerRunResponse): {lineOffset?: number} {
+	if (!lineOffset || lineOffset.transform === null) return {};
+	const lines = lineOffset.header + lineOffset.transform;
+	return lines === 0 ? {} : {lineOffset: lines};
+}
+
 class LocalCodeRunner implements CodeRunner {
 	readonly kind = "local";
 	readonly id: string;
@@ -127,6 +134,7 @@ class LocalCodeRunner implements CodeRunner {
 			input,
 			output: response.stdout ?? "",
 			error: response.stderr ?? "",
+			...lineOffsetOf(response),
 		};
 	}
 }

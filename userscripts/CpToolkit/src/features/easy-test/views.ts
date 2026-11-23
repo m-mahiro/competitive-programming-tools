@@ -58,7 +58,11 @@ export function createResultView(translate: Translate): {element: HTMLElement; s
 				expected.element.hidden = false;
 			}
 			const internalError = result.status === "IE" ? translate("easyTest.internalError") : "";
-			const errorText = [internalError, result.error].filter(Boolean).join("\n");
+			// エラーの行番号を、エディタの行と取り違えないように知らせる
+			const lineOffset = result.error && result.lineOffset
+				? translate("easyTest.lineOffset").replace("{lines}", result.lineOffset > 0 ? `+${result.lineOffset}` : String(result.lineOffset))
+				: "";
+			const errorText = [internalError, lineOffset, result.error].filter(Boolean).join("\n");
 			if (errorText) {
 				error.textarea.value = errorText;
 				error.element.hidden = false;

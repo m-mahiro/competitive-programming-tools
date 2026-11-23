@@ -50,7 +50,8 @@ export function applySubmissionHeader<T extends LocalRunnerTransformResponse>(
 }
 
 /**
- * ヘッダーまで付けた最終のソースをコンパイルする。提出(submit)のサンプルを、提出するソースそのもので動かすため。
+ * ヘッダーまで付けた最終のソースをコンパイルする。test と submit のサンプルを、提出するソースそのもので動かすため。
+ * 応答の lineOffset.header に、付けたヘッダーと空行の行数を入れる。すでにヘッダーで始まるソースには付けないので 0。
  * 変換でヘッダーが先頭から外れたら、試したプログラムと提出物が違ってしまうので、変換の失敗として返す。
  * ヘッダーを付けないときは元のソースをそのままコンパイルし、ローカル実行の行番号を元ソースと揃える。
  */
@@ -68,7 +69,10 @@ export async function prepareWithSubmissionHeader(
 		return applySubmissionHeader(await prepare(sourceCode), header, languageKeys);
 	}
 	if (headerText === null || !headerText.trim()) return prepare(sourceCode);
-	const response = await prepare(prependHeader(sourceCode, header, languageKeys));
+	const headered = prependHeader(sourceCode, header, languageKeys);
+	const prepared = await prepare(headered);
+	const headerLines = headered === sourceCode ? 0 : headered.split("\n").length - sourceCode.split("\n").length;
+	const response = {...prepared, lineOffset: {header: headerLines, transform: prepared.lineOffset === undefined ? 0 : prepared.lineOffset.transform}};
 	if (response.status !== "success" || includesSubmissionHeader(response.sourceCode, headerText)) return response;
 	return {
 		status: "compileError",

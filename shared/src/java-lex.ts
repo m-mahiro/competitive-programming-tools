@@ -47,3 +47,23 @@ export function qualifiedName(tokens: JavaToken[], start: number): {name: string
 	}
 	return tokens[index]?.text === ";" ? {name, end: index} : null;
 }
+
+/**
+ * package と import の宣言より後の、最初の字句(型の宣言や、その注釈)がある行(1 から)。無いか、字句を読み切れなければ null。
+ * Local Runner の変換は、この行より前(import と package)だけで行数を変えるので、前後の差がそれより後のずれになる。
+ */
+export function firstDeclarationLine(source: string): number | null {
+	const {tokens, complete} = scanJava(source);
+	if (!complete) return null;
+	let index = 0;
+	while (tokens[index]?.text === "package" || tokens[index]?.text === "import" || tokens[index]?.text === ";") {
+		if (tokens[index]?.text === ";") {
+			index++;
+			continue;
+		}
+		while (index < tokens.length && tokens[index]?.text !== ";") index++;
+		index++;
+	}
+	const token = tokens[index];
+	return token === undefined ? null : source.slice(0, token.start).split("\n").length;
+}

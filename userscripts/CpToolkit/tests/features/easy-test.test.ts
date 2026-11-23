@@ -490,6 +490,17 @@ describe("Easy Test の結果の表示", () => {
 		expect(errorField.closest("label")!.hidden).toBe(false);
 	});
 
+	test("実行したソースで行が増えていれば、エラーの前に増えた行数を知らせる", () => {
+		const translate = ((key: string) => key === "easyTest.lineOffset" ? "shifted {lines}" : key) as Translate;
+		const view = createResultView(translate);
+		view.show({status: "RE", input: "", error: "at Main.main(Main.java:12)", lineOffset: 4});
+		expect(view.element.querySelectorAll("textarea")[3]!.value).toBe("shifted +4\nat Main.main(Main.java:12)");
+		// エラーが無ければ知らせない
+		const quiet = createResultView(translate);
+		quiet.show({status: "OK", input: "", output: "1", lineOffset: 4});
+		expect(quiet.element.querySelectorAll("textarea")[3]!.closest("label")!.hidden).toBe(true);
+	});
+
 	test("内部エラーは詳細がなくても案内の文言を表示する", () => {
 		const view = createResultView(((key: string) => key) as Translate);
 		view.show({status: "IE", input: ""});

@@ -1,4 +1,10 @@
-import type {LocalRunnerPrepareResponse, LocalRunnerRunResponse, LocalRunnerTransformResponse} from "@atcoder-tools/shared";
+import {
+	firstDeclarationLine,
+	type LocalRunnerLineOffset,
+	type LocalRunnerPrepareResponse,
+	type LocalRunnerRunResponse,
+	type LocalRunnerTransformResponse,
+} from "@atcoder-tools/shared";
 import * as formatter from "../utils/formatter";
 import * as logging from "../utils/logging";
 import type {CommandEngine, CommandLanguage} from "./commandEngine";
@@ -67,6 +73,22 @@ export function headerKeys(language: RunnerLanguage): string[] {
 
 const NO_JAVA_TRANSFORM = {inlinedClasses: [], diagnosticItems: []};
 
+/**
+ * 変換で増えた行数。Java は最初の型の宣言の行を前後で比べる。ほかの言語の DEBUG の書き換えは行数を変えず、
+ * bundle のコマンドは行をどう変えるか分からないので null にする。
+ */
+function transformOffset(language: RunnerLanguage, sourceCode: string, transformed: string): number | null {
+	if (language.command !== null) return language.command.bundle === null ? 0 : null;
+	const before = firstDeclarationLine(sourceCode);
+	const after = firstDeclarationLine(transformed);
+	return before === null || after === null ? 0 : after - before;
+}
+
+function withLineOffset<T extends LocalRunnerTransformResponse>(language: RunnerLanguage, sourceCode: string, response: T): T {
+	const lineOffset: LocalRunnerLineOffset = {header: 0, transform: transformOffset(language, sourceCode, response.sourceCode)};
+	return {...response, lineOffset};
+}
+
 async function transformCommandCode(language: CommandLanguage, sourceCode: string, debug: boolean): Promise<LocalRunnerTransformResponse> {
 	const result = await commandEngine!.transformSource(language, sourceCode, debug);
 	return result.ok
@@ -104,9 +126,10 @@ async function runCommandProgram(programId: string, stdin: string, receivedAt: n
 const prepareInQueue: PrepareFunction = async (name, sourceCode, {debug, validate}, signal) => {
 	const language = findLanguage(name);
 	if (!language) throw new Error(`Unknown language: "${name}".`);
-	return language.command === null
+	const prepared = language.command === null
 		? prepareJavaCode(sourceCode, debug, validate, signal)
 		: prepareCommandCode(language.command, sourceCode, debug, signal);
+	return withLineOffset(language, sourceCode, await prepared);
 };
 
 const preparations = new PreparationQueue(prepareInQueue, PREPARE_CACHE_MAX);
@@ -118,9 +141,10 @@ export function transformSource(
 	debug: boolean,
 	validate: boolean,
 ): Promise<LocalRunnerTransformResponse> {
-	return language.command === null
+	const transformed = language.command === null
 		? transformJavaCode(sourceCode, debug, validate)
 		: transformCommandCode(language.command, sourceCode, debug);
+	return transformed.then((response) => withLineOffset(language, sourceCode, response));
 }
 
 /** 事前コンパイルを順番待ちに入れる。結果は、実行の要求が来たときに使う。 */
@@ -159,7 +183,7 @@ export async function runSource(
 			return compileErrorResponse(prepared.diagnostics, language.name, receivedAt);
 		}
 		const response = await runProgram(prepared.programId, stdin, receivedAt);
-		if (response) return response;
+		if (response) return prepared.lineOffset ? {...response, lineOffset: prepared.lineOffset} : response;
 		preparations.forget(language.name, sourceCode, options);
 	}
 	return missingProgramResponse("(recompiled program)");

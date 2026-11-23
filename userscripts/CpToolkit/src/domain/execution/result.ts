@@ -32,6 +32,8 @@ export type RunResult = {
 	readonly output?: string;
 	readonly error?: string;
 	readonly expectedOutput?: string;
+	/** 実行したソースが、エディタのコードより増えた行数(Local Runner の変換)。エラーの行番号からこれを引くとエディタの行になる。 */
+	readonly lineOffset?: number;
 };
 
 /** 実行結果を期待する出力と比較する。 */

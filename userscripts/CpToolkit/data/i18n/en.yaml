@@ -264,6 +264,7 @@ easyTest.noSavedCode: No saved code was found for this task.
 easyTest.noSamples: No samples were found. Nothing was tested or submitted.
 easyTest.noSource: The source code is empty, so nothing was run.
 easyTest.internalError: The code could not be run because the environment failed. Choose another environment and try again.
+easyTest.lineOffset: "Local Runner added imports for the library, so line numbers in errors are shifted by {lines} from the editor."
 easyTest.restoreConfirm: Your current code will be replaced. Continue?
 
 paizaLanguage.title: paiza language selection

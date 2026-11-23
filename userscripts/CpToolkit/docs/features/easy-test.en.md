@@ -16,7 +16,9 @@ Easy Test+ is based on [AtCoder Easy Test v2](https://greasyfork.org/scripts/433
 
 - Click “Run” beside a sample to test that case, or “Test All Samples” to run them all. Use the bottom panel to enter your own input.
 - “Test & Submit” submits once every sample passes. A change to the tested source, task, language or environment cancels submission and keeps the results. Cancel the pending submission while the tests are running to keep the results without submitting.
-- If no samples are found, “Test All Samples” and “Test & Submit” skip testing and submission. You can set a tolerance for comparing output.
+- If no samples are found, “Test All Samples” and “Test & Submit” skip testing and submission. You can set a tolerance for comparing output. The tolerance is used only when both tokens are integers or decimals to the end and at least one is a decimal. An exponent such as `1e3` is compared as text.
+- When Local Runner truncates the output at its limit, the result is `OLE` even if the beginning matches.
+- When Local Runner adds imports for a Java library, line numbers in errors are shifted from the editor. The error field then starts with the number of shifted lines.
 
 ### Execution environments
 
