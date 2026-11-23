@@ -3168,14 +3168,18 @@ ${css}`,
 		color(defaultValue, label) {
 			return {kind: "color", defaultValue, label, normalize: normalizeColor};
 		},
-		number(defaultValue, label, {min = -Infinity, max = Infinity} = {}) {
+		number(defaultValue, label, {min = -Infinity, max = Infinity, integer = false} = {}) {
 			return {
 				kind: "number",
 				defaultValue,
 				label,
 				min,
 				max,
-				normalize: (value) => (typeof value === "number" && value >= min && value <= max ? value : undefined),
+				integer,
+				normalize: (value) =>
+					typeof value === "number" && value >= min && value <= max && (!integer || Number.isInteger(value))
+						? value
+						: undefined,
 			};
 		},
 		select(defaultValue, label, choices) {
@@ -3254,6 +3258,7 @@ ${css}`,
 				const input = h("input", {type: "number", value: String(value)});
 				if (definition.min !== undefined) input.min = String(definition.min);
 				if (definition.max !== undefined) input.max = String(definition.max);
+				if (definition.integer) input.step = "1";
 				input.addEventListener("input", () => validate(input.valueAsNumber));
 				input.addEventListener("change", () => commit(input.valueAsNumber));
 				return input;
@@ -4103,6 +4108,8 @@ a:focus > .cp-settings-entry {
 		"sourceComments.runnerHeaderBelow": "Below the task header",
 		"sourceComments.runnerHeaderNone": "Do not add it",
 		"sourceComments.runnerHeaderName": "Local Runner header name (empty for the language default)",
+		"sourceComments.runnerHeaderNameInvalid":
+			"Use a name that starts with a letter or digit and contains only letters, digits, _ and - (the same rule as setheader in Local Runner).",
 		"sourceComments.runnerHeaderFailed": "Could not read the Local Runner header",
 		"sourceComments.panel": "Header and footer",
 		"sourceComments.header": "Header (top of the code)",
@@ -4219,8 +4226,11 @@ a:focus > .cp-settings-entry {
 		"submissionHelper.diagnostics": "Full diagnostics",
 		"submissionHelper.debugFlag":
 			"Debug variable to set to false without Local Runner (e.g. DEBUG; leave empty to keep it)",
+		"submissionHelper.debugFlagInvalid":
+			"Use a name that starts with a letter or _ and contains only letters, digits and _ (for example, DEBUG).",
 		"submissionHelper.libraryPackage":
 			"Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)",
+		"submissionHelper.libraryPackageInvalid": "Write a Java package name (for example, lib or lib.io).",
 		"submissionHelper.foldOnPaste": "Fold the outermost blocks and comments after pasting",
 		"easyTest.submitChanged":
 			"Submission canceled because the source, task, language or runner changed. The test results are still available.",
@@ -4229,6 +4239,8 @@ a:focus > .cp-settings-entry {
 		"easyTest.precompile": "Precompile edited code with Local Runner",
 		"easyTest.savedCodeLimit": "Number of tasks to keep code for",
 		"easyTest.allowableError": "Allowed error",
+		"easyTest.invalidAllowableError":
+			"Write the allowed error as a positive number such as 1e-6 or 0.001. Forms such as 10^-6 are not accepted.",
 		"easyTest.run": "Run",
 		"easyTest.testAndSubmit": "Test & Submit",
 		"easyTest.cancelSubmit": "Cancel Submission",
@@ -4366,6 +4378,8 @@ a:focus > .cp-settings-entry {
 		"sourceComments.runnerHeaderBelow": "問題ごとのヘッダーの下",
 		"sourceComments.runnerHeaderNone": "付けない",
 		"sourceComments.runnerHeaderName": "Local Runner のヘッダーの名前（空欄なら言語の既定）",
+		"sourceComments.runnerHeaderNameInvalid":
+			"英数字で始まり、英数字、_、- だけを使う名前を書いてください（Local Runner の setheader と同じ規則）。",
 		"sourceComments.runnerHeaderFailed": "Local Runner のヘッダーを読めませんでした",
 		"sourceComments.panel": "ヘッダーとフッター",
 		"sourceComments.header": "ヘッダー（コードの先頭）",
@@ -4481,8 +4495,11 @@ a:focus > .cp-settings-entry {
 		"submissionHelper.diagnostics": "診断の全文",
 		"submissionHelper.debugFlag":
 			"Local Runner がないときに false にするデバッグ用の変数の名前（例：DEBUG。空欄なら変えない）",
+		"submissionHelper.debugFlagInvalid":
+			"英字か _ で始まり、英数字と _ だけを使う名前を書いてください（例：DEBUG）。",
 		"submissionHelper.libraryPackage":
 			"Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）",
+		"submissionHelper.libraryPackageInvalid": "Java のパッケージ名を書いてください（例：lib、lib.io）。",
 		"submissionHelper.foldOnPaste": "貼り付け後に、いちばん外側のブロックとコメントを折りたたむ",
 		"easyTest.submitChanged":
 			"テスト中に提出内容または実行環境が変わったため、提出を取り消しました。結果はテスト欄で確認できます。",
@@ -4491,6 +4508,8 @@ a:focus > .cp-settings-entry {
 		"easyTest.precompile": "Local Runner で編集中のコードを事前にコンパイルする",
 		"easyTest.savedCodeLimit": "コードを保存する問題数",
 		"easyTest.allowableError": "許容誤差",
+		"easyTest.invalidAllowableError":
+			"許容誤差は 1e-6 や 0.001 のような正の数で書いてください。10^-6 のような書き方は使えません。",
 		"easyTest.run": "Run",
 		"easyTest.testAndSubmit": "Test & Submit",
 		"easyTest.cancelSubmit": "提出を中止",
@@ -4903,6 +4922,12 @@ ${reason}`
 	}
 
 	// CpToolkit/src/domain/execution/result.ts
+	function parseAllowableError(text) {
+		if (!/^\s*(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?\s*$/.test(text)) return null;
+		const value = Number(text.trim());
+		return Number.isFinite(value) && value > 0 ? value : null;
+	}
+
 	function judgeResult(result, expected, options) {
 		if (expected === null) return result;
 		if (result.status !== "OK") return {...result, expectedOutput: expected};
@@ -9203,6 +9228,10 @@ input:disabled {
 	background: #eee;
 }
 
+input[aria-invalid="true"] {
+	border-color: var(--cp-danger, #cf222e);
+}
+
 .test-form {
 	display: grid;
 	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
@@ -9627,13 +9656,21 @@ summary {
 		const input = h("textarea", {rows: 3});
 		const expected = h("textarea", {rows: 3});
 		const allowable = h("input", {type: "text", value: allowableError});
+		const markAllowable = () => {
+			const invalid = useAllowable.checked && parseAllowableError(allowable.value) === null;
+			allowable.setAttribute("aria-invalid", String(invalid));
+			allowable.title = invalid ? translate("easyTest.invalidAllowableError") : "";
+		};
+		allowable.addEventListener("input", markAllowable);
 		const useAllowable = h("input", {
 			type: "checkbox",
 			checked: true,
 			onchange() {
 				allowable.disabled = !useAllowable.checked;
+				markAllowable();
 			},
 		});
+		markAllowable();
 		const runButton = h("button", {
 			type: "button",
 			className: "run-button",
@@ -9686,8 +9723,7 @@ summary {
 			input,
 			expected,
 			allowableError() {
-				const value = Number.parseFloat(allowable.value);
-				return useAllowable.checked && Number.isFinite(value) && value > 0 ? value : undefined;
+				return useAllowable.checked ? parseAllowableError(allowable.value) : undefined;
 			},
 			setRunnable(runnable) {
 				runButton.disabled = !runnable;
@@ -9699,8 +9735,11 @@ summary {
 	var PRECOMPILE_DELAY_MS = 180;
 	var featureOptions2 = {
 		precompile: option.boolean(true, "easyTest.precompile"),
-		savedCodeLimit: option.number(10, "easyTest.savedCodeLimit", {min: 0}),
-		allowableError: option.text("1e-6", "easyTest.allowableError"),
+		savedCodeLimit: option.number(10, "easyTest.savedCodeLimit", {min: 0, integer: true}),
+		allowableError: option.text("1e-6", "easyTest.allowableError", {
+			validate: (value) => parseAllowableError(value) !== null,
+			invalidMessage: "easyTest.invalidAllowableError",
+		}),
 	};
 
 	class EasyTest {
@@ -9956,6 +9995,10 @@ summary {
 				window.alert(this.context.translate("easyTest.noEnvironment"));
 				return null;
 			}
+			if (this.panel.allowableError() === null) {
+				window.alert(this.context.translate("easyTest.invalidAllowableError"));
+				return null;
+			}
 			return this.snapshot();
 		}
 
@@ -9969,7 +10012,7 @@ summary {
 				testCase,
 				snapshot.source,
 				snapshot.runner,
-				this.panel.allowableError(),
+				this.panel.allowableError() ?? undefined,
 				options,
 			);
 			result.then((value) => {
@@ -10762,6 +10805,7 @@ ${efficient_layout_default}`);
 	}
 
 	// CpToolkit/src/features/submission-helper/index.ts
+	var JAVA_PACKAGE_NAME = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 	var FOLD_DELAY_MS = 100;
 	var PASTE_ORDER = 10;
 	var LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
@@ -10826,8 +10870,18 @@ ${efficient_layout_default}`);
 		],
 		phase: "ready",
 		options: {
-			debugFlag: sharedAcrossSites(option.text("", "submissionHelper.debugFlag")),
-			libraryPackage: sharedAcrossSites(option.text("", "submissionHelper.libraryPackage")),
+			debugFlag: sharedAcrossSites(
+				option.text("", "submissionHelper.debugFlag", {
+					validate: (value) => value === "" || isIdentifier(value),
+					invalidMessage: "submissionHelper.debugFlagInvalid",
+				}),
+			),
+			libraryPackage: sharedAcrossSites(
+				option.text("", "submissionHelper.libraryPackage", {
+					validate: (value) => value === "" || JAVA_PACKAGE_NAME.test(value),
+					invalidMessage: "submissionHelper.libraryPackageInvalid",
+				}),
+			),
 			foldOnPaste: option.boolean(false, "submissionHelper.foldOnPaste"),
 		},
 		async start(services) {
@@ -11933,7 +11987,12 @@ ${efficient_layout_default}`);
 				{value: "below", label: "sourceComments.runnerHeaderBelow"},
 				{value: "none", label: "sourceComments.runnerHeaderNone"},
 			]),
-			runnerHeaderName: sharedAcrossSites(option.text("", "sourceComments.runnerHeaderName")),
+			runnerHeaderName: sharedAcrossSites(
+				option.text("", "sourceComments.runnerHeaderName", {
+					validate: (value) => value === "" || /^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(value),
+					invalidMessage: "sourceComments.runnerHeaderNameInvalid",
+				}),
+			),
 		},
 		async start(services) {
 			const {options, judge, localRunner, editors, paste, state, translate, submissionForm} = services;

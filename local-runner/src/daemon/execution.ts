@@ -11,7 +11,7 @@ import {
 import * as formatter from "../utils/formatter";
 import * as logging from "../utils/logging";
 import type {CommandEngine, CommandLanguage} from "./commandEngine";
-import {prepareJavaCode, runJavaProgram, transformJavaCode} from "./javaEngine";
+import {hasJavaProgram, prepareJavaCode, runJavaProgram, transformJavaCode} from "./javaEngine";
 import type {RunnerLanguage} from "./languages";
 import {type PrepareFunction, type PrepareOptions, PreparationQueue} from "./preparationQueue";
 import {compileErrorResponse, missingProgramResponse, toRunResponse} from "./runResponse";
@@ -178,14 +178,18 @@ export function schedulePrecompile(language: RunnerLanguage, sourceCode: string,
 	preparations.schedule(language.name, sourceCode, {...RUN_PREPARE_OPTIONS, debug});
 }
 
+/** 覚えていた結果のプログラムが、実行環境に残っているか。Java はコンパイル済みのクラスを、ほかの言語は実行環境の記憶を見る。 */
+function programExists(language: RunnerLanguage, programId: string): boolean {
+	return language.command === null ? hasJavaProgram(programId) : commandEngine?.has(programId) !== false;
+}
+
 /**
  * 変換とコンパイルの結果を待つ。覚えていた結果のプログラムが実行環境から追い出されていたら、作り直して返す。
  * CLI はプログラムが消えたときに同じソースで prepare し直すので、消えた programId をもう一度返さない。
  */
 export async function prepareSource(language: RunnerLanguage, sourceCode: string, options: PrepareOptions): Promise<LocalRunnerPrepareResponse> {
 	const prepared = await preparations.wait(language.name, sourceCode, options);
-	if (prepared.status !== "success" || !prepared.programId || language.command === null || commandEngine?.has(prepared.programId) !== false)
-		return prepared;
+	if (prepared.status !== "success" || !prepared.programId || programExists(language, prepared.programId)) return prepared;
 	preparations.forget(language.name, sourceCode, options);
 	return preparations.wait(language.name, sourceCode, options);
 }

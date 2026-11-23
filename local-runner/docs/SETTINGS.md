@@ -9,7 +9,7 @@ Local Runner の設定は、`competitive-programming-tools` フォルダの `loc
 
 ## 設定の移行
 
-1.x の設定ファイルは、2.0.0 の初回起動時に今の形式へ書き換えます。`librarySourceRoot` は `languages.java.library` に、`headerFiles` は `headers` に移します。両方に書いてあれば新しい方を使います。`debugRewrite: true` は `debugFlag: "DEBUG"` に移し、書いていなければ書き換えはオフになります。
+1.x にしか無い項目(`librarySourceRoot`、`headerFiles`、言語ごとの `debugRewrite`)がある設定ファイルは、2.0.0 の初回起動時に今の形式へ書き換えます。`settingsVersion` を書いていなくても、これらが無ければ今の形式としてそのまま読みます。`librarySourceRoot` は `languages.java.library` に、`headerFiles` は `headers` に移します。両方に書いてあれば新しい方を使います。`debugRewrite: true` は `debugFlag: "DEBUG"` に移し、書いていなければ書き換えはオフになります。
 
 書き換える前の内容は、同じフォルダの `.bak` に残します。書き換えた設定を読めなかったときは、元の設定のまま使います。
 

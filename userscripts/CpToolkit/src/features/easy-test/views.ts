@@ -1,5 +1,5 @@
 import type {Translate} from "@catalog/messages";
-import type {RunResult} from "@domain/execution/result";
+import {parseAllowableError, type RunResult} from "@domain/execution/result";
 import type {DockTone} from "@ui/dock/dock";
 import {h} from "@ui/element";
 
@@ -130,8 +130,8 @@ export type TestPanel = {
 	readonly environment: HTMLSelectElement;
 	readonly input: HTMLTextAreaElement;
 	readonly expected: HTMLTextAreaElement;
-	/** 許容誤差を使わないなら undefined を返す。 */
-	allowableError(): number | undefined;
+	/** 許容誤差を使わないなら undefined、欄の値が数として正しくなければ null を返す。 */
+	allowableError(): number | undefined | null;
 	setRunnable(runnable: boolean): void;
 };
 
@@ -149,13 +149,22 @@ export function createTestPanel(
 	const input = h("textarea", {rows: 3});
 	const expected = h("textarea", {rows: 3});
 	const allowable = h("input", {type: "text", value: allowableError});
+	// 数として読めない値(10^-6 など)は、欄を赤くして知らせる
+	const markAllowable = (): void => {
+		const invalid = useAllowable.checked && parseAllowableError(allowable.value) === null;
+		allowable.setAttribute("aria-invalid", String(invalid));
+		allowable.title = invalid ? translate("easyTest.invalidAllowableError") : "";
+	};
+	allowable.addEventListener("input", markAllowable);
 	const useAllowable = h("input", {
 		type: "checkbox",
 		checked: true,
 		onchange() {
 			allowable.disabled = !useAllowable.checked;
+			markAllowable();
 		},
 	});
+	markAllowable();
 	const runButton = h("button", {
 		type: "button",
 		className: "run-button",
@@ -203,9 +212,7 @@ export function createTestPanel(
 		input,
 		expected,
 		allowableError() {
-			// 1e999 のように Infinity になる値は、どの出力も通してしまうので使わない
-			const value = Number.parseFloat(allowable.value);
-			return useAllowable.checked && Number.isFinite(value) && value > 0 ? value : undefined;
+			return useAllowable.checked ? parseAllowableError(allowable.value) : undefined;
 		},
 		setRunnable(runnable) {
 			runButton.disabled = !runnable;

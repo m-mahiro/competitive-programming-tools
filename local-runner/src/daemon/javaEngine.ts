@@ -55,6 +55,11 @@ export async function prepareJavaCode(
 	return {...finished, programId: compiler.getProgramId(finished.sourceCode)};
 }
 
+/** その programId の Java のプログラムが、実行できる形で残っているか。 */
+export function hasJavaProgram(programId: string): boolean {
+	return compiler.hasCompiledProgram(programId);
+}
+
 /** コンパイル済みの Java のプログラムを実行する。programId が Java のものでなければ null を返す。 */
 export async function runJavaProgram(programId: string, stdin: string, receivedAt: number): Promise<LocalRunnerRunResponse | null> {
 	const entry = await compiler.getCompiledEntryByProgramId(programId);

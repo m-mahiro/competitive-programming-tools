@@ -267,6 +267,35 @@ describe("easyTest", () => {
 		});
 	});
 
+	describe("許容誤差が数として読めないとき", () => {
+		const originalAlert = window.alert;
+
+		afterEach(() => {
+			window.alert = originalAlert;
+		});
+
+		test("欄を赤くし、実行も提出もせず知らせる", async () => {
+			const alert = mock(() => undefined);
+			window.alert = alert;
+			const run = mock(echo);
+			const site = createSite();
+			await start(site, run);
+			const allowable = dock()?.querySelector<HTMLInputElement>('.input-group input[type="text"]');
+			if (!allowable) throw new Error("the allowed error field was not found");
+			allowable.value = "10^-6";
+			allowable.dispatchEvent(new Event("input"));
+			expect(allowable.getAttribute("aria-invalid")).toBe("true");
+			button("Test & Submit")?.click();
+			await wait(30);
+			expect(run).not.toHaveBeenCalled();
+			expect(site.submit).not.toHaveBeenCalled();
+			expect(alert).toHaveBeenCalledTimes(1);
+			allowable.value = "1e-6";
+			allowable.dispatchEvent(new Event("input"));
+			expect(allowable.getAttribute("aria-invalid")).toBe("false");
+		});
+	});
+
 	test("実行環境がなければボタンを無効の表示にして理由を示す", async () => {
 		await start(createSite({language: () => null}), echo);
 		expect(button("Test & Submit")?.classList.contains("disabled")).toBe(true);

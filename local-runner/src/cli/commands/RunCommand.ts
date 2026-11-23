@@ -57,7 +57,7 @@ export class RunCommand implements Command {
 				debug = d;
 				continue;
 			}
-			const timeLimit = options.parseIntFlag(arg, "--time-limit");
+			const timeLimit = options.parseIntFlag(arg, "--time-limit", undefined, 1);
 			if (timeLimit !== undefined) {
 				timeLimitMs = timeLimit;
 				continue;

@@ -3,6 +3,9 @@ import {SettingsService} from "@application/settings/settings-service";
 import {normalizeOptions, option} from "@domain/settings/option";
 import {createDefaultSettings, CURRENT_SETTINGS_VERSION, featureOptions, isFeatureEnabled, parseSettings, updateFeatureSettings, updateSiteFeatureSettings} from "@domain/settings/settings";
 import {isModifierSetting, isShortcutSetting, normalizeModifiers, normalizeShortcut} from "@domain/settings/shortcut";
+import {easyTest} from "@features/easy-test/index";
+import {sourceComments} from "@features/source-comments/index";
+import {submissionHelper} from "@features/submission-helper/index";
 import {MemoryStore} from "../support/fakes";
 
 describe("option", () => {
@@ -31,6 +34,26 @@ describe("option", () => {
 		expect(definition.normalize(10)).toBe(10);
 		expect(definition.normalize(11)).toBeUndefined();
 		expect(definition.normalize(Number.NaN)).toBeUndefined();
+	});
+
+	test("integer の number は小数を拒否する", () => {
+		const definition = option.number(1, "label", {min: 0, integer: true});
+		expect(definition.normalize(3)).toBe(3);
+		expect(definition.normalize(2.5)).toBeUndefined();
+	});
+
+	test("入力欄の検査: 許容誤差、ヘッダーの名前、DEBUG の名前、ライブラリのパッケージ", () => {
+		const cases = [
+			[easyTest.options.allowableError, ["1e-6", "0.001"], ["10^-6", "1e", "0"]],
+			[sourceComments.options.runnerHeaderName, ["", "short", "java-2"], ["../x", "-a", "a b"]],
+			[submissionHelper.options.debugFlag, ["", "DEBUG", "_debug1"], ["1DEBUG", "DE-BUG", "debug flag"]],
+			[submissionHelper.options.libraryPackage, ["", "lib", "lib.io", "my_lib.x2"], ["lib.", ".lib", "lib..io", "lib-io"]],
+		] as const;
+		for (const [definition, valid, invalid] of cases) {
+			for (const value of valid) expect(definition!.normalize(value)).toBe(value);
+			for (const value of invalid) expect(definition!.normalize(value)).toBeUndefined();
+		}
+		expect(easyTest.options.savedCodeLimit!.normalize(2.5)).toBeUndefined();
 	});
 
 	test("select は選択肢にある値だけを受け付ける", () => {

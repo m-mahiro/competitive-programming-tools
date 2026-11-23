@@ -1,5 +1,5 @@
 import type {MessageKey} from "@catalog/messages";
-import type {RunOptions, RunResult, TestCase} from "@domain/execution/result";
+import {parseAllowableError, type RunOptions, type RunResult, type TestCase} from "@domain/execution/result";
 import {option} from "@domain/settings/option";
 import type {CodeRunner} from "@application/execution/runner-catalog";
 import {type EnvironmentView, RunnerSelection} from "@application/execution/runner-selection";
@@ -20,8 +20,11 @@ const PRECOMPILE_DELAY_MS = 180;
 
 const featureOptions = {
 	precompile: option.boolean(true, "easyTest.precompile"),
-	savedCodeLimit: option.number(10, "easyTest.savedCodeLimit", {min: 0}),
-	allowableError: option.text("1e-6", "easyTest.allowableError"),
+	savedCodeLimit: option.number(10, "easyTest.savedCodeLimit", {min: 0, integer: true}),
+	allowableError: option.text("1e-6", "easyTest.allowableError", {
+		validate: (value) => parseAllowableError(value) !== null,
+		invalidMessage: "easyTest.invalidAllowableError",
+	}),
 };
 
 type Context = FeatureContext<typeof featureOptions>;
@@ -230,6 +233,11 @@ class EasyTest {
 			window.alert(this.context.translate("easyTest.noEnvironment"));
 			return null;
 		}
+		// 許容誤差が数として読めなければ、正しく判定できないので実行も提出もしない
+		if (this.panel.allowableError() === null) {
+			window.alert(this.context.translate("easyTest.invalidAllowableError"));
+			return null;
+		}
 		return this.snapshot();
 	}
 
@@ -238,7 +246,7 @@ class EasyTest {
 
 		const view = createResultView(this.context.translate);
 		const tab = this.dock.addTab(`#${this.session.nextNumber()} ${testCase.title}`, view.element, {closable: true});
-		const result = this.session.start(testCase, snapshot.source, snapshot.runner, this.panel.allowableError(), options);
+		const result = this.session.start(testCase, snapshot.source, snapshot.runner, this.panel.allowableError() ?? undefined, options);
 		void result.then((value) => {
 			view.show(value);
 			const tone = toneOf(value.status);

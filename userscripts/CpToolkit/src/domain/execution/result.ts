@@ -36,6 +36,16 @@ export type RunResult = {
 	readonly lineOffset?: number;
 };
 
+/**
+ * 許容誤差の欄の文字列を読む。全体が数の表記(1e-6、0.001 など)で、有限の正の数のときだけ値を返し、それ以外は null。
+ * 先頭だけを数として読むと 10^-6 が 10 になり、誤答を正解にしてしまうため。
+ */
+export function parseAllowableError(text: string): number | null {
+	if (!/^\s*(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?\s*$/.test(text)) return null;
+	const value = Number(text.trim());
+	return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 /** 実行結果を期待する出力と比較する。 */
 export function judgeResult(result: RunResult, expected: string | null, options: RunOptions): RunResult {
 	if (expected === null) return result;

@@ -321,6 +321,12 @@ public final class JavaSourceTransformerTest {
 		final String run = executeAllowingFailure(shadowed.sourceCode());
 		check(run.startsWith("12") && run.contains("Main.java:9)"), run);
 
+		// 型パラメーターや入れ子の型が同じ名前でも、展開したライブラリの型を指す
+		final SourceTransformResult typeParameter = transformer.transform("class Solver { static <Helper> String f() { return extra.Helper.tag(); } static class Helper {} public static void main(String[] a) { System.out.print(f() + new Helper().getClass().getSimpleName()); } }", root, false, "", true);
+		check(typeParameter.exitCode() == 0, typeParameter.diagnostics());
+		check(typeParameter.sourceCode().contains("Helper1.tag()") && typeParameter.sourceCode().contains("class Helper1"), typeParameter.sourceCode());
+		check(execute(typeParameter.sourceCode()).equals("2Helper"), typeParameter.sourceCode());
+
 		Files.writeString(pkg.resolve("Base.java"),"package extra; public class Base { void f() {} public void run() { f(); } }");
 		final SourceTransformResult overridden = transformer.transform("import extra.Base; class Solver extends Base { void f() {} public static void main(String[] a) { new Solver().run(); } }", root, false, "", false);
 		check(overridden.exitCode() != 0 && overridden.diagnostics().contains("overrides"), overridden.diagnostics());

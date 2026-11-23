@@ -26,6 +26,7 @@ function createControl(
 			const input = h("input", {type: "number", value: String(value)});
 			if (definition.min !== undefined) input.min = String(definition.min);
 			if (definition.max !== undefined) input.max = String(definition.max);
+			if (definition.integer) input.step = "1";
 			input.addEventListener("input", () => validate(input.valueAsNumber));
 			input.addEventListener("change", () => commit(input.valueAsNumber));
 			return input;

@@ -1,3 +1,4 @@
+import {isIdentifier} from "@atcoder-tools/shared";
 import type {Translate} from "@catalog/messages";
 import {isWholeCode} from "@domain/source/comment";
 import {option, sharedAcrossSites} from "@domain/settings/option";
@@ -11,6 +12,9 @@ import {
 	transformSubmission,
 } from "@application/source/submission-transform";
 import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
+
+/** Java のパッケージ名(lib、lib.io など)。 */
+const JAVA_PACKAGE_NAME = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 
 const FOLD_DELAY_MS = 100;
 const PASTE_ORDER = 10;
@@ -58,8 +62,14 @@ export const submissionHelper = defineFeature({
 	routes: ["atcoder:task", "atcoder:submit", "atcoder:customTest", "codeforces:page", "aoj:page", "libraryChecker:page", "paiza:page", "yukicoder:problem"],
 	phase: "ready",
 	options: {
-		debugFlag: sharedAcrossSites(option.text("", "submissionHelper.debugFlag")),
-		libraryPackage: sharedAcrossSites(option.text("", "submissionHelper.libraryPackage")),
+		debugFlag: sharedAcrossSites(option.text("", "submissionHelper.debugFlag", {
+			validate: (value) => value === "" || isIdentifier(value),
+			invalidMessage: "submissionHelper.debugFlagInvalid",
+		})),
+		libraryPackage: sharedAcrossSites(option.text("", "submissionHelper.libraryPackage", {
+			validate: (value) => value === "" || JAVA_PACKAGE_NAME.test(value),
+			invalidMessage: "submissionHelper.libraryPackageInvalid",
+		})),
 		foldOnPaste: option.boolean(false, "submissionHelper.foldOnPaste"),
 	},
 	async start(services) {

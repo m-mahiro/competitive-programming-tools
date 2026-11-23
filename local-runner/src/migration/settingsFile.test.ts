@@ -50,6 +50,15 @@ describe("以前の形式の設定ファイル", () => {
 		expect(fs.existsSync(`${file}.bak`)).toBe(false);
 	});
 
+	test("形式番号が無くても、以前の形式の項目が無ければ今の形式として読み、書き換えない", () => {
+		const handWritten = {server: {port: 8081}, languages: {java: {library: "C:/lib"}}, headers: {java: "C:/h.txt"}};
+		writeRaw(handWritten);
+		expect(migrateLegacySettingsFile(file)).toBe(false);
+		expect(fs.existsSync(`${file}.bak`)).toBe(false);
+		expect(JSON.parse(fs.readFileSync(file, "utf8"))).toEqual(handWritten);
+		expect(loadSettings(file).server.port).toBe(8081);
+	});
+
 	test("新しい値を優先し、二度目は同じファイルを維持する", () => {
 		const legacy = {headers: {java: "new"}, headerFiles: {java: "old"}, languages: {cpython: {debugRewrite: true, debugFlag: "TRACE"}}};
 		writeRaw(legacy);

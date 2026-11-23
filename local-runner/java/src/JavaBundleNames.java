@@ -16,8 +16,11 @@ final class JavaBundleNames {
 			+ "|\\s+|\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*|.", Pattern.DOTALL);
 	private final List<Unit> units;
 	private final Set<String> reserved = new HashSet<>();
-	/** どこかで変数の名前に使われている名前。同じ名前の型は、変数に隠されないよう別の名前にする。 */
-	private final Set<String> variableNames = new HashSet<>();
+	/**
+	 * どこかで変数、型パラメーター、入れ子の型の名前に使われている名前。展開でライブラリの型を完全修飾名なしで書くと、
+	 * これらに隠されてしまうので、同じ名前のライブラリの型は別の名前にする。
+	 */
+	private final Set<String> shadowingNames = new HashSet<>();
 	private final Set<String> topLevelNames = new HashSet<>();
 	private final Map<String, String> typeNames = new HashMap<>();
 	private final Map<String, String> binaryNames = new HashMap<>();
@@ -98,11 +101,22 @@ final class JavaBundleNames {
 				if (node instanceof ClassTree tree) reserved.add(tree.getSimpleName().toString());
 				if (node instanceof VariableTree tree) {
 					reserved.add(tree.getName().toString());
-					variableNames.add(tree.getName().toString());
+					shadowingNames.add(tree.getName().toString());
 				}
-				if (node instanceof TypeParameterTree tree) reserved.add(tree.getName().toString());
+				if (node instanceof TypeParameterTree tree) {
+					reserved.add(tree.getName().toString());
+					shadowingNames.add(tree.getName().toString());
+				}
 				if (node instanceof IdentifierTree tree) reserved.add(tree.getName().toString());
 				return super.scan(node, unused);
+			}
+
+			@Override
+			public Void visitClass(final ClassTree node, final Void unused) {
+				// 入れ子の型の名前は、その外側の型の中で同じ名前のライブラリの型を隠す
+				if (!(getCurrentPath().getParentPath().getLeaf() instanceof CompilationUnitTree))
+					shadowingNames.add(node.getSimpleName().toString());
+				return super.visitClass(node, unused);
 			}
 
 			private void remember() {
@@ -145,8 +159,9 @@ final class JavaBundleNames {
 				String name = old;
 				if (type == entry) name = "Main";
 				else if (old.equals("Main") || topLevel && topLevelNames.contains(old)) name = nextName(old);
-				// 展開ではライブラリの型を完全修飾名なしで書くので、同じ名前の変数があると変数を指してしまう(int Helper と mine.Helper.tag())
-				else if (topLevel && unit != units.getFirst() && variableNames.contains(old)) name = nextName(old);
+				// 展開ではライブラリの型を完全修飾名なしで書くので、同じ名前の変数、型パラメーター、入れ子の型があると、そちらを指してしまう
+				// (int Helper と mine.Helper.tag()、<Helper> と mine.Helper.tag())
+				else if (topLevel && unit != units.getFirst() && shadowingNames.contains(old)) name = nextName(old);
 				typeNames.put(binary, name);
 				if (topLevel) {
 					topLevelNames.add(name);

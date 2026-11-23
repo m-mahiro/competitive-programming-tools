@@ -120,6 +120,7 @@ sourceComments.runnerHeaderAbove: 問題ごとのヘッダーの上
 sourceComments.runnerHeaderBelow: 問題ごとのヘッダーの下
 sourceComments.runnerHeaderNone: 付けない
 sourceComments.runnerHeaderName: Local Runner のヘッダーの名前（空欄なら言語の既定）
+sourceComments.runnerHeaderNameInvalid: 英数字で始まり、英数字、_、- だけを使う名前を書いてください（Local Runner の setheader と同じ規則）。
 sourceComments.runnerHeaderFailed: Local Runner のヘッダーを読めませんでした
 sourceComments.panel: ヘッダーとフッター
 sourceComments.header: ヘッダー（コードの先頭）
@@ -236,7 +237,9 @@ submissionHelper.unresolvedImports: 見つからない import があります
 submissionHelper.transformFailed: Local Runner で変換できませんでした
 submissionHelper.diagnostics: 診断の全文
 submissionHelper.debugFlag: Local Runner がないときに false にするデバッグ用の変数の名前（例：DEBUG。空欄なら変えない）
+submissionHelper.debugFlagInvalid: 英字か _ で始まり、英数字と _ だけを使う名前を書いてください（例：DEBUG）。
 submissionHelper.libraryPackage: Local Runner で展開する Java のライブラリのパッケージ（例：lib。空欄なら確かめない）
+submissionHelper.libraryPackageInvalid: Java のパッケージ名を書いてください（例：lib、lib.io）。
 submissionHelper.foldOnPaste: 貼り付け後に、いちばん外側のブロックとコメントを折りたたむ
 
 easyTest.submitChanged: テスト中に提出内容または実行環境が変わったため、提出を取り消しました。結果はテスト欄で確認できます。
@@ -245,6 +248,7 @@ easyTest.description: 問題ページでサンプルを実行し、すべて通�
 easyTest.precompile: Local Runner で編集中のコードを事前にコンパイルする
 easyTest.savedCodeLimit: コードを保存する問題数
 easyTest.allowableError: 許容誤差
+easyTest.invalidAllowableError: 許容誤差は 1e-6 や 0.001 のような正の数で書いてください。10^-6 のような書き方は使えません。
 easyTest.run: Run
 easyTest.testAndSubmit: Test & Submit
 easyTest.cancelSubmit: 提出を中止

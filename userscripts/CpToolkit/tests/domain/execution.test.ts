@@ -1,7 +1,7 @@
 import {describe, expect, test} from "bun:test";
 import {languageCatalog} from "@catalog/tables";
 import {isLanguageOption, labelDistance, resolveFamily} from "@domain/execution/language";
-import {judgeResult} from "@domain/execution/result";
+import {judgeResult, parseAllowableError} from "@domain/execution/result";
 
 describe("言語の判定", () => {
 	const cases: ReadonlyArray<readonly [string, string | null]> = [
@@ -71,6 +71,15 @@ describe("実行結果の判定", () => {
 		expect(status("1000.0000001", "1000")).toBe("AC");
 		expect(status("1000000007", "1000000008")).toBe("WA");
 		expect(status("-.5", "-0.5")).toBe("AC");
+	});
+
+	test("許容誤差の欄は、全体が有限の正の数の表記のときだけ読む", () => {
+		expect(parseAllowableError("1e-6")).toBe(1e-6);
+		expect(parseAllowableError(" 0.001 ")).toBe(0.001);
+		expect(parseAllowableError(".5")).toBe(0.5);
+		for (const text of ["10^-6", "1e", "1e-6x", "", "0", "-1e-6", "1e999", "abc"]) {
+			expect(parseAllowableError(text)).toBeNull();
+		}
 	});
 
 	test("標準出力を切り詰めた結果はそのまま返す", () => {

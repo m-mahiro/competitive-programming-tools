@@ -1,5 +1,6 @@
 import type {LocalRunnerHeaderOption} from "@atcoder-tools/shared";
 import type {SampleDisplayOptions} from "../sampleJudge";
+import {isHeaderName} from "../../settings/settings";
 import {CliUsageError} from "./Command";
 
 /**
@@ -22,7 +23,8 @@ export function parseDisplayFlag(arg: string, display: SampleDisplayOptions, {ti
 		display.maxLines = maxLines;
 		return true;
 	}
-	const timeLimitMs = timeLimit ? parseIntFlag(arg, "--time-limit") : undefined;
+	// 0 ms の制限は表示に使えないので、1 以上だけを受け付ける
+	const timeLimitMs = timeLimit ? parseIntFlag(arg, "--time-limit", undefined, 1) : undefined;
 	if (timeLimitMs !== undefined) {
 		display.timeLimitMs = timeLimitMs;
 		return true;
@@ -39,8 +41,13 @@ export function parseDisplayFlag(arg: string, display: SampleDisplayOptions, {ti
  */
 export function parseHeaderFlag(arg: string): LocalRunnerHeaderOption | undefined {
 	if (arg === "--no-header") return false;
-	if (arg.startsWith("--header=")) return arg.slice("--header=".length);
-	return undefined;
+	if (!arg.startsWith("--header=")) return undefined;
+	// setheader と同じ規則の名前だけを受け付ける。空や ../x のような名前は、打ち間違いとして止める
+	const name = arg.slice("--header=".length);
+	if (!isHeaderName(name)) {
+		throw new CliUsageError(`Invalid header name for --header: "${name}" (use a name set with setheader, e.g. --header=short).`);
+	}
+	return name;
 }
 
 /** --lang=<名前> を解釈する。arg がこのフラグでなければ undefined を返す。 */
@@ -80,14 +87,16 @@ export function parseBoolFlag(arg: string, longName: string, shortName?: string)
  * 非負整数オプションを解釈する汎用ヘルパー。形式は `--name=N`（値必須）。
  * arg がこのフラグでなければ undefined。値が非負整数でなければ {@link CliUsageError} を投げる。
  */
-export function parseIntFlag(arg: string, longName: string, shortName?: string): number | undefined {
+export function parseIntFlag(arg: string, longName: string, shortName?: string, min = 0): number | undefined {
 	const eq = arg.indexOf("=");
 	const key = eq === -1 ? arg : arg.slice(0, eq);
 	if (key !== longName && (shortName === undefined || key !== shortName)) return undefined;
 	const raw = eq === -1 ? "" : arg.slice(eq + 1);
-	const n = Number(raw);
-	if (raw === "" || !Number.isInteger(n) || n < 0) {
-		throw new CliUsageError(`Invalid integer value for ${key}: "${raw}" (use a non-negative integer, e.g. ${key}=50)`);
+	// 数字だけを受け付ける。Number で読むと 1e3、0x10、空白の付いた値も整数になってしまう
+	const n = /^\d+$/.test(raw) ? Number(raw) : Number.NaN;
+	if (!Number.isSafeInteger(n) || n < min) {
+		const kind = min > 0 ? `an integer of ${min} or more` : "a non-negative integer";
+		throw new CliUsageError(`Invalid integer value for ${key}: "${raw}" (use ${kind}, e.g. ${key}=50)`);
 	}
 	return n;
 }

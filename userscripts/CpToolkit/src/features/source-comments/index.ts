@@ -33,7 +33,11 @@ export const sourceComments = defineFeature({
 			{value: "below", label: "sourceComments.runnerHeaderBelow"},
 			{value: "none", label: "sourceComments.runnerHeaderNone"},
 		]),
-		runnerHeaderName: sharedAcrossSites(option.text("", "sourceComments.runnerHeaderName")),
+		// Local Runner の setheader と同じ規則の名前だけを受け付ける。空なら言語のヘッダーを使う
+		runnerHeaderName: sharedAcrossSites(option.text("", "sourceComments.runnerHeaderName", {
+			validate: (value) => value === "" || /^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(value),
+			invalidMessage: "sourceComments.runnerHeaderNameInvalid",
+		})),
 	},
 	async start(services) {
 		const {options, judge, localRunner, editors, paste, state, translate, submissionForm} = services;

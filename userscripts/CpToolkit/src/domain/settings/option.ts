@@ -20,6 +20,8 @@ export type NumberOption<L extends string = string> = OptionBase<number, L> & {
 	readonly kind: "number";
 	readonly min?: number;
 	readonly max?: number;
+	/** 整数だけを受け付けるか(件数など)。 */
+	readonly integer?: boolean;
 };
 export type SelectChoice<T extends string = string, L extends string = string> = {
 	readonly value: T;
@@ -84,7 +86,7 @@ export const option = {
 	number<L extends string>(
 		defaultValue: number,
 		label: L,
-		{min = -Infinity, max = Infinity}: {min?: number; max?: number} = {},
+		{min = -Infinity, max = Infinity, integer = false}: {min?: number; max?: number; integer?: boolean} = {},
 	): NumberOption<L> {
 		return {
 			kind: "number",
@@ -92,7 +94,8 @@ export const option = {
 			label,
 			min,
 			max,
-			normalize: (value) => (typeof value === "number" && value >= min && value <= max ? value : undefined),
+			integer,
+			normalize: (value) => (typeof value === "number" && value >= min && value <= max && (!integer || Number.isInteger(value)) ? value : undefined),
 		};
 	},
 	select<T extends string, L extends string>(

@@ -35,6 +35,17 @@ function migrateToVersion2(old: UserSettings): UserSettings {
 	return {...next, settingsVersion: SETTINGS_FORMAT};
 }
 
+/**
+ * 1.x にしか無い項目(librarySourceRoot、headerFiles、言語ごとの debugRewrite)を持つか。
+ * 形式番号の無いファイルでも、これらが無ければ今の形式として読む。利用者は変えたい項目だけを手で書くので、
+ * 形式番号を書かないことがあるため。
+ */
+function hasLegacyItems(settings: Record<string, unknown>): boolean {
+	if (settings.librarySourceRoot !== undefined || settings.headerFiles !== undefined) return true;
+	return isPlainObject(settings.languages)
+		&& Object.values(settings.languages).some((entry) => isPlainObject(entry) && Object.hasOwn(entry, "debugRewrite"));
+}
+
 /** 検証済みのファイルを同じフォルダで置き換え、旧ファイルのバックアップを保持する。 */
 export function migrateLegacySettingsFile(file: string): boolean {
 	if (!fs.existsSync(file)) return false;
@@ -49,6 +60,7 @@ export function migrateLegacySettingsFile(file: string): boolean {
 	if (parsed.settingsVersion !== undefined && parsed.settingsVersion !== 1) {
 		throw new SettingsError(`Unsupported settingsVersion in ${file}: ${String(parsed.settingsVersion)}.`);
 	}
+	if (parsed.settingsVersion === undefined && !hasLegacyItems(parsed)) return false;
 	const temp = `${file}.${randomUUID()}.tmp`;
 	try {
 		writeUserSettings(temp, migrateToVersion2(parsed));

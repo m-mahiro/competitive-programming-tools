@@ -251,9 +251,13 @@ export function getCompileCacheSize() {
 
 export function getCompiledEntry(sourceCode: string) {
 	const hash = hashCode(sourceCode);
-	if (compileCache.has(hash)) {
+	const cached = compileCache.get(hash);
+	if (cached) {
+		// 使ったものを追い出す順番の最後に回す
+		compileCache.delete(hash);
+		compileCache.set(hash, cached);
 		logging.logInfo(formatter.formatCompileSummary("java", "CACHED", hash));
-		return compileCache.get(hash)!;
+		return cached;
 	}
 	const entryPromise = compileSource(sourceCode, hash);
 	compileCache.set(hash, entryPromise);
@@ -262,6 +266,15 @@ export function getCompiledEntry(sourceCode: string) {
 	});
 	cleanupOldCache();
 	return entryPromise;
+}
+
+/**
+ * programId のコンパイル済みのクラスが残っているか。追い出しや作業フォルダの削除で消えていれば false。
+ * root は作業フォルダの場所で、テストのために変えられる。
+ */
+export function hasCompiledProgram(programId: string, root = config.RUNNER_CONFIG.compileRootDir): boolean {
+	if (!/^[0-9a-f]+-[0-9a-f]{32}$/.test(programId)) return false;
+	return fs.existsSync(path.join(root, programId, "classes", "Main.class"));
 }
 
 /** programId だけの run 用。メモリキャッシュ、次にディスクキャッシュから解決する。 */

@@ -119,6 +119,7 @@ sourceComments.runnerHeaderAbove: Above the task header
 sourceComments.runnerHeaderBelow: Below the task header
 sourceComments.runnerHeaderNone: Do not add it
 sourceComments.runnerHeaderName: Local Runner header name (empty for the language default)
+sourceComments.runnerHeaderNameInvalid: "Use a name that starts with a letter or digit and contains only letters, digits, _ and - (the same rule as setheader in Local Runner)."
 sourceComments.runnerHeaderFailed: Could not read the Local Runner header
 sourceComments.panel: Header and footer
 sourceComments.header: Header (top of the code)
@@ -235,7 +236,9 @@ submissionHelper.unresolvedImports: Some imports could not be found
 submissionHelper.transformFailed: Local Runner could not transform the code
 submissionHelper.diagnostics: Full diagnostics
 submissionHelper.debugFlag: "Debug variable to set to false without Local Runner (e.g. DEBUG; leave empty to keep it)"
+submissionHelper.debugFlagInvalid: "Use a name that starts with a letter or _ and contains only letters, digits and _ (for example, DEBUG)."
 submissionHelper.libraryPackage: Package of the Java library that Local Runner expands (e.g. lib; empty to skip the check)
+submissionHelper.libraryPackageInvalid: "Write a Java package name (for example, lib or lib.io)."
 submissionHelper.foldOnPaste: "Fold the outermost blocks and comments after pasting"
 
 easyTest.submitChanged: Submission canceled because the source, task, language or runner changed. The test results are still available.
@@ -244,6 +247,7 @@ easyTest.description: Run sample tests from the task page and submit when they a
 easyTest.precompile: Precompile edited code with Local Runner
 easyTest.savedCodeLimit: Number of tasks to keep code for
 easyTest.allowableError: Allowed error
+easyTest.invalidAllowableError: "Write the allowed error as a positive number such as 1e-6 or 0.001. Forms such as 10^-6 are not accepted."
 easyTest.run: Run
 easyTest.testAndSubmit: Test & Submit
 easyTest.cancelSubmit: Cancel Submission
