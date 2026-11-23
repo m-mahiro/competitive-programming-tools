@@ -159,7 +159,7 @@ export function createRunnerServer(requestShutdown: () => void): http.Server {
 			} else if (request.mode === "prepare" && typeof request.sourceCode === "string") {
 				const language = requireLanguage(request.compilerName);
 				const options = {debug: !!request.debug, validate: request.validate === true};
-				// ヘッダーを付ける要求(submit)は、提出するソースそのものをコンパイルし、サンプルもその結果で動かす。
+				// ヘッダーを付ける要求(test、submit)は、提出するソースそのものをコンパイルし、サンプルもその結果で動かす。
 				response = await prepareWithSubmissionHeader(
 					request.sourceCode,
 					request.header ?? false,

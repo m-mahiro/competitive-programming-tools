@@ -50,7 +50,7 @@ export abstract class TaskCommand implements Command {
 	protected readonly supportsDebugOption: boolean = false;
 	/** --full / --wa-only の表示オプションを受け付けるか（test / submit は true）。 */
 	protected readonly supportsDisplayOptions: boolean = false;
-	/** 提出用ヘッダーを付け、--no-header / --header=<名前> を受け付けるか（submit のみ true）。 */
+	/** 提出用ヘッダーを付け、--no-header / --header=<名前> を受け付けるか（test と submit は true）。 */
 	protected readonly supportsHeaderOption: boolean = false;
 
 	async execute(args: readonly string[]): Promise<number> {

@@ -96,7 +96,7 @@ export async function transformSource(sourceFilePath: string, options: SourceOpt
 	return source;
 }
 
-/** 実行のためにコンパイルする(run、test、localtest、crosscheck、submit)。ヘッダーは既定で付けず、行番号を元のソースと揃える。 */
+/** 実行のためにコンパイルする(run、test、localtest、crosscheck、submit)。ヘッダーは既定で付けない。test と submit は付けるよう指定する。 */
 export async function compileSource(sourceFilePath: string, debug: boolean, options: SourceOptions = {}): Promise<CompiledSource> {
 	const {source, result, request} = await requestSource(sourceFilePath, "prepare", debug, {
 		header: options.header ?? false,
