@@ -529,6 +529,20 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		const end = source.indexOf(close, at + open.length);
 		return {end: end < 0 ? source.length : end + close.length, literal: false};
 	};
+	var nestedBlockComment = (open, close) => (source, at) => {
+		if (!source.startsWith(open, at)) return null;
+		let depth = 0;
+		for (let i = at; i < source.length;) {
+			if (source.startsWith(open, i)) {
+				depth++;
+				i += open.length;
+			} else if (source.startsWith(close, i)) {
+				i += close.length;
+				if (--depth === 0) return {end: i, literal: false};
+			} else i++;
+		}
+		return {end: source.length, literal: false};
+	};
 	var quoted =
 		(quote, {escapes = true, multiline = false} = {}) =>
 		(source, at) => {
@@ -645,7 +659,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		rust: {
 			scanners: [
 				lineComment("//"),
-				blockComment("/*", "*/"),
+				nestedBlockComment("/*", "*/"),
 				rawQuoted(/b?r(#*)"/, (match) => `"${match[1]}`),
 				quoted('"', {multiline: true}),
 				rustChar,
@@ -719,7 +733,16 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	}
 
 	// ../shared/src/easy-test-judge.ts
-	var FLOAT_PATTERN = /^[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?$/;
+	var NUMBER_PATTERN = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?$/;
+	var REAL_PATTERN = /[.eE]/;
+
+	function withinAllowableError(x, y, allowableError) {
+		if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(REAL_PATTERN.test(x) || REAL_PATTERN.test(y)))
+			return false;
+		const a = Number(x);
+		const b = Number(y);
+		return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);
+	}
 
 	function evaluateEasyTestOutput(runResult, expectedOutput, options = {trim: true, split: true}) {
 		const status = runResult.status;
@@ -735,15 +758,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		let equals = (x, y) => x === y;
 		const allowableError = options.allowableError;
 		if (allowableError) {
-			const superEquals = equals;
-			equals = (x, y) => {
-				if (FLOAT_PATTERN.test(x) || FLOAT_PATTERN.test(y)) {
-					const a = Number.parseFloat(x);
-					const b = Number.parseFloat(y);
-					return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);
-				}
-				return superEquals(x, y);
-			};
+			equals = (x, y) => x === y || withinAllowableError(x, y, allowableError);
 		}
 		if (options.split) {
 			const superEquals = equals;
@@ -999,12 +1014,26 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 				before === "]" || before === ">" || (JAVA_IDENTIFIER.test(before) && !NOT_TYPE_WORDS.has(before));
 			return afterType && ["=", ";", ",", ")", ":"].includes(tokens[i + 1]?.text ?? "");
 		});
+		const members = memberLevel(tokens, type);
 		for (let i = 0; i < tokens.length; i++) {
 			const token = tokens[i];
 			const prev = tokens[i - 1]?.text;
 			if (token.text === "Main" && (prev !== "." || (insideImport(tokens, i) && tokens[i + 1]?.text === ";")))
 				return "nameCollision";
 			if (token.text !== name) continue;
+			if (tokens[i + 1]?.text === "(" && i !== type.nameIndex && prev !== "new") {
+				if (prev === ".") {
+					if (tokens[qualifiedStart(tokens, i) - 1]?.text !== "new") continue;
+				} else if (!members.has(i)) continue;
+				else if (prev === ">") return "ambiguousReference";
+				else if (
+					prev !== undefined &&
+					!MODIFIERS.has(prev) &&
+					!["{", "}", ";", ")"].includes(prev) &&
+					!afterAnnotationName(tokens, i)
+				)
+					continue;
+			}
 			if (prev === ".") {
 				const owner = tokens[i - 2]?.text;
 				const ownMember = owner === "this" || (owner === name && tokens[i - 3]?.text !== ".");
@@ -1016,6 +1045,26 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			edits.push({start: token.start, end: token.end, text: "Main"});
 		}
 		return null;
+	}
+
+	function qualifiedStart(tokens, index) {
+		let start = index;
+		while (tokens[start - 1]?.text === "." && JAVA_IDENTIFIER.test(tokens[start - 2]?.text ?? "")) start -= 2;
+		return start;
+	}
+
+	function afterAnnotationName(tokens, index) {
+		const start = qualifiedStart(tokens, index - 1);
+		return JAVA_IDENTIFIER.test(tokens[index - 1]?.text ?? "") && tokens[start - 1]?.text === "@";
+	}
+
+	function memberLevel(tokens, type) {
+		const indexes = new Set();
+		for (let i = type.open + 1; i < type.close; i++) {
+			indexes.add(i);
+			if (tokens[i].pair > i) i = tokens[i].pair;
+		}
+		return indexes;
 	}
 
 	function insideImport(tokens, index) {
@@ -1166,10 +1215,11 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return /^https?:\/\//.test(value);
 	}
 
-	function toEasyTestStatus(status, exitCode = 0) {
+	function toEasyTestStatus(status, exitCode = 0, stdoutTruncated = false) {
 		switch (status) {
 			case "success":
-				return exitCode === 0 ? "OK" : "RE";
+				if (exitCode !== 0) return "RE";
+				return stdoutTruncated ? "OLE" : "OK";
 			case "runtimeError":
 				return "RE";
 			case "timeLimitExceeded":
@@ -1290,6 +1340,37 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		};
 	}
 
+	function isPlainObject(value) {
+		return typeof value === "object" && value !== null && !Array.isArray(value);
+	}
+
+	function isSiteFeatureSettings(value) {
+		return (
+			isPlainObject(value) &&
+			(value.enabled === undefined || typeof value.enabled === "boolean") &&
+			(value.options === undefined || isPlainObject(value.options))
+		);
+	}
+
+	function isSettingsBackup(raw) {
+		if (!isPlainObject(raw) || !isPlainObject(raw.features)) return false;
+		const {version} = raw;
+		if (
+			typeof version !== "number" ||
+			!Number.isSafeInteger(version) ||
+			version < 1 ||
+			version > CURRENT_SETTINGS_VERSION
+		)
+			return false;
+		return Object.values(raw.features).every(
+			(feature) =>
+				isSiteFeatureSettings(feature) &&
+				(!isPlainObject(feature) ||
+					feature.sites === undefined ||
+					(isPlainObject(feature.sites) && Object.values(feature.sites).every(isSiteFeatureSettings))),
+		);
+	}
+
 	function parseSettings(raw) {
 		if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return createDefaultSettings();
 		const {version, features} = parseStoredObject(raw);
@@ -1407,7 +1488,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			} catch {
 				return false;
 			}
-			if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
+			if (!isSettingsBackup(parsed)) return false;
 			this.commit(parseSettings(parsed));
 			return true;
 		}
@@ -1461,7 +1542,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	var isString = (value) => typeof value === "string";
 	var isNumber = (value) => typeof value === "number";
 
-	function isPlainObject(value) {
+	function isPlainObject2(value) {
 		return typeof value === "object" && value !== null && !Array.isArray(value);
 	}
 
@@ -1470,7 +1551,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	}
 
 	function isRecordOf(isItem) {
-		return (value) => isPlainObject(value) && Object.values(value).every(isItem);
+		return (value) => isPlainObject2(value) && Object.values(value).every(isItem);
 	}
 
 	function isOptional(isItem) {
@@ -1479,7 +1560,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 
 	function isObjectOf(fields) {
 		const entries = Object.entries(fields);
-		return (value) => isPlainObject(value) && entries.every(([key, isField]) => isField(value[key]));
+		return (value) => isPlainObject2(value) && entries.every(([key, isField]) => isField(value[key]));
 	}
 
 	// CpToolkit/src/application/ports/key-value-store.ts
@@ -5551,10 +5632,9 @@ ${reason}`
 		for (const block of root.querySelectorAll(".sample-test")) {
 			const inputs = block.querySelectorAll(".input pre");
 			const outputs = block.querySelectorAll(".output pre");
-			const anchors = block.querySelectorAll(".input .title .input-output-copier");
 			inputs.forEach((input, index) => {
 				const output = outputs[index];
-				const anchor = anchors[index];
+				const anchor = input.closest(".input")?.querySelector(".title .input-output-copier");
 				if (!output) return;
 				samples.push({
 					title: `Sample ${samples.length + 1}`,
@@ -5649,9 +5729,7 @@ ${reason}`
 		}
 
 		async samples() {
-			return readCodeforcesSamples()
-				.filter((sample) => sample.anchors.length > 0)
-				.map((sample, index) => ({...sample, title: `Sample ${index + 1}`}));
+			return readCodeforcesSamples();
 		}
 	}
 
@@ -6642,30 +6720,22 @@ def __redirect_stdin(text):
     yield sys.stdin
   finally:
     sys.stdin = previous
-`;
 
-	function wrapSource(sourceCode) {
-		const body = sourceCode
-			.split(
-				`
-`,
-			)
-			.map((line) => `     ${line}`).join(`
-`);
-		return `
-def __run():
- global __stdout, __stderr, __stdin, __code
- __code = None
- with __redirect_stdin(__stdin):
-  with contextlib.redirect_stdout(io.StringIO()) as __stdout:
-   with contextlib.redirect_stderr(io.StringIO()) as __stderr:
-    try:
-     pass
-${body}
-    except SystemExit as e:
-     __code = e.code
+# 提出のソースは書き換えずにコンパイルし、実行ごとに新しいモジュールの名前空間で動かす。
+# 関数の本体へ埋め込むと、from __future__ や複数行の文字列の中身が変わってしまう。
+# __code は Python 側で初期化する。JS の null は Pyodide 0.28 から None ではなく jsnull になる
+def __run(source):
+  global __stdout, __stderr, __code
+  __code = None
+  namespace = {"__name__": "__main__", "__builtins__": __builtins__}
+  with __redirect_stdin(__stdin):
+    with contextlib.redirect_stdout(io.StringIO()) as __stdout:
+      with contextlib.redirect_stderr(io.StringIO()) as __stderr:
+        try:
+          exec(compile(source, "Main.py", "exec", dont_inherit=True), namespace)
+        except SystemExit as e:
+          __code = e.code
 `;
-	}
 
 	class PyodideRunner {
 		kind = "browser";
@@ -6693,15 +6763,17 @@ ${body}
 		}
 
 		async execute(sourceCode, input) {
-			this.pyodide ??= this.load();
-			const pyodide = await this.pyodide;
-			const code = wrapSource(sourceCode);
+			const loading = (this.pyodide ??= this.load().catch((error) => {
+				if (this.pyodide === loading) this.pyodide = null;
+				throw error;
+			}));
+			const pyodide = await loading;
 			pyodide.globals.set("__stdin", input);
+			pyodide.globals.set("__source", sourceCode);
 			const startedAt = Date.now();
 			try {
-				await pyodide.loadPackagesFromImports(code);
-				await pyodide.runPythonAsync(code);
-				pyodide.runPython("__run()");
+				await pyodide.loadPackagesFromImports(sourceCode);
+				pyodide.runPython("__run(__source)");
 			} catch (error) {
 				return {
 					status: "RE",
@@ -6837,7 +6909,7 @@ ${body}
 				return {status: "CE", input, error: response.stderr || "Local Runner could not compile the code."};
 			}
 			return {
-				status: toEasyTestStatus(response.status, response.exitCode),
+				status: toEasyTestStatus(response.status, response.exitCode, response.stdoutTruncated),
 				exitCode: String(response.exitCode),
 				execTime: Number(response.time),
 				...(response.memory > 0 ? {allocatedMemory: Number(response.memory)} : {}),
@@ -6886,11 +6958,44 @@ ${body}
 	}
 
 	// CpToolkit/src/domain/source/java-public.ts
-	var PUBLIC_TYPE_PATTERN =
-		/^((?:(?:abstract|final|sealed|non-sealed|strictfp)[ \t]+)*)public[ \t]+(?=(?:(?:abstract|final|sealed|non-sealed|strictfp)[ \t]+)*(?:class|interface|enum|record|@interface)\b)/gm;
+	var TYPE_KEYWORDS2 = new Set(["class", "interface", "enum", "record"]);
+	var TYPE_MODIFIERS = new Set(["abstract", "final", "sealed", "non", "-", "strictfp", "static"]);
+
+	function typeKeywordAfter(tokens, index) {
+		let i = index + 1;
+		for (let token = tokens[i]; token; token = tokens[i]) {
+			const {text} = token;
+			if (TYPE_MODIFIERS.has(text)) {
+				i++;
+			} else if (text === "@" && tokens[i + 1]?.text !== "interface") {
+				i += 2;
+				while (tokens[i]?.text === "." && tokens[i + 1]) i += 2;
+				const open = tokens[i];
+				if (open?.text === "(" && open.pair > i) i = open.pair + 1;
+			} else break;
+		}
+		if (TYPE_KEYWORDS2.has(tokens[i]?.text ?? "")) return i;
+		return tokens[i]?.text === "@" && tokens[i + 1]?.text === "interface" ? i + 1 : -1;
+	}
 
 	function withoutPublicTypes(source) {
-		return source.replace(PUBLIC_TYPE_PATTERN, "$1");
+		const {tokens, complete} = scanJava(source);
+		if (!complete) return source;
+		const parts = [];
+		let cursor = 0;
+		let skipTo = 0;
+		for (const [i, token] of tokens.entries()) {
+			if (i < skipTo) continue;
+			if (token.text === "public" && typeKeywordAfter(tokens, i) >= 0) {
+				let end = token.end;
+				while (source[end] === " " || source[end] === "\t") end++;
+				parts.push(source.slice(cursor, token.start));
+				cursor = end;
+			}
+			if (token.pair > i) skipTo = token.pair;
+		}
+		parts.push(source.slice(cursor));
+		return parts.join("");
 	}
 
 	// CpToolkit/src/adapters/runners/wandbox.ts
@@ -11833,6 +11938,7 @@ ${efficient_layout_default}`);
 				const active = new Set();
 				const original = normalizeNewlines(source);
 				let body = original;
+				const lost = {};
 				for (const slot of order) {
 					const old = inserted[slot];
 					if (!refresh || !old) continue;
@@ -11840,7 +11946,7 @@ ${efficient_layout_default}`);
 					if (rest !== null) {
 						active.add(slot);
 						body = rest;
-					}
+					} else lost[slot] = old;
 				}
 				const blocks = {};
 				let unsupported = false;
@@ -11887,7 +11993,7 @@ ${efficient_layout_default}`);
 				return {
 					code,
 					commit() {
-						inserted = blocks;
+						inserted = {...lost, ...blocks};
 						previousSyntax = syntax;
 						panel.setUnsupported(unsupported);
 					},
@@ -12071,7 +12177,7 @@ ${body}`.trim();
 	});
 
 	// CpToolkit/src/domain/statement/tokens.ts
-	var NUMBER_PATTERN = /(^|\W)([+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?:e[+-]?\d+)?)/gi;
+	var NUMBER_PATTERN2 = /(^|\W)([+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?:e[+-]?\d+)?)/gi;
 	var PURE_NUMBER_PATTERN = /^[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?:e[+-]?\d+)?$/i;
 
 	function isPureNumber(text) {
@@ -12081,7 +12187,7 @@ ${body}`.trim();
 	function splitNumbers(text) {
 		const segments = [];
 		let position = 0;
-		for (const match of text.matchAll(NUMBER_PATTERN)) {
+		for (const match of text.matchAll(NUMBER_PATTERN2)) {
 			const prefix = match[1] ?? "";
 			const value = match[2] ?? "";
 			const start = match.index + prefix.length;
@@ -12403,6 +12509,7 @@ ${statement_highlight_default}`);
 
 	// CpToolkit/src/features/submission-timer/index.ts
 	var MINUTE_MS2 = 60000;
+	var MAX_TIMEOUT_MS = 24 * 60 * MINUTE_MS2;
 	var submissionTimer = defineFeature({
 		id: "submission-timer",
 		title: "submissionTimer.title",
@@ -12428,6 +12535,12 @@ ${statement_highlight_default}`);
 				timer = undefined;
 				info.textContent = translate("submissionTimer.canceled");
 			};
+			const waitUntil = (dueAt) => {
+				const remaining = dueAt - Date.now();
+				timer =
+					remaining > 0 ? setTimeout(() => waitUntil(dueAt), Math.min(remaining, MAX_TIMEOUT_MS)) : undefined;
+				if (remaining <= 0) submitButton.click();
+			};
 			const schedule = () => {
 				const value = minutes.valueAsNumber;
 				clearTimeout(timer);
@@ -12435,8 +12548,9 @@ ${statement_highlight_default}`);
 					cancel();
 					return;
 				}
-				timer = setTimeout(() => submitButton.click(), value * MINUTE_MS2);
-				const at = new Date(Date.now() + value * MINUTE_MS2).toLocaleTimeString();
+				const dueAt = Date.now() + value * MINUTE_MS2;
+				waitUntil(dueAt);
+				const at = new Date(dueAt).toLocaleTimeString();
 				info.textContent = translate("submissionTimer.scheduled").replace("{time}", at);
 			};
 			modal.body.append(
@@ -12959,7 +13073,7 @@ li.cp-task-rejected > a:is(:hover, :focus) {
 	// CpToolkit/src/features/variable-hover/index.ts
 	var VARIABLES = ".katex-html .mathnormal";
 	var LEAVES = ".katex-html .mord";
-	var NUMBER_PATTERN2 = /^\d+(\.\d+)?$/;
+	var NUMBER_PATTERN3 = /^\d+(\.\d+)?$/;
 	var HIGHLIGHT_CLASS = "cp-variable";
 	var PINNED_CLASS = "cp-variable-pinned";
 
@@ -12973,7 +13087,7 @@ li.cp-task-rejected > a:is(:hover, :focus) {
 	}
 
 	function isNumberLeaf(element) {
-		return isPlainLeaf(element) && NUMBER_PATTERN2.test(element.textContent ?? "");
+		return isPlainLeaf(element) && NUMBER_PATTERN3.test(element.textContent ?? "");
 	}
 
 	function containerOf(leaf) {

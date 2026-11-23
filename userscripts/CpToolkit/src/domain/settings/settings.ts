@@ -48,6 +48,27 @@ function parseFeatureSettings(raw: unknown): FeatureSettings {
 	};
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isSiteFeatureSettings(value: unknown): boolean {
+	return isPlainObject(value) && (value.enabled === undefined || typeof value.enabled === "boolean")
+		&& (value.options === undefined || isPlainObject(value.options));
+}
+
+/**
+ * 書き出した設定(exportJson)の形か。読み込み(importJson)で、ほかの用途の JSON を設定として扱わないために使う。
+ * 版は 1 から現在の版まで、features は機能ごとの ON/OFF、値、サイトごとの設定を持つ。
+ */
+export function isSettingsBackup(raw: unknown): boolean {
+	if (!isPlainObject(raw) || !isPlainObject(raw.features)) return false;
+	const {version} = raw;
+	if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 1 || version > CURRENT_SETTINGS_VERSION) return false;
+	return Object.values(raw.features).every((feature) => isSiteFeatureSettings(feature)
+		&& (!isPlainObject(feature) || feature.sites === undefined || isPlainObject(feature.sites) && Object.values(feature.sites).every(isSiteFeatureSettings)));
+}
+
 /** 保存値を読み取り、現在の版へ移行する。壊れた値は既定値として扱う。 */
 export function parseSettings(raw: unknown): Settings {
 	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return createDefaultSettings();

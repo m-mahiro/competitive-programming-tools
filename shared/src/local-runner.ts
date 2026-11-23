@@ -6,7 +6,7 @@ export type LocalRunnerStatus =
 	| "internalError"
 	| "badRequest";
 
-export type EasyTestStatus = "OK" | "AC" | "WA" | "RE" | "TLE" | "CE" | "IE";
+export type EasyTestStatus = "OK" | "AC" | "WA" | "RE" | "TLE" | "OLE" | "CE" | "IE";
 
 export type LocalRunnerCompilerInfo = {
 	language: string;
@@ -154,10 +154,15 @@ export function isHttpUrl(value: string): boolean {
 	return /^https?:\/\//.test(value);
 }
 
-export function toEasyTestStatus(status: LocalRunnerStatus, exitCode = 0): EasyTestStatus {
+/**
+ * 実行の応答を Easy Test+ の判定へ変える。標準出力を上限で切り詰めたときは、比べられる出力が無いので OLE にする。
+ * 標準エラー出力だけの切り詰めは判定に使わない。
+ */
+export function toEasyTestStatus(status: LocalRunnerStatus, exitCode = 0, stdoutTruncated = false): EasyTestStatus {
 	switch (status) {
 		case "success":
-			return exitCode === 0 ? "OK" : "RE";
+			if (exitCode !== 0) return "RE";
+			return stdoutTruncated ? "OLE" : "OK";
 		case "runtimeError":
 			return "RE";
 		case "timeLimitExceeded":

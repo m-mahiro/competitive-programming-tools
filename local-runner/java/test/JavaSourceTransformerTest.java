@@ -286,7 +286,13 @@ public final class JavaSourceTransformerTest {
 		check(sameName.exitCode() == 0, sameName.diagnostics());
 		check(sameName.sourceCode().contains("class Value2") && execute(sameName.sourceCode()).equals("1/2"), sameName.sourceCode());
 
-		Files.writeString(pkg.resolve("Base.java"), "package extra; public class Base { void f() {} public void run() { f(); } }");
+		Files.writeString(pkg.resolve("Larger.java"), "package extra; import static java.lang.Integer.max; import static java.util.Map.*; public class Larger { public static int of(int a, int b) { Entry<String, Integer> e = entry(\"x\", 0); return max(a, b) + e.getValue(); } }");
+		final SourceTransformResult staticImports = transformer.transform("import static java.lang.Math.max; import extra.Larger; class Solver { public static void main(String[] a) { System.out.print(max(4, 9) + Larger.of(1, 2)); } }", root, false, "", true);
+		check(staticImports.exitCode() == 0, staticImports.diagnostics());
+		check(staticImports.sourceCode().contains("java.lang.Integer.max(a, b)") && staticImports.sourceCode().contains("java.util.Map.Entry<String, Integer> e = java.util.Map.entry("), staticImports.sourceCode());
+		check(!staticImports.sourceCode().contains("import static java.lang.Integer.max;\n") && execute(staticImports.sourceCode()).equals("11"), staticImports.sourceCode());
+
+		Files.writeString(pkg.resolve("Base.java"),"package extra; public class Base { void f() {} public void run() { f(); } }");
 		final SourceTransformResult overridden = transformer.transform("import extra.Base; class Solver extends Base { void f() {} public static void main(String[] a) { new Solver().run(); } }", root, false, "", false);
 		check(overridden.exitCode() != 0 && overridden.diagnostics().contains("overrides"), overridden.diagnostics());
 	}

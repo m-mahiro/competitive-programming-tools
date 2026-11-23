@@ -18,25 +18,22 @@ def __redirect_stdin(text):
     yield sys.stdin
   finally:
     sys.stdin = previous
-`;
 
-function wrapSource(sourceCode: string): string {
-	const body = sourceCode.split("\n").map((line) => `     ${line}`).join("\n");
-	// __code は Python 側で初期化する。JS の null は Pyodide 0.28 から None ではなく jsnull になる
-	return `
-def __run():
- global __stdout, __stderr, __stdin, __code
- __code = None
- with __redirect_stdin(__stdin):
-  with contextlib.redirect_stdout(io.StringIO()) as __stdout:
-   with contextlib.redirect_stderr(io.StringIO()) as __stderr:
-    try:
-     pass
-${body}
-    except SystemExit as e:
-     __code = e.code
+# 提出のソースは書き換えずにコンパイルし、実行ごとに新しいモジュールの名前空間で動かす。
+# 関数の本体へ埋め込むと、from __future__ や複数行の文字列の中身が変わってしまう。
+# __code は Python 側で初期化する。JS の null は Pyodide 0.28 から None ではなく jsnull になる
+def __run(source):
+  global __stdout, __stderr, __code
+  __code = None
+  namespace = {"__name__": "__main__", "__builtins__": __builtins__}
+  with __redirect_stdin(__stdin):
+    with contextlib.redirect_stdout(io.StringIO()) as __stdout:
+      with contextlib.redirect_stderr(io.StringIO()) as __stderr:
+        try:
+          exec(compile(source, "Main.py", "exec", dont_inherit=True), namespace)
+        except SystemExit as e:
+          __code = e.code
 `;
-}
 
 class PyodideRunner implements CodeRunner {
 	readonly kind = "browser";
@@ -64,15 +61,18 @@ class PyodideRunner implements CodeRunner {
 	}
 
 	private async execute(sourceCode: string, input: string): Promise<RunResult> {
-		this.pyodide ??= this.load();
-		const pyodide = await this.pyodide;
-		const code = wrapSource(sourceCode);
+		// 読み込みに失敗したら覚えずに、次の実行で読み込み直す。一時的な通信の失敗から戻れるようにする。
+		const loading = this.pyodide ??= this.load().catch((error: unknown) => {
+			if (this.pyodide === loading) this.pyodide = null;
+			throw error;
+		});
+		const pyodide = await loading;
 		pyodide.globals.set("__stdin", input);
+		pyodide.globals.set("__source", sourceCode);
 		const startedAt = Date.now();
 		try {
-			await pyodide.loadPackagesFromImports(code);
-			await pyodide.runPythonAsync(code);
-			pyodide.runPython("__run()");
+			await pyodide.loadPackagesFromImports(sourceCode);
+			pyodide.runPython("__run(__source)");
 		} catch (error) {
 			return {status: "RE", exitCode: "-1", input, error: error instanceof Error ? error.message : String(error)};
 		}

@@ -5,10 +5,9 @@ import path from "node:path";
 import type {LocalRunnerTransformResponse} from "@atcoder-tools/shared";
 import {writeUserSettings} from "../settings/settings";
 
+const {TEST_SETTINGS_FILE: settingsFile} = await import("../testSettings");
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "submission-header-"));
-const settingsFile = path.join(dir, "settings.json");
-process.env.LOCAL_RUNNER_SETTINGS_FILE = settingsFile;
-const {applySubmissionHeader, resolveSubmissionHeader} = await import("./header");
+const {applySubmissionHeader, prepareWithSubmissionHeader, resolveSubmissionHeader} = await import("./header");
 
 const SOURCE = "public class Main {}\n";
 const success: LocalRunnerTransformResponse = {
@@ -25,13 +24,13 @@ function writeHeader(name: string, text: string): string {
 	return file;
 }
 
+afterAll(() => {
+	fs.rmSync(dir, {recursive: true, force: true});
+});
+
 describe("applySubmissionHeader", () => {
 	beforeEach(() => {
 		fs.rmSync(settingsFile, {force: true});
-	});
-
-	afterAll(() => {
-		fs.rmSync(dir, {recursive: true, force: true});
 	});
 
 	test("言語に設定したファイルを付ける", () => {
@@ -104,5 +103,44 @@ describe("applySubmissionHeader", () => {
 	test("名前の形式を検査し、オブジェクトの既定のプロパティを読まない", () => {
 		expect(applySubmissionHeader(success, "../secret", ["java"]).diagnostics).toContain("Invalid header name");
 		expect(applySubmissionHeader(success, "constructor", ["java"]).diagnostics).toContain("Header is not set");
+	});
+});
+
+describe("prepareWithSubmissionHeader", () => {
+	beforeEach(() => {
+		fs.rmSync(settingsFile, {force: true});
+	});
+
+	const compiled = (sourceCode: string) => Promise.resolve({...success, sourceCode, programId: `id:${sourceCode.length}`});
+
+	test("ヘッダーまで付けたソースをコンパイルし、同じソースを返す", async () => {
+		writeUserSettings(settingsFile, {headers: {python3: writeHeader("python.txt", "print(2)")}});
+		const sources: string[] = [];
+		const response = await prepareWithSubmissionHeader("print(1)\n", true, ["python3"], (code) => {
+			sources.push(code);
+			return compiled(code);
+		});
+		expect(sources).toEqual(["print(2)\n\nprint(1)\n"]);
+		expect(response.sourceCode).toBe(sources[0]);
+		expect(response.programId).toBe(`id:${sources[0].length}`);
+	});
+
+	test("ヘッダーを付けないときは元のソースをコンパイルする", async () => {
+		writeUserSettings(settingsFile, {headers: {java: writeHeader("java.txt", "// java")}});
+		const response = await prepareWithSubmissionHeader(SOURCE, false, ["java"], compiled);
+		expect(response.sourceCode).toBe(SOURCE);
+	});
+
+	test("変換でヘッダーが先頭から外れたら、コンパイルの失敗として返す", async () => {
+		writeUserSettings(settingsFile, {headers: {java: writeHeader("java.txt", "// java")}});
+		const response = await prepareWithSubmissionHeader(SOURCE, true, ["java"], () => compiled(SOURCE));
+		expect(response.status).toBe("compileError");
+		expect(response.programId).toBeUndefined();
+	});
+
+	test("ヘッダーを読めないときは、コンパイルしても失敗として返す", async () => {
+		const response = await prepareWithSubmissionHeader(SOURCE, "missing", ["java"], compiled);
+		expect(response.status).toBe("compileError");
+		expect(response.diagnostics).toContain("Header is not set");
 	});
 });

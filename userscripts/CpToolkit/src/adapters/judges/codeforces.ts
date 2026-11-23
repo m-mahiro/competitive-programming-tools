@@ -15,16 +15,18 @@ function readSampleBlock(pre: Element): string {
 	}).join("");
 }
 
-/** 問題文の入出力例。Run ボタンの置き場所は、入力の見出しのコピーのボタン。 */
+/**
+ * 問題文の入出力例。Run ボタンの置き場所は、入力の見出しのコピーのボタン。
+ * ボタンはその入力の欄の中で探す。ボタンが無い例も、全サンプルの実行のために返す(anchors は空)。
+ */
 export function readCodeforcesSamples(root: ParentNode = document): SampleCase[] {
 	const samples: SampleCase[] = [];
 	for (const block of root.querySelectorAll(".sample-test")) {
 		const inputs = block.querySelectorAll(".input pre");
 		const outputs = block.querySelectorAll(".output pre");
-		const anchors = block.querySelectorAll(".input .title .input-output-copier");
 		inputs.forEach((input, index) => {
 			const output = outputs[index];
-			const anchor = anchors[index];
+			const anchor = input.closest(".input")?.querySelector(".title .input-output-copier");
 			if (!output) return;
 			samples.push({
 				title: `Sample ${samples.length + 1}`,
@@ -113,9 +115,8 @@ export class CodeforcesSite extends JudgeSiteBase {
 	}
 
 	async samples(): Promise<readonly SampleCase[]> {
-		// Run ボタンを置けない入出力例は、これまでどおり Easy Test+ では扱わない
-		return readCodeforcesSamples().filter((sample) => sample.anchors.length > 0)
-			.map((sample, index) => ({...sample, title: `Sample ${index + 1}`}));
+		// Run ボタンを置けない入出力例も、全サンプルの実行と Test & Submit では確かめる
+		return readCodeforcesSamples();
 	}
 }
 

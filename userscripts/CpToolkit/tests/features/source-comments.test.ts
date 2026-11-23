@@ -378,6 +378,20 @@ describe("sourceComments", () => {
 		expect(context.code()).toBe("// edited\ncode\n");
 	});
 
+	test("挿入した部分を編集したあとに言語を切り替えて戻しても、Local Runner のヘッダーを重ねない", async () => {
+		const context = await open({runnerHeader: "below"}, runnerWithHeader("// server").client);
+		setText(0, "task");
+		await context.pasteCode("class Main {}\n");
+		expect(context.code()).toBe("// task\n// server\n\nclass Main {}\n");
+		context.setCode("// edited\n// server\n\nclass Main {}\n");
+
+		await context.changeLanguage(python);
+		await flush();
+		await context.changeLanguage(java);
+		await flush();
+		expect(context.code()).toBe("// edited\n// server\n\nclass Main {}\n");
+	});
+
 	test("ボタンで現在のコードへ反映する", async () => {
 		const context = await open();
 		setText(0, "header");

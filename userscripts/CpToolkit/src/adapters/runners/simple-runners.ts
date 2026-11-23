@@ -119,7 +119,7 @@ class LocalCodeRunner implements CodeRunner {
 			return {status: "CE", input, error: response.stderr || "Local Runner could not compile the code."};
 		}
 		return {
-			status: toEasyTestStatus(response.status, response.exitCode),
+			status: toEasyTestStatus(response.status, response.exitCode, response.stdoutTruncated),
 			exitCode: String(response.exitCode),
 			execTime: Number(response.time),
 			...(response.memory > 0 ? {allocatedMemory: Number(response.memory)} : {}),

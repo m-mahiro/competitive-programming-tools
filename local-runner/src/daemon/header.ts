@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import {
 	type LocalRunnerHeaderOption,
+	type LocalRunnerPrepareResponse,
 	type LocalRunnerTransformResponse,
 	includesSubmissionHeader,
 	normalizeNewlines,
@@ -46,4 +47,34 @@ export function applySubmissionHeader<T extends LocalRunnerTransformResponse>(
 			diagnostics: error instanceof Error ? error.message : String(error)
 		};
 	}
+}
+
+/**
+ * ヘッダーまで付けた最終のソースをコンパイルする。提出(submit)のサンプルを、提出するソースそのもので動かすため。
+ * 変換でヘッダーが先頭から外れたら、試したプログラムと提出物が違ってしまうので、変換の失敗として返す。
+ * ヘッダーを付けないときは元のソースをそのままコンパイルし、ローカル実行の行番号を元ソースと揃える。
+ */
+export async function prepareWithSubmissionHeader(
+	sourceCode: string,
+	header: LocalRunnerHeaderOption,
+	languageKeys: readonly string[],
+	prepare: (sourceCode: string) => Promise<LocalRunnerPrepareResponse>,
+): Promise<LocalRunnerPrepareResponse> {
+	let headerText: string | null;
+	try {
+		headerText = resolveSubmissionHeader(header, languageKeys);
+	} catch {
+		// ヘッダーを読めないときの応答は applySubmissionHeader と同じにする
+		return applySubmissionHeader(await prepare(sourceCode), header, languageKeys);
+	}
+	if (headerText === null || !headerText.trim()) return prepare(sourceCode);
+	const response = await prepare(prependHeader(sourceCode, header, languageKeys));
+	if (response.status !== "success" || includesSubmissionHeader(response.sourceCode, headerText)) return response;
+	return {
+		status: "compileError",
+		sourceCode: response.sourceCode,
+		diagnostics: "The submission header was not kept at the top of the transformed source, so the samples cannot run the submitted program.",
+		inlinedClasses: response.inlinedClasses,
+		diagnosticItems: [],
+	};
 }

@@ -86,6 +86,8 @@ export const sourceComments = defineFeature({
 			const active = new Set<Slot>();
 			const original = normalizeNewlines(source);
 			let body = original;
+			// 編集されて位置を見失ったブロックも、挿入したものとして覚えておく。未挿入とみなすと、次の書き直しで同じブロックを足してしまう。
+			const lost: Blocks = {};
 			for (const slot of order) {
 				const old = inserted[slot];
 				if (!refresh || !old) continue;
@@ -93,7 +95,7 @@ export const sourceComments = defineFeature({
 				if (rest !== null) {
 					active.add(slot);
 					body = rest;
-				}
+				} else lost[slot] = old;
 			}
 			const blocks: Blocks = {};
 			let unsupported = false;
@@ -127,7 +129,7 @@ export const sourceComments = defineFeature({
 			if (blocks.footer) body = insertFooter(body, blocks.footer, syntax);
 			const code = body === original ? source : body;
 			return {code, commit() {
-				inserted = blocks;
+				inserted = {...lost, ...blocks};
 				previousSyntax = syntax;
 				panel.setUnsupported(unsupported);
 			}};

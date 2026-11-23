@@ -55,12 +55,13 @@ export async function evaluateRun(
 ): Promise<SampleResult> {
 	const runnerRaw = await postLocalRunner(program, input);
 	const easyLikeRun: shared.EasyTestRunResult = {
-		status: shared.toEasyTestStatus(runnerRaw.status, runnerRaw.exitCode),
+		status: shared.toEasyTestStatus(runnerRaw.status, runnerRaw.exitCode, runnerRaw.stdoutTruncated),
 		output: runnerRaw.stdout || "",
 		error: runnerRaw.stderr || "",
 		execTime: runnerRaw.time || 0,
 	};
 	// 実行が正常終了(OK)し、期待出力がある場合のみ AC/WA を行単位で判定する。
+	// 標準出力を切り詰めた実行(OLE)は、先頭だけが一致しても AC にしない。
 	// 実行時エラー(RE/TLE/CE 等)や期待出力なし（crosscheck の基準実行・出力ファイル無しのサンプル）は
 	// 実行ステータスをそのまま採用し、出力は生のまま渡す（差分表示側で同じ規則に正規化される）。
 	let status: string;

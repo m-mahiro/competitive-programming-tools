@@ -88,6 +88,22 @@ describe("Java の public な型", () => {
 		].join("\n"));
 	});
 
+	test("コメント、文字列、テキストブロックの中は変えず、注釈の後の public も外す", () => {
+		const source = [
+			"// public class Comment {}",
+			"/* public class Block {} */",
+			"@SuppressWarnings(\"x\") public class Main {",
+			"\tstatic String s = \"\"\"",
+			"public class Foo",
+			"\"\"\";",
+			"\tstatic String t = \"public class Bar\";",
+			"}",
+			"public non-sealed class N {}",
+		].join("\n");
+		expect(withoutPublicTypes(source)).toBe(source.replace("@SuppressWarnings(\"x\") public class Main", "@SuppressWarnings(\"x\") class Main")
+			.replace("public non-sealed", "non-sealed"));
+	});
+
 	test("public な型がなければ変えない", () => {
 		const source = "class Main {\n\tpublic int value;\n}\n";
 		expect(withoutPublicTypes(source)).toBe(source);

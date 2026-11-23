@@ -184,6 +184,19 @@ final class JavaBundleNames {
 				? fieldNames.getOrDefault(unit.binary(owner) + "." + name, name) : unit.localNames.getOrDefault(variable, name);
 	}
 
+	/**
+	 * static import で使えるメンバーなら、宣言した型の正規名を返す。ライブラリのファイルの static import は先頭へ集めないので、
+	 * javac が解決した宣言元の型で修飾する。静的なメンバーを宣言元の型で修飾しても、指す宣言は変わらない。
+	 */
+	private static String staticImportOwner(final Unit unit, final Element symbol) {
+		if (unit.staticImports.isEmpty() || symbol == null || !symbol.getModifiers().contains(Modifier.STATIC)
+				|| !(symbol.getEnclosingElement() instanceof TypeElement owner))
+			return null;
+		final String type = owner.getQualifiedName().toString();
+		final String name = symbol.getSimpleName().toString();
+		return unit.staticImports.contains(type + "." + name) || unit.staticImports.contains(type + ".*") ? type : null;
+	}
+
 	boolean needsQualification(final ImportTree imported) {
 		final Tree target = imported.getQualifiedIdentifier();
 		return !imported.isStatic() && target instanceof MemberSelectTree member && qualify.contains(member.getIdentifier().toString());
@@ -239,6 +252,10 @@ final class JavaBundleNames {
 			@Override
 			public Void visitIdentifier(final IdentifierTree tree, final Void unused) {
 				reference();
+				// 展開では、この名前を宣言元の型で修飾する(edits)。修飾した型の参照も、展開後と同じ順に数える。
+				final Element element = unit.analysis.trees().getElement(getCurrentPath());
+				if (original && !(element instanceof TypeElement) && staticImportOwner(unit, element) != null)
+					result.add("type " + owner((TypeElement) element.getEnclosingElement()));
 				return super.visitIdentifier(tree, unused);
 			}
 
@@ -377,6 +394,11 @@ final class JavaBundleNames {
 			@Override
 			public Void visitIdentifier(final IdentifierTree tree, final Void unused) {
 				final Element symbol = element();
+				final String imported = staticImportOwner(unit, symbol);
+				if (imported != null && unit.end(tree) >= 0) {
+					edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.end(tree), imported + "." + tree.getName()));
+					return super.visitIdentifier(tree, unused);
+				}
 				String replacement = nameOf(symbol);
 				final String name = tree.getName().toString();
 				if (replacement == null && symbol instanceof TypeElement type && qualify.contains(name))
@@ -409,6 +431,8 @@ final class JavaBundleNames {
 		final String code;
 		final JavaSourceTransformer.Analysis analysis;
 		final Map<Element, String> localNames = new HashMap<>();
+		/** 先頭へ集めずに、使う側を修飾する static import の名前(java.lang.Math.max、java.lang.Math.* など)。 */
+		final Set<String> staticImports = new HashSet<>();
 
 		Unit(final String code, final JavaSourceTransformer.Analysis analysis) {
 			this.code = code;

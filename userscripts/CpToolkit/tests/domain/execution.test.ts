@@ -56,6 +56,21 @@ describe("実行結果の判定", () => {
 		expect(judgeResult({status: "OK", input: "", output: "1.5"}, "1.0", options).status).toBe("WA");
 	});
 
+	test("誤差は、両方のトークンが末尾まで数の表記のときだけ許容する", () => {
+		const options = {trim: true, split: true, allowableError: 1e-6};
+		const status = (output: string, expected: string) => judgeResult({status: "OK", input: "", output}, expected, options).status;
+		expect(status("1garbage", "1.0")).toBe("WA");
+		expect(status("1.0", "1garbage")).toBe("WA");
+		expect(status("1e3", "1000")).toBe("AC");
+		expect(status("1000.0000001", "1000")).toBe("AC");
+		expect(status("1000000007", "1000000008")).toBe("WA");
+		expect(status("-.5", "-0.5")).toBe("AC");
+	});
+
+	test("標準出力を切り詰めた結果はそのまま返す", () => {
+		expect(judgeResult({status: "OLE", input: "", output: "good"}, "good", {}).status).toBe("OLE");
+	});
+
 	test("実行に失敗した結果はそのまま返す", () => {
 		expect(judgeResult({status: "RE", input: ""}, "1", {}).status).toBe("RE");
 	});

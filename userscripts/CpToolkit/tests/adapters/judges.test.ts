@@ -236,6 +236,19 @@ describe("CodeforcesSite", () => {
 		expect(samples[0]).toMatchObject({input: "1\n2", output: "3\n"});
 	});
 
+	test("先頭の例だけコピーのボタンが無くても、ボタンを例と組み違えず、全部の例を返す", async () => {
+		document.body.innerHTML = `<form class="submitForm"></form><div id="pageContent"></div><div class="sample-test">
+			<div class="input"><div class="title"></div><pre>1</pre></div><div class="output"><pre>10</pre></div>
+			<div class="input"><div class="title"><span class="input-output-copier" id="second"></span></div><pre>2</pre></div><div class="output"><pre>20</pre></div>
+		</div>`;
+		const samples = await new CodeforcesSite(bridge).samples();
+		expect(samples.map(({title, input, output}) => ({title, input, output}))).toEqual([
+			{title: "Sample 1", input: "1", output: "10"},
+			{title: "Sample 2", input: "2", output: "20"},
+		]);
+		expect(samples.map(({anchors}) => anchors)).toEqual([[], [document.getElementById("second")!]]);
+	});
+
 	test("提出欄に手を加えずに入出力例を読む", () => {
 		document.body.innerHTML = `<form class="submitForm"></form><div class="sample-test">
 			<div class="input"><pre>1 2</pre></div><div class="output"><pre>3</pre></div>

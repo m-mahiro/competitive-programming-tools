@@ -3,6 +3,7 @@ import {
 	createDefaultSettings,
 	featureOptions,
 	isFeatureEnabled,
+	isSettingsBackup,
 	parseSettings,
 	type Settings,
 	updateFeatureSettings,
@@ -108,7 +109,8 @@ export class SettingsService implements FeatureSettingsStore {
 		} catch {
 			return false;
 		}
-		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
+		// 書き出した設定の形でなければ、ほかの JSON を読んで全サイトの設定を既定値に戻さないよう、変更しない。
+		if (!isSettingsBackup(parsed)) return false;
 		this.commit(parseSettings(parsed));
 		return true;
 	}

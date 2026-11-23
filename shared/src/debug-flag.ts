@@ -31,6 +31,22 @@ const blockComment = (open: string, close: string): Scanner => (source, at) => {
 	return {end: end < 0 ? source.length : end + close.length, literal: false};
 };
 
+/** 入れ子にできるブロックコメント(Rust)。内側の開きと閉じを数え、いちばん外側が閉じたところで終える。 */
+const nestedBlockComment = (open: string, close: string): Scanner => (source, at) => {
+	if (!source.startsWith(open, at)) return null;
+	let depth = 0;
+	for (let i = at; i < source.length;) {
+		if (source.startsWith(open, i)) {
+			depth++;
+			i += open.length;
+		} else if (source.startsWith(close, i)) {
+			i += close.length;
+			if (--depth === 0) return {end: i, literal: false};
+		} else i++;
+	}
+	return {end: source.length, literal: false};
+};
+
 /** 引用符で囲んだリテラル。escapes なら \ の次の文字を飛ばす。multiline でなければ行末で終える。 */
 const quoted = (quote: string, {escapes = true, multiline = false} = {}): Scanner => (source, at) => {
 	if (!source.startsWith(quote, at)) return null;
@@ -136,7 +152,7 @@ const DEBUG_FLAG_SYNTAXES: Readonly<Record<string, DebugFlagSyntax>> = {
 		scope: "braces",
 	},
 	rust: {
-		scanners: [lineComment("//"), blockComment("/*", "*/"), rawQuoted(/b?r(#*)"/, (match) => `"${match[1]}`), quoted('"', {multiline: true}), rustChar],
+		scanners: [lineComment("//"), nestedBlockComment("/*", "*/"), rawQuoted(/b?r(#*)"/, (match) => `"${match[1]}`), quoted('"', {multiline: true}), rustChar],
 		declaration: (flag) => new RegExp(String.raw`^([ \t]*(?:pub(?:\([^)]*\))?[ \t]+)?(?:const|static)[ \t]+${flag}[ \t]*:[ \t]*bool[ \t]*=[ \t]*)(true|false)[ \t]*;`),
 		literals: ["false", "true"],
 		scope: "braces",

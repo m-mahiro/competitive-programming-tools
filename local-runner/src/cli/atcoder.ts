@@ -17,8 +17,8 @@ const AUTH_ERROR_MESSAGE = [
 	"  setsession",
 ].join("\n");
 
-function ensureNotLoginPage(body: string) {
-	if (parser.isAtCoderLoginPage(body)) throw new Error(AUTH_ERROR_MESSAGE);
+function ensureNotLoginPage(body: string, url: string) {
+	if (parser.isAtCoderLoginPage(body, url)) throw new Error(AUTH_ERROR_MESSAGE);
 }
 
 export function toCookieHeader() {
@@ -51,7 +51,7 @@ export async function httpGetText(url: string, cookieHeader = "", maxAttempts = 
 		const res = await fetch(url, {headers, redirect: "follow"});
 		if (res.ok) {
 			const body = await res.text();
-			ensureNotLoginPage(body);
+			ensureNotLoginPage(body, res.url);
 			return body;
 		}
 		if (res.status !== 429 || attempt + 1 === maxAttempts) {
@@ -67,22 +67,47 @@ export async function httpGetText(url: string, cookieHeader = "", maxAttempts = 
 	throw new Error(`GET failed (429) for ${url}`);
 }
 
-export async function fetchLatestSubmissionId(task: Task, cookieHeader: string) {
+/** その問題の自分の提出のうち、after より新しい最大の ID を返す。after が空なら最新の ID。無ければ空。 */
+export async function fetchLatestSubmissionId(task: Task, cookieHeader: string, after = "") {
 	const listUrl = shared.buildAtCoderSubmissionsMeUrl(task.contestId, {task: task.taskScreenName});
 	const html = await httpGetText(listUrl, cookieHeader, POLL_ATTEMPTS_ON_429);
-	return parser.extractSubmissionIdFromHtml(html, task.contestId);
+	return parser.findNewestSubmissionId(html, task.contestId, task.taskScreenName, after);
 }
 
 async function waitForNewSubmissionId(task: Task, cookieHeader: string, previousSubmissionId: string) {
 	const started = Date.now();
 	while (Date.now() - started < CLI_CONFIG.submissionIdDetectTimeoutMs) {
-		const latestId = await fetchLatestSubmissionId(task, cookieHeader);
-		if (latestId && latestId !== previousSubmissionId) {
-			return latestId;
-		}
+		const latestId = await fetchLatestSubmissionId(task, cookieHeader, previousSubmissionId);
+		if (latestId) return latestId;
 		await shared.sleep(CLI_CONFIG.submissionIdDetectIntervalMs);
 	}
 	return "";
+}
+
+/** 応答の URL のパス。読めなければ空。 */
+function pathOf(url: string): string {
+	try {
+		return new URL(url).pathname.replace(/\/+$/, "");
+	} catch {
+		return "";
+	}
+}
+
+/**
+ * 送信のあと、今回の提出の ID を決める。提出前の ID より新しい、その問題の行だけを使う。
+ * 提出前の ID が分からないとき(429)や、決められないときは、一覧の URL だけを返す。
+ */
+async function trackNewSubmission(task: Task, cookieHeader: string, html: string, previousSubmissionId: string | null): Promise<SubmitResult> {
+	if (previousSubmissionId !== null) {
+		const id = parser.findNewestSubmissionId(html, task.contestId, task.taskScreenName, previousSubmissionId)
+			|| await waitForNewSubmissionId(task, cookieHeader, previousSubmissionId);
+		if (id) return {submissionId: id, submissionUrl: shared.buildAtCoderSubmissionUrl(task.contestId, id)};
+	}
+	return {
+		submissionId: "-",
+		submissionUrl: shared.buildAtCoderSubmissionsMeUrl(task.contestId, {task: task.taskScreenName}),
+		trackingUnavailable: true,
+	};
 }
 
 function parseRetryAfterToMs(headerValue: string | null, fallbackMs: number) {
@@ -134,19 +159,21 @@ export async function submitToAtCoder(
 		language,
 		CLI_CONFIG.defaultLanguageId,
 	);
-	let previousSubmissionId = "";
-	let canTrackByDiff = true;
+	// 提出前の最新の ID。429 で読めなければ null にし、提出のあとで新旧を比べない。
+	let previousSubmissionId: string | null = "";
 	try {
 		previousSubmissionId = await fetchLatestSubmissionId(task, cookieHeader);
 	} catch (error) {
 		if (String(error instanceof Error ? error.message : error).includes("(429)")) {
-			canTrackByDiff = false;
+			previousSubmissionId = null;
 			console.log(color.colorizeWarning("Warning: submissions/me is rate-limited (429). Continue submit without strict ID diff tracking.", "cli"));
 		} else {
 			throw error;
 		}
 	}
 
+	// 次の言語の候補で送り直すのは、提出ページに戻されて拒否が分かったときだけ。
+	// 受け付けられたか分からないときに送り直すと、同じコードを2回提出してしまう。
 	let lastRejectReason = "";
 	for (const languageId of languageCandidates) {
 		const params = new URLSearchParams();
@@ -168,47 +195,27 @@ export async function submitToAtCoder(
 			Cookie: cookieHeader,
 		};
 		const res = await postSubmitWithRetry(submitForm.actionUrl, submitHeaders, params.toString());
-		if (!res.ok) {
+		if (!res.ok && res.status < 500) {
 			lastRejectReason = `Submit request failed (${res.status}).`;
 			continue;
 		}
-		const html = await res.text();
-		ensureNotLoginPage(html);
-		const urlFromRedirect = res.url || "";
-		const redirectMatch = urlFromRedirect.match(/\/submissions\/(\d+)/);
+		const html = res.ok ? await res.text() : "";
+		if (res.ok) ensureNotLoginPage(html, res.url);
+		const redirectMatch = pathOf(res.url).match(/\/submissions\/(\d+)$/);
 		if (redirectMatch) {
 			return {
 				submissionId: redirectMatch[1],
-				submissionUrl: urlFromRedirect,
+				submissionUrl: res.url,
 			};
 		}
-		const htmlSubmissionId = parser.extractSubmissionIdFromHtml(html, task.contestId);
-		if (htmlSubmissionId && (!canTrackByDiff || htmlSubmissionId !== previousSubmissionId)) {
-			return {
-				submissionId: htmlSubmissionId,
-				submissionUrl: shared.buildAtCoderSubmissionUrl(task.contestId, htmlSubmissionId),
-			};
+		if (res.ok && pathOf(res.url).endsWith("/submit")) {
+			lastRejectReason = parser.extractSubmitFailureReason(html) || "AtCoder returned to the submit page.";
+			continue;
 		}
-		if (canTrackByDiff) {
-			const latestId = await waitForNewSubmissionId(task, cookieHeader, previousSubmissionId);
-			if (latestId) {
-				return {
-					submissionId: latestId,
-					submissionUrl: shared.buildAtCoderSubmissionUrl(task.contestId, latestId),
-				};
-			}
-		}
-		lastRejectReason = parser.extractSubmitFailureReason(html) || "Submit did not create a new submission ID.";
+		return await trackNewSubmission(task, cookieHeader, html, previousSubmissionId);
 	}
 
-	if (canTrackByDiff) {
-		throw new Error(`Submit was rejected by AtCoder: ${lastRejectReason || "unknown error"}`);
-	}
-	return {
-		submissionId: "-",
-		submissionUrl: shared.buildAtCoderSubmissionsMeUrl(task.contestId, {task: task.taskScreenName}),
-		trackingUnavailable: true,
-	};
+	throw new Error(`Submit was rejected by AtCoder: ${lastRejectReason || "unknown error"}`);
 }
 
 export function formatMetricValue(value: string) {

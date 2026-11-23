@@ -262,8 +262,10 @@ final class JavaSourceTransformer {
 			final JavaBundleNames.Unit unit = units.get(i);
 			for (final ImportTree imported : unit.analysis.solution().getImports()) {
 				final String name = imported.getQualifiedIdentifier().toString();
-				if (!index.isLibraryImport(name) && !names.needsQualification(imported))
-					hoisted.add("import " + (imported.isStatic() ? "static " : "") + name + ";");
+				if (index.isLibraryImport(name)) continue;
+				// static import は先頭へ集めると解答の static import と同じ名前で衝突するので、使う側を宣言元の型で修飾する。
+				if (imported.isStatic()) unit.staticImports.add(name);
+				else if (!names.needsQualification(imported)) hoisted.add("import " + name + ";");
 			}
 			final List<Edit> edits = names.edits(unit);
 			for (final ImportTree imported : unit.analysis.solution().getImports()) {

@@ -109,6 +109,18 @@ describe("modifyJavaCode の Main への改名", () => {
 		expect(transformJavaForSubmission(source.replace("class Solver", "class Solver<String>")).issue).toBe("mainNotFound");
 	});
 
+	test("起動型と同じ名前のメソッドは変えず、コンストラクターの宣言と呼び出しを変える", () => {
+		const source = "class Other { static int Solver() { return 1; } }\npublic class Solver {\n\tint value;\n\t@Deprecated Solver(int v) { value = v; }\n\tprivate Solver() { this(Other.Solver()); }\n"
+			+ "\tint Solver(String s) { return value; }\n\tpublic static void main(String[] args) { System.out.print(new Solver().Solver(\"\") + new Solver(2).value); }\n}\n";
+		expect(transformJavaForSubmission(source)).toEqual({
+			sourceCode: "class Other { static int Solver() { return 1; } }\npublic class Main {\n\tint value;\n\t@Deprecated Main(int v) { value = v; }\n\tprivate Main() { this(Other.Solver()); }\n"
+				+ "\tint Solver(String s) { return value; }\n\tpublic static void main(String[] args) { System.out.print(new Main().Solver(\"\") + new Main(2).value); }\n}\n",
+			issue: null,
+		});
+		const generic = "public class Solver { <T> Solver(T t) {} public static void main(String[] args) {} }";
+		expect(transformJavaForSubmission(generic)).toEqual({sourceCode: generic, issue: "ambiguousReference"});
+	});
+
 	test("Main という名前がすでにあれば改名しない", () => {
 		expect(modifyJavaCode("public class A {\n\tstatic class Main {}\n\tpublic static void main(String[] args) {}\n}\n")).toBe("public class A {\n\tstatic class Main {}\n\tpublic static void main(String[] args) {}\n}\n");
 		expect(modifyJavaCode("public class A {\n\tpublic static void main(String[] args) { int Main = 1; }\n}\n")).toBe("public class A {\n\tpublic static void main(String[] args) { int Main = 1; }\n}\n");

@@ -34,33 +34,34 @@ export function extractSamples(taskHtml: string): SamplePair[] {
 	while ((m = outputRegex.exec(taskHtml)) !== null) {
 		outputs.push({idx: m[1] ? Number(m[1]) : outputs.length + 1, text: decodeHtmlEntities(m[2])});
 	}
-	const uniqueInputs = dedupeIndexedBlocks(inputs);
-	const uniqueOutputs = dedupeIndexedBlocks(outputs);
-	uniqueInputs.sort((a, b) => a.idx - b.idx);
-	uniqueOutputs.sort((a, b) => a.idx - b.idx);
-	const len = Math.min(uniqueInputs.length, uniqueOutputs.length);
-	if (len === 0) {
+	const inputByIndex = indexBlocks(inputs, "input");
+	const outputByIndex = indexBlocks(outputs, "output");
+	if (inputByIndex.size === 0 && outputByIndex.size === 0) {
 		throw new Error("No sample pairs were found on the task page.");
 	}
-	const pairs: SamplePair[] = [];
-	for (let i = 0; i < len; i++) {
-		pairs.push({
-			index: i + 1,
-			input: shared.normalizeNewlines(uniqueInputs[i].text),
-			expectedOutput: shared.normalizeNewlines(uniqueOutputs[i].text),
-		});
+	// 番号で入力と出力を組にする。片方しか無い番号があれば、ほかの例と組み違えないように止める。
+	const unpaired = [...new Set([...inputByIndex.keys(), ...outputByIndex.keys()])]
+		.filter((idx) => !inputByIndex.has(idx) || !outputByIndex.has(idx))
+		.sort((a, b) => a - b);
+	if (unpaired.length > 0) {
+		throw new Error(`Sample ${unpaired.join(", ")} has only an input or only an output on the task page.`);
 	}
+	const pairs: SamplePair[] = [...inputByIndex.keys()].sort((a, b) => a - b).map((idx, i) => ({
+		index: i + 1,
+		input: inputByIndex.get(idx)!,
+		expectedOutput: outputByIndex.get(idx)!,
+	}));
 	return dedupeSamplePairs(pairs);
 }
 
-function dedupeIndexedBlocks(blocks: IndexedBlock[]) {
-	const set = new Set<string>();
-	const result: IndexedBlock[] = [];
+/** 番号ごとの入力または出力。日本語と英語の両方に同じ例があれば1つにし、同じ番号で内容が違えば止める。 */
+function indexBlocks(blocks: IndexedBlock[], kind: "input" | "output"): Map<number, string> {
+	const result = new Map<number, string>();
 	for (const block of blocks) {
-		const key = `${block.idx}\u0000${shared.normalizeNewlines(block.text)}`;
-		if (set.has(key)) continue;
-		set.add(key);
-		result.push(block);
+		const text = shared.normalizeNewlines(block.text);
+		const existing = result.get(block.idx);
+		if (existing === undefined) result.set(block.idx, text);
+		else if (existing !== text) throw new Error(`Sample ${block.idx} has different ${kind}s on the task page.`);
 	}
 	return result;
 }
@@ -98,15 +99,19 @@ export function extractCsrfToken(html: string) {
 	return m[1];
 }
 
-export function isAtCoderLoginPage(html: string) {
+/**
+ * 応答がログイン画面かを返す。転送先の URL が /login か、ページにパスワードの入力欄があればログイン画面とする。
+ * 未ログインでも読めるページのナビゲーションにある /login?continue=... のリンクでは判定しない。
+ */
+export function isAtCoderLoginPage(html: string, url = ""): boolean {
+	try {
+		if (url && new URL(url).pathname.replace(/\/+$/, "") === "/login") return true;
+	} catch {
+		// URL として読めなければ本文だけで判定する
+	}
 	if (!html) return false;
-	return (
-		/<title>\s*(?:ログイン|Login)\s*-\s*AtCoder\s*<\/title>/i.test(html) ||
-		/name=["']username["']/i.test(html) ||
-		/name=["']password["']/i.test(html) ||
-		/\/login\?continue=/i.test(html) ||
-		/ログインしてください/.test(html)
-	);
+	return /<title>\s*(?:ログイン|Login|Sign In)\s*-\s*AtCoder\s*<\/title>/i.test(html) ||
+		/<input\b[^>]*\bname=["']password["']/i.test(html);
 }
 
 export type LanguageOption = {value: string; label: string};
@@ -151,10 +156,11 @@ export function findLanguageOptionByLabel(options: readonly LanguageOption[], te
 export function chooseJavaLanguageIdFromOptions(options: Array<{value: string; label: string}>) {
 	if (!options.length) return "";
 	const normalized = options.map((o) => ({...o, lower: o.label.toLowerCase()}));
+	// 「JavaScript」を Java と取り違えないよう、語としての java だけを見る。
 	const priority = [
-		(l: string) => /java/.test(l) && /(24\.0\.2|24)/.test(l),
-		(l: string) => /java/.test(l) && /openjdk/.test(l),
-		(l: string) => /java/.test(l),
+		(l: string) => isJavaLabel(l) && /(24\.0\.2|24)/.test(l),
+		(l: string) => isJavaLabel(l) && /openjdk/.test(l),
+		(l: string) => isJavaLabel(l),
 	];
 	for (const rule of priority) {
 		const found = normalized.find((o) => rule(o.lower));
@@ -163,9 +169,14 @@ export function chooseJavaLanguageIdFromOptions(options: Array<{value: string; l
 	return "";
 }
 
+function isJavaLabel(label: string): boolean {
+	return /(?:^|[^a-z])java(?![a-z])/i.test(label);
+}
+
 /**
  * 提出に使う言語の ID の候補を、先に試す順で返す。
- * Java は固定の ID(javaLanguageId)と、フォームから選んだ ID を試す。ほかの言語は、設定の submit に合う選択肢だけを使い、
+ * Java は固定の ID(javaLanguageId)と、フォームから選んだ ID を試す。固定の ID は、フォームに Java の選択肢として
+ * あるときだけ使う(選択欄を読めなかったときは固定の ID だけを試す)。ほかの言語は、設定の submit に合う選択肢だけを使い、
  * 近い言語では代用しない。
  */
 export function chooseSubmitLanguageIds(
@@ -174,7 +185,8 @@ export function chooseSubmitLanguageIds(
 	javaLanguageId: string,
 ): string[] {
 	if (language.isJava) {
-		const candidates = [javaLanguageId, chooseJavaLanguageIdFromOptions([...options])];
+		const fixedIsJava = options.length === 0 || options.some(({value, label}) => value === javaLanguageId && isJavaLabel(label));
+		const candidates = [fixedIsJava ? javaLanguageId : "", chooseJavaLanguageIdFromOptions([...options])];
 		const languageIds = [...new Set(candidates.filter(Boolean))];
 		if (!languageIds.length) throw new Error("Java language ID was not found on submit page.");
 		return languageIds;
@@ -248,15 +260,43 @@ export function extractSubmitForm(submitPageHtml: string, task: Task): SubmitFor
 	return {actionUrl, formValues};
 }
 
-export function extractSubmissionIdFromHtml(html: string, contestId: string) {
-	if (!html) return "";
-	const direct = html.match(/\/contests\/[^/]+\/submissions\/(\d+)/);
-	if (direct) return direct[1];
-	const dataId = html.match(/<tr[^>]*\sdata-id=["'](\d+)["']/i);
-	if (dataId) return dataId[1];
-	const meRow = html.match(new RegExp(`/contests/${contestId}/submissions/(\\d+)`));
-	if (meRow) return meRow[1];
-	return "";
+export type SubmissionRow = {id: string; taskScreenName: string};
+
+function escapeRegExp(text: string): string {
+	return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** 提出一覧の表の行から、提出 ID と問題を読む。どちらかが読めない行は使わない。 */
+export function extractSubmissionRows(html: string, contestId: string): SubmissionRow[] {
+	const contest = escapeRegExp(contestId);
+	const taskLink = new RegExp(`/contests/${contest}/tasks/([A-Za-z0-9_]+)`);
+	const submissionLink = new RegExp(`/contests/${contest}/submissions/(\\d+)(?![\\d/])`);
+	const rows: SubmissionRow[] = [];
+	for (const [, row] of (html || "").matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+		const task = taskLink.exec(row)?.[1];
+		const id = submissionLink.exec(row)?.[1] ?? /\sdata-id=["'](\d+)["']/i.exec(row)?.[1];
+		if (task && id) rows.push({id, taskScreenName: task});
+	}
+	return rows;
+}
+
+/** 提出 ID(数字の列)を比べる。大きいほど新しい。空は最も古い。 */
+function compareSubmissionIds(a: string, b: string): number {
+	const x = a.replace(/^0+/, ""), y = b.replace(/^0+/, "");
+	return x.length - y.length || (x < y ? -1 : x > y ? 1 : 0);
+}
+
+/**
+ * 提出一覧の中で、その問題の提出のうち after より新しい最大の ID を返す。無ければ空。
+ * after が空なら、その問題の提出の最大の ID を返す。
+ */
+export function findNewestSubmissionId(html: string, contestId: string, taskScreenName: string, after = ""): string {
+	let newest = "";
+	for (const {id, taskScreenName: task} of extractSubmissionRows(html, contestId)) {
+		if (task !== taskScreenName || compareSubmissionIds(id, after) <= 0) continue;
+		if (!newest || compareSubmissionIds(id, newest) > 0) newest = id;
+	}
+	return newest;
 }
 
 export function stripTags(html: string) {

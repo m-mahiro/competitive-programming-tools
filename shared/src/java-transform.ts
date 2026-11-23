@@ -102,11 +102,22 @@ function addRenameEdits(tokens: JavaToken[], type: JavaType, packageName: string
 		const afterType = before === "]" || before === ">" || JAVA_IDENTIFIER.test(before) && !NOT_TYPE_WORDS.has(before);
 		return afterType && ["=", ";", ",", ")", ":"].includes(tokens[i + 1]?.text ?? "");
 	});
+	const members = memberLevel(tokens, type);
 	for (let i = 0; i < tokens.length; i++) {
 		const token = tokens[i];
 		const prev = tokens[i - 1]?.text;
 		if (token.text === "Main" && (prev !== "." || insideImport(tokens, i) && tokens[i + 1]?.text === ";")) return "nameCollision";
 		if (token.text !== name) continue;
+		// 名前の後に ( が続くのは、コンストラクターかメソッド。メソッドの名前は型の名前と別なので変えない。
+		if (tokens[i + 1]?.text === "(" && i !== type.nameIndex && prev !== "new") {
+			if (prev === ".") {
+				// new a.b.Solver(...) は修飾したコンストラクターの呼び出し。それ以外の x.Solver(...) はメソッドの呼び出し。
+				if (tokens[qualifiedStart(tokens, i) - 1]?.text !== "new") continue;
+			} else if (!members.has(i)) continue;
+			else if (prev === ">") return "ambiguousReference"; // 型引数を持つコンストラクターと、型引数を返すメソッドは、字句では見分けられない
+			// 自分のメンバーの位置で、修飾子か区切りの後にあればコンストラクターの宣言。型の後にあればメソッドの宣言。
+			else if (prev !== undefined && !MODIFIERS.has(prev) && !["{", "}", ";", ")"].includes(prev) && !afterAnnotationName(tokens, i)) continue;
+		}
 		if (prev === ".") {
 			const owner = tokens[i - 2]?.text;
 			const ownMember = owner === "this" || owner === name && tokens[i - 3]?.text !== ".";
@@ -118,6 +129,29 @@ function addRenameEdits(tokens: JavaToken[], type: JavaType, packageName: string
 		edits.push({start: token.start, end: token.end, text: "Main"});
 	}
 	return null;
+}
+
+/** a.b.c の c の番号から、修飾した名前の先頭(a)の番号を返す。 */
+function qualifiedStart(tokens: JavaToken[], index: number): number {
+	let start = index;
+	while (tokens[start - 1]?.text === "." && JAVA_IDENTIFIER.test(tokens[start - 2]?.text ?? "")) start -= 2;
+	return start;
+}
+
+/** 直前が引数のない注釈の名前(@Inject、@a.B)か。 */
+function afterAnnotationName(tokens: JavaToken[], index: number): boolean {
+	const start = qualifiedStart(tokens, index - 1);
+	return JAVA_IDENTIFIER.test(tokens[index - 1]?.text ?? "") && tokens[start - 1]?.text === "@";
+}
+
+/** 型の本体の直下(メンバーの宣言の位置)にある字句の番号。括弧の中は含まない。 */
+function memberLevel(tokens: JavaToken[], type: JavaType): Set<number> {
+	const indexes = new Set<number>();
+	for (let i = type.open + 1; i < type.close; i++) {
+		indexes.add(i);
+		if (tokens[i].pair > i) i = tokens[i].pair;
+	}
+	return indexes;
 }
 
 function insideImport(tokens: JavaToken[], index: number): boolean {

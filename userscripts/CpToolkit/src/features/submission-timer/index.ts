@@ -4,6 +4,8 @@ import {h} from "@ui/element";
 import formCss from "@ui/form/form.css" with {type: "text"};
 
 const MINUTE_MS = 60_000;
+/** 1回の setTimeout で待つ時間の上限。ブラウザが受け付ける最大値(2^31 - 1 ミリ秒)より短くする。 */
+const MAX_TIMEOUT_MS = 24 * 60 * MINUTE_MS;
 
 export const submissionTimer = defineFeature({
 	id: "submission-timer",
@@ -31,6 +33,15 @@ export const submissionTimer = defineFeature({
 			timer = undefined;
 			info.textContent = translate("submissionTimer.canceled");
 		};
+		// setTimeout の待ち時間は 32 ビットの整数(約 24.8 日)までで、超えるとすぐに動く。
+		// 予定の時刻を覚えておき、上限より短い待ちを繰り返して、その時刻に提出する。
+		const waitUntil = (dueAt: number): void => {
+			const remaining = dueAt - Date.now();
+			timer = remaining > 0
+				? setTimeout(() => waitUntil(dueAt), Math.min(remaining, MAX_TIMEOUT_MS))
+				: undefined;
+			if (remaining <= 0) submitButton.click();
+		};
 		const schedule = (): void => {
 			const value = minutes.valueAsNumber;
 			clearTimeout(timer);
@@ -38,8 +49,9 @@ export const submissionTimer = defineFeature({
 				cancel();
 				return;
 			}
-			timer = setTimeout(() => submitButton.click(), value * MINUTE_MS);
-			const at = new Date(Date.now() + value * MINUTE_MS).toLocaleTimeString();
+			const dueAt = Date.now() + value * MINUTE_MS;
+			waitUntil(dueAt);
+			const at = new Date(dueAt).toLocaleTimeString();
 			info.textContent = translate("submissionTimer.scheduled").replace("{time}", at);
 		};
 		modal.body.append(

@@ -67,6 +67,14 @@ describe("rewriteDebugFlag", () => {
 			.toBe(unchanged + "pub const DEBUG: bool = false;\n");
 	});
 
+	test("Rust の入れ子のコメントは、いちばん外側が閉じるまで宣言として数えない", () => {
+		const nested = "/* outer\n/* inner */\nconst DEBUG: bool = true;\n*/\n";
+		expect(rewriteDebugFlag(nested + "const DEBUG: bool = true;\n", "DEBUG", false, "rust"))
+			.toBe(nested + "const DEBUG: bool = false;\n");
+		// C の系統は入れ子にしないので、最初の */ でコメントが終わる
+		expect(rewriteDebugFlag("/* a /* b */\nconst bool DEBUG = true;\n", "DEBUG", false, "cpp")).toBe("/* a /* b */\nconst bool DEBUG = false;\n");
+	});
+
 	test("対応していない言語は書き換えない", () => {
 		expect(canRewriteDebugFlag("kotlin")).toBe(false);
 		expect(rewriteDebugFlag("val DEBUG = true\n", "DEBUG", false, "kotlin")).toBe("val DEBUG = true\n");
@@ -111,14 +119,14 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 		bundle: null,
 	};
 
-	function createEngine(overrides: {runTimeoutMs?: number; outputLimitBytes?: number; launcher?: string | null} = {}) {
+	function createEngine(overrides: {runTimeoutMs?: number; outputLimitBytes?: number; launcher?: string | null; maxPrograms?: number} = {}) {
 		return new CommandEngine({
 			rootDir: path.join(dir, "programs"),
 			headerUnitCacheDir: path.join(dir, "header-units"),
 			compileTimeoutMs: 30_000,
 			runTimeoutMs: overrides.runTimeoutMs ?? 10_000,
 			outputLimitBytes: overrides.outputLimitBytes ?? 1024 * 1024,
-			maxPrograms: 10,
+			maxPrograms: overrides.maxPrograms ?? 10,
 			launcher: overrides.launcher === undefined ? launcher : overrides.launcher,
 			log: (message) => logs.push(stripAnsi(message)),
 		});
@@ -158,6 +166,19 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 		expect(first.status).toBe("success");
 		expect(second).toEqual(first);
 		expect(engine.size).toBe(1);
+	});
+
+	test("使い回したプログラムは、追い出す順番の最後に回す", async () => {
+		const engine = createEngine({maxPrograms: 2});
+		const ids: string[] = [];
+		for (const source of ["print('a')\n", "print('b')\n", "print('a')\n", "print('c')\n"]) {
+			const prepared = await engine.prepare(pythonLanguage, source, true);
+			if (prepared.status !== "success") throw new Error(prepared.diagnostics);
+			ids.push(prepared.programId);
+		}
+		expect(engine.has(ids[0])).toBe(true);
+		expect(engine.has(ids[1])).toBe(false);
+		expect((await engine.run(ids[0], ""))?.stdout).toBe("a\n");
 	});
 
 	test("起動し直したあとも、残っているコンパイルの結果を使い回す", async () => {

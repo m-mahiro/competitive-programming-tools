@@ -147,6 +147,9 @@ export class CommandEngine {
 		const programId = this.programId(language, compileTemplate, transformed.sourceCode);
 		let program = this.programs.get(programId);
 		if (program) {
+			// 使ったものを追い出す順番の最後に回す。コンパイルの順番待ちが覚えている結果と、追い出す順をそろえる。
+			this.programs.delete(programId);
+			this.programs.set(programId, program);
 			this.options.log(formatCompileSummary(language.name, "CACHED", programId));
 		} else {
 			program = this.compile(language, compileTemplate, programId, transformed.sourceCode, signal);
@@ -159,6 +162,11 @@ export class CommandEngine {
 			this.evictOldPrograms();
 		}
 		return (await program).result;
+	}
+
+	/** その programId のプログラムを覚えているか。 */
+	has(programId: string): boolean {
+		return this.programs.has(programId);
 	}
 
 	/** コンパイル済みのプログラムを実行する。programId を知らなければ null を返す。 */

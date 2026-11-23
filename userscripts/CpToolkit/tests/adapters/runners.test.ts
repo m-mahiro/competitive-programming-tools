@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, test} from "bun:test";
 import {AtCoderRunnerProvider} from "@adapters/runners/atcoder-custom-test";
+import {PyodideRunnerProvider} from "@adapters/runners/pyodide";
 import {CrossTabQueue} from "@adapters/runners/serial-queue";
 import {LocalRunnerProvider, PaizaRunnerProvider} from "@adapters/runners/simple-runners";
 import {WandboxRunnerProvider} from "@adapters/runners/wandbox";
@@ -316,8 +317,75 @@ describe("実行環境", () => {
 		expect(await runner!.run("code", "in", {})).toEqual({status: "CE", input: "in", error: "Main.cpp:4: error"});
 	});
 
+	test("Local Runner が標準出力を切り詰めたら、先頭が合っても AC にしない", async () => {
+		const runWith = async (stdoutTruncated: boolean, stderrTruncated: boolean) => {
+			const client = new LocalRunnerClient(new FakeHttpClient(({body}) => {
+				if (body?.includes('"list"')) {
+					return {status: 200, text: JSON.stringify([{language: "C++", compilerName: "cpp", label: "C++", family: "cpp"}])};
+				}
+				const response = {status: "success", exitCode: 0, stdout: "good", stderr: "", time: 1, memory: 0, stdoutTruncated, stderrTruncated};
+				return {status: 200, text: JSON.stringify(response)};
+			}), () => "http://localhost:8080");
+			const [runner] = await new LocalRunnerProvider(client).runnersFor({id: "1", label: "C++23 (GCC 15.2.0)", family: "cpp"});
+			return runner!.run("code", "", {});
+		};
+		expect((await runWith(true, false)).status).toBe("OLE");
+		expect((await runWith(false, true)).status).toBe("OK");
+	});
+
 	test("Local Runner を使わない設定なら候補にしない", async () => {
 		const client = new LocalRunnerClient(noHttp, () => null);
 		expect(await new LocalRunnerProvider(client).runnersFor(java)).toEqual([]);
+	});
+});
+
+describe("Pyodide", () => {
+	const globals = globalThis as {unsafeWindow?: unknown};
+	const python = {id: "1", label: "Python (CPython 3.13.7)", family: "python3"};
+
+	afterEach(() => {
+		delete globals.unsafeWindow;
+	});
+
+	/** 実行で渡された値を記録する Pyodide の代役。読み込みは failures 回だけ失敗する。 */
+	function fakePyodide(failures: number) {
+		const values = new Map<string, unknown>();
+		const ran: string[] = [];
+		let loads = 0;
+		const api = {
+			globals: {
+				set: (name: string, value: unknown) => values.set(name, value),
+				get: (name: string) => name === "__code" ? null : {getvalue: () => name === "__stdout" ? "out" : ""},
+			},
+			loadPackagesFromImports: async () => undefined,
+			runPythonAsync: async () => undefined,
+			runPython: (code: string) => ran.push(code),
+		};
+		globals.unsafeWindow = {loadPyodide: async () => {
+			if (++loads <= failures) throw new Error("network");
+			return api;
+		}};
+		const scripts = {loadScript: async () => undefined, loadStylesheet: async () => undefined};
+		return {values, ran, scripts, loads: () => loads};
+	}
+
+	test("提出のソースを書き換えずに渡して実行する", async () => {
+		const fake = fakePyodide(0);
+		const [runner] = await new PyodideRunnerProvider(fake.scripts).runnersFor(python);
+		if (!runner) throw new Error("Pyodide was not offered");
+		const source = 'from __future__ import annotations\ns = """a\nb"""\nprint(s)\n';
+		expect(await runner.run(source, "1\n", {})).toMatchObject({status: "OK", output: "out"});
+		expect(fake.values.get("__source")).toBe(source);
+		expect(fake.values.get("__stdin")).toBe("1\n");
+		expect(fake.ran).toEqual(["__run(__source)"]);
+	});
+
+	test("読み込みに失敗したら、次の実行で読み込み直す", async () => {
+		const fake = fakePyodide(1);
+		const [runner] = await new PyodideRunnerProvider(fake.scripts).runnersFor(python);
+		if (!runner) throw new Error("Pyodide was not offered");
+		await expect(runner.run("print(1)", "", {})).rejects.toThrow("network");
+		expect(await runner.run("print(1)", "", {})).toMatchObject({status: "OK"});
+		expect(fake.loads()).toBe(2);
 	});
 });

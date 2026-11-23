@@ -64,7 +64,9 @@ export abstract class TaskCommand implements Command {
 			display.timeLimitMs = timeLimitMs;
 			console.log(`Time limit: ${timeLimitMs}ms`);
 		}
-		const allAccepted = await sampleJudge.runAndReportSamples(program, samples, restoreNames, display);
+		const allPassed = await sampleJudge.runAndReportSamples(program, samples, restoreNames, display);
+		// サンプルが無いときや、期待出力の無いサンプルがあるときは、全件 AC とはみなさない。
+		const allAccepted = allPassed && samples.length > 0 && samples.every(({expectedOutput}) => typeof expectedOutput === "string");
 
 		return this.onSamplesComplete({task, language, transformed, allAccepted, force});
 	}

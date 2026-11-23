@@ -19,7 +19,18 @@ export type EasyTestJudgeOptions = {
 	allowableError?: number;
 };
 
-const FLOAT_PATTERN = /^[-+]?[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?$/;
+/** トークン全体が数の表記か。整数、小数、指数(1e3 など)を受け付け、数の後ろに文字が続くものは数としない。 */
+const NUMBER_PATTERN = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?$/;
+/** 小数点か指数を含む表記。どちらも整数の表記なら、誤差を許さず文字列で比べる。 */
+const REAL_PATTERN = /[.eE]/;
+
+/** 両方が数の表記で、少なくとも一方が小数か指数の表記なら、許容誤差で比べる。 */
+function withinAllowableError(x: string, y: string, allowableError: number): boolean {
+	if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(REAL_PATTERN.test(x) || REAL_PATTERN.test(y))) return false;
+	const a = Number(x);
+	const b = Number(y);
+	return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);
+}
 
 export function evaluateEasyTestOutput(
 	runResult: EasyTestRunResult,
@@ -41,15 +52,7 @@ export function evaluateEasyTestOutput(
 	let equals = (x: string, y: string): boolean => x === y;
 	const allowableError = options.allowableError;
 	if (allowableError) {
-		const superEquals = equals;
-		equals = (x, y) => {
-			if (FLOAT_PATTERN.test(x) || FLOAT_PATTERN.test(y)) {
-				const a = Number.parseFloat(x);
-				const b = Number.parseFloat(y);
-				return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);
-			}
-			return superEquals(x, y);
-		};
+		equals = (x, y) => x === y || withinAllowableError(x, y, allowableError);
 	}
 	if (options.split) {
 		const superEquals = equals;

@@ -56,6 +56,14 @@ function cacheFilePath(taskScreenName: string): string {
 	return dir ? path.join(dir, `${safeKey(taskScreenName)}.json`) : "";
 }
 
+/** 問題ページから取ったサンプルの形か。1件以上あり、各要素が番号、入力、期待出力を持つ。 */
+function isValidSamples(samples: unknown): samples is SamplePair[] {
+	return Array.isArray(samples) && samples.length > 0 && samples.every((sample) =>
+		typeof sample === "object" && sample !== null
+		&& Number.isSafeInteger(sample.index) && sample.index > 0
+		&& typeof sample.input === "string" && typeof sample.expectedOutput === "string");
+}
+
 /** キャッシュからサンプルと実行時間制限を読む。無効・不在・壊れている場合は null。 */
 export function readCachedSamples(task: Task): CachedTaskData | null {
 	if (!isCacheEnabled()) return null;
@@ -64,7 +72,8 @@ export function readCachedSamples(task: Task): CachedTaskData | null {
 	try {
 		const parsed = JSON.parse(fs.readFileSync(file, "utf8")) as SampleCacheFile;
 		if (parsed.version !== CACHE_FORMAT_VERSION) return null;
-		if (!Array.isArray(parsed.samples)) return null;
+		// 壊れたキャッシュ(空、期待出力の無い要素)で提出前の判定を通さないよう、問題ページから取り直す。
+		if (!isValidSamples(parsed.samples)) return null;
 		return {
 			samples: parsed.samples,
 			timeLimitMs: typeof parsed.timeLimitMs === "number" && parsed.timeLimitMs > 0 ? parsed.timeLimitMs : undefined,

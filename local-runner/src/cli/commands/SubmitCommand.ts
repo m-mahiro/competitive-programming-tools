@@ -1,4 +1,3 @@
-import * as shared from "@atcoder-tools/shared";
 import * as color from "../../utils/color";
 import * as atcoder from "../atcoder";
 import {TaskCommand, type TaskRunContext} from "./TaskCommand";
@@ -28,15 +27,11 @@ export class SubmitCommand extends TaskCommand {
 		const cookieHeader = atcoder.toCookieHeader();
 		const submitResult = await atcoder.submitToAtCoder(task, transformed, cookieHeader, language);
 
-		let submissionId = submitResult.submissionId;
-		let submissionUrl = submitResult.submissionUrl;
+		const {submissionId, submissionUrl} = submitResult;
 		if (submitResult.trackingUnavailable) {
-			const latestId = await atcoder.fetchLatestSubmissionId(task, cookieHeader);
-			if (!latestId) {
-				throw new Error("Submission tracking failed: could not resolve latest submission ID.");
-			}
-			submissionId = latestId;
-			submissionUrl = shared.buildAtCoderSubmissionUrl(task.contestId, latestId);
+			// 提出が受け付けられたかを確かめられないときは、別の提出の結果を表示しないよう、追跡せずに一覧を示す。
+			console.log(color.colorizeWarning(`Submit was sent, but the new submission could not be identified. Check the list: ${submissionUrl}`, "cli"));
+			return 9;
 		}
 
 		// ここまで来れば提出自体は成功している。以降の結果ポーリングが失敗しても

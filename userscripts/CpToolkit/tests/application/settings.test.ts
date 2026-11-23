@@ -120,9 +120,22 @@ describe("SettingsService", () => {
 
 	test("読み込めない内容では現在の設定を変更しない", () => {
 		settings.setEnabled("a", false);
-		for (const text of ["{broken", "[]", "null", "1"]) {
+		const unrelated = [
+			'{"unrelated": true}',
+			'{"version": 2}',
+			'{"version": 99, "features": {}}',
+			'{"version": 2, "features": []}',
+			'{"version": 2, "features": {"a": {"enabled": "yes"}}}',
+			'{"version": 2, "features": {"a": {"sites": {"atcoder": {"options": []}}}}}',
+		];
+		for (const text of ["{broken", "[]", "null", "1", ...unrelated]) {
 			expect(settings.importJson(text)).toBe(false);
 		}
 		expect(settings.isEnabled("a", true)).toBe(false);
+	});
+
+	test("前の版で書き出した設定は読み込める", () => {
+		expect(settings.importJson('{"version": 1, "features": {"a": {"enabled": true, "sites": {"atcoder": {"options": {"width": "80%"}}}}}}')).toBe(true);
+		expect(settings.isEnabled("a", false)).toBe(true);
 	});
 });
