@@ -71,7 +71,7 @@ export type LocalRunnerPrepareRequest = {
 	compilerName?: string;
 	debug?: boolean;
 	validate?: boolean;
-	/** 省略時は付けない。指定しても返すソースにだけ付け、コンパイルはヘッダーなしで行う。 */
+	/** 省略時は付けない。指定すると、変換したソースの先頭に付けてからコンパイルする。 */
 	header?: LocalRunnerHeaderOption;
 };
 

@@ -5,6 +5,7 @@ import path from "node:path";
 import {stripAnsi} from "../utils/color";
 import {formatCompileSummary} from "../utils/formatter";
 import {ensureHeaderUnit} from "./headerUnit";
+import {isProgramId, ProgramCache} from "./programCache";
 import {canRewriteDebugFlag, DEBUG_FLAG_FAMILIES, rewriteDebugFlag} from "@atcoder-tools/shared";
 import {CanceledError, type ProcessOutcome, runCommand, runMeasured} from "./processRunner";
 
@@ -89,12 +90,18 @@ function describeFailure(outcome: ProcessOutcome, what: string, timeoutMs: numbe
 /** コマンドで動かす言語のコンパイルと実行。コンパイルの結果は、ソースと引数が同じなら使い回す。 */
 export class CommandEngine {
 	private readonly options: EngineOptions;
-	private readonly programs = new Map<string, Promise<Program>>();
+	private readonly programs: ProgramCache<Program>;
 	private runQueue: Promise<unknown> = Promise.resolve();
 	private nextRunId = 0;
 
 	constructor(options: EngineOptions) {
 		this.options = options;
+		this.programs = new ProgramCache<Program>({
+			limit: () => options.maxPrograms,
+			// 作業フォルダが消えていれば、覚えていてもコンパイルし直す
+			usable: ({dir, result}) => result.status !== "success" || fs.existsSync(path.join(dir, COMPILED_MARKER)),
+			evict: ({dir}) => fs.rmSync(dir, {recursive: true, force: true}),
+		});
 	}
 
 	get size(): number {
@@ -155,36 +162,24 @@ export class CommandEngine {
 
 		const compileTemplate = this.compileTemplate(language, debug);
 		const programId = this.programId(language, compileTemplate, transformed.sourceCode);
-		let program = this.programs.get(programId);
-		if (program) {
-			// 使ったものを追い出す順番の最後に回す。コンパイルの順番待ちが覚えている結果と、追い出す順をそろえる。
-			this.programs.delete(programId);
-			this.programs.set(programId, program);
-			this.options.log(formatCompileSummary(language.name, "CACHED", programId));
-		} else {
-			program = this.compile(language, compileTemplate, programId, transformed.sourceCode, signal);
-			this.programs.set(programId, program);
-			// 中断したときや、作業フォルダを作れないなどで失敗した結果は残さず、次の要求でやり直す。
-			const pending = program;
-			pending.catch(() => {
-				if (this.programs.get(programId) === pending) this.programs.delete(programId);
-			});
-			this.evictOldPrograms();
-		}
-		return (await program).result;
+		// 中断したときや、作業フォルダを作れないなどで失敗した結果は残さず、次の要求でやり直す。
+		const program = await this.programs.get(
+			programId,
+			() => this.compile(language, compileTemplate, programId, transformed.sourceCode, signal),
+			() => this.options.log(formatCompileSummary(language.name, "CACHED", programId)),
+		);
+		return program.result;
 	}
 
-	/** その programId のプログラムを覚えているか。 */
+	/** その programId のプログラムを覚えていて、作業フォルダも残っているか。 */
 	has(programId: string): boolean {
-		return this.programs.has(programId);
+		return this.programs.has(programId) && isProgramId(programId) && fs.existsSync(path.join(this.options.rootDir, programId, COMPILED_MARKER));
 	}
 
-	/** コンパイル済みのプログラムを実行する。programId を知らなければ null を返す。 */
+	/** コンパイル済みのプログラムを実行する。programId を知らないか、作業フォルダが消えていれば null を返す。 */
 	async run(programId: string, stdin: string): Promise<RunOutcome | null> {
-		const pending = this.programs.get(programId);
-		if (!pending) return null;
-		const program = await pending;
-		if (program.result.status !== "success") return null;
+		const program = await this.programs.find(programId);
+		if (program === null || program.result.status !== "success") return null;
 		// 同時に動かすと時間の測定がぶれるので、1つずつ実行する。
 		const outcome = this.runQueue.catch(() => null).then(() => this.execute(program, stdin));
 		this.runQueue = outcome;
@@ -305,12 +300,4 @@ export class CommandEngine {
 		return {...outcome, stderr: hideDirectory(outcome.stderr, dir), startedAt};
 	}
 
-	private evictOldPrograms(): void {
-		while (this.programs.size > this.options.maxPrograms) {
-			const [oldestId, oldest] = this.programs.entries().next().value ?? [];
-			if (oldestId === undefined || oldest === undefined) return;
-			this.programs.delete(oldestId);
-			void oldest.then(({dir}) => fs.rmSync(dir, {recursive: true, force: true})).catch(() => null);
-		}
-	}
 }

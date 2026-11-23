@@ -11,6 +11,7 @@ import * as logging from "../utils/logging";
 import * as filesystem from "../utils/filesystem";
 import {isPathLike} from "../settings/settingPath";
 import * as dispatcher from "./dispatcher";
+import {isProgramId, ProgramCache} from "./programCache";
 import {runCommand} from "./processRunner";
 
 // 設定の languages.java.command がパスなら、同じフォルダの javac を使う。命令の名前なら、どちらも PATH から探す。
@@ -41,7 +42,16 @@ function newestSourceMtime(sources: string[]): number {
 	return sources.reduce((max, file) => Math.max(max, fs.statSync(file).mtimeMs), 0);
 }
 
-const compileCache = new Map<string, Promise<CompileEntry>>();
+/** 失敗した結果か、成功してクラスのファイルが残っている結果なら、そのまま使える。 */
+function hasClassFile(entry: CompileEntry): boolean {
+	return entry.status === "error" || fs.existsSync(path.join(entry.classDir, `${entry.mainClass}.class`));
+}
+
+const compileCache = new ProgramCache<CompileEntry>({
+	limit: () => config.RUNNER_CONFIG.maxCacheSize,
+	usable: hasClassFile,
+	evict: (entry) => filesystem.removeDirectory(entry.rootDir),
+});
 
 export function warmUpJavaTools() {
 	logging.logInfo("Warm up javac/java...");
@@ -86,24 +96,6 @@ function hashCode(sourceCode: string) {
 
 export function getProgramId(sourceCode: string) {
 	return hashCode(sourceCode);
-}
-
-function cleanupOldCache() {
-	if (compileCache.size <= config.RUNNER_CONFIG.maxCacheSize) {
-		return;
-	}
-	const oldestHash = compileCache.keys().next().value;
-	if (!oldestHash) return;
-	const oldestEntryPromise = compileCache.get(oldestHash);
-	compileCache.delete(oldestHash);
-	if (!oldestEntryPromise) {
-		return;
-	}
-	oldestEntryPromise.then((entry) => {
-		if (entry && entry.rootDir) {
-			filesystem.removeDirectory(entry.rootDir);
-		}
-	}, () => undefined);
 }
 
 /** 常駐 JVM のクラスパスを返す。配布用の実行ファイルでは埋め込んだ jar を、ソースから動かすときはコンパイルしたクラスを使う。 */
@@ -249,23 +241,10 @@ export function getCompileCacheSize() {
 	return compileCache.size;
 }
 
-export function getCompiledEntry(sourceCode: string) {
+/** ソースのコンパイル結果。覚えていても、作業フォルダのクラスが消えていればコンパイルし直す。 */
+export function getCompiledEntry(sourceCode: string): Promise<CompileEntry> {
 	const hash = hashCode(sourceCode);
-	const cached = compileCache.get(hash);
-	if (cached) {
-		// 使ったものを追い出す順番の最後に回す
-		compileCache.delete(hash);
-		compileCache.set(hash, cached);
-		logging.logInfo(formatter.formatCompileSummary("java", "CACHED", hash));
-		return cached;
-	}
-	const entryPromise = compileSource(sourceCode, hash);
-	compileCache.set(hash, entryPromise);
-	void entryPromise.catch(() => {
-		if (compileCache.get(hash) === entryPromise) compileCache.delete(hash);
-	});
-	cleanupOldCache();
-	return entryPromise;
+	return compileCache.get(hash, () => compileSource(sourceCode, hash), () => logging.logInfo(formatter.formatCompileSummary("java", "CACHED", hash)));
 }
 
 /**
@@ -273,15 +252,16 @@ export function getCompiledEntry(sourceCode: string) {
  * root は作業フォルダの場所で、テストのために変えられる。
  */
 export function hasCompiledProgram(programId: string, root = config.RUNNER_CONFIG.compileRootDir): boolean {
-	if (!/^[0-9a-f]+-[0-9a-f]{32}$/.test(programId)) return false;
+	if (!isProgramId(programId)) return false;
 	return fs.existsSync(path.join(root, programId, "classes", "Main.class"));
 }
 
 /** programId だけの run 用。メモリキャッシュ、次にディスクキャッシュから解決する。 */
 export async function getCompiledEntryByProgramId(programId: string): Promise<CompileEntry | null> {
-	const cached = compileCache.get(programId);
-	if (cached) return await cached;
-	if (!/^[0-9a-f]+-[0-9a-f]{32}$/.test(programId)) return null;
+	const cached = await compileCache.find(programId);
+	if (cached !== null) return cached;
+	// 覚えていないか、クラスが消えていれば、作業フォルダに残ったソースからコンパイルし直す
+	if (!isProgramId(programId)) return null;
 
 	const sourceFile = path.join(config.RUNNER_CONFIG.compileRootDir, programId, "Main.java");
 	try {

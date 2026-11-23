@@ -294,6 +294,37 @@ describe("easyTest", () => {
 			allowable.dispatchEvent(new Event("input"));
 			expect(allowable.getAttribute("aria-invalid")).toBe("false");
 		});
+
+		// 10 なら WA が AC に、読めない 10^-6 なら文字列の比較になって AC が WA に変わる
+		for (const [changed, expected, output, tone] of [["10", "1000.0", "1.0", "warning"], ["10^-6", "1.0", "1.0000001", "success"]] as const) {
+			test(`サンプルの取得中に欄を ${changed} に変えても、押したときに確かめた値で判定する`, async () => {
+				window.alert = mock(() => undefined);
+				const fetched = Promise.withResolvers<void>();
+				const release = Promise.withResolvers<void>();
+				// 起動時にもボタンを置くために読むので、Test & Submit が読む2回目で止める
+				let reads = 0;
+				const site = createSite({
+					samples: async () => {
+						if (++reads === 2) {
+							fetched.resolve();
+							await release.promise;
+						}
+						return [{title: "Sample 1", input: "1", output: expected, anchors: []}];
+					},
+				});
+				await start(site, async (_code, input) => ({status: "OK", input, output}));
+				const allowable = dock()?.querySelector<HTMLInputElement>('.input-group input[type="text"]');
+				if (!allowable) throw new Error("the allowed error field was not found");
+				button("Test & Submit")?.click();
+				await fetched.promise;
+				allowable.value = changed;
+				allowable.dispatchEvent(new Event("input"));
+				release.resolve();
+				await wait(30);
+				expect(site.submit).toHaveBeenCalledTimes(tone === "success" ? 1 : 0);
+				expect(row()?.dataset.tone).toBe(tone);
+			});
+		}
 	});
 
 	test("実行環境がなければボタンを無効の表示にして理由を示す", async () => {

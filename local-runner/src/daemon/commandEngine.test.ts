@@ -201,6 +201,20 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 		expect((await engine.run(ids[0], ""))?.stdout).toBe("a\n");
 	});
 
+	test("作業フォルダが消えたプログラムは、実行せずに作り直させる", async () => {
+		const engine = createEngine();
+		const source = "print('removed')\n";
+		const prepared = await engine.prepare(pythonLanguage, source, true);
+		if (prepared.status !== "success") throw new Error(prepared.diagnostics);
+		fs.rmSync(path.join(dir, "programs", prepared.programId), {recursive: true, force: true});
+		expect(engine.has(prepared.programId)).toBe(false);
+		expect(await engine.run(prepared.programId, "")).toBeNull();
+		logs.length = 0;
+		expect(await engine.prepare(pythonLanguage, source, true)).toEqual(prepared);
+		expect(logs.some((line) => line.includes("Status=CACHED"))).toBe(false);
+		expect((await engine.run(prepared.programId, ""))?.stdout).toBe("removed\n");
+	});
+
 	test("起動し直したあとも、残っているコンパイルの結果を使い回す", async () => {
 		const source = "print('restart')\n";
 		const first = await createEngine().prepare(pythonLanguage, source, true);

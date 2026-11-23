@@ -15,7 +15,7 @@ local-runner/
 │   │                  # compiler.ts(javac のキャッシュ)、embedded.ts(実行ファイルに埋め込んだファイル)、
 │   │                  # languages.ts(使える言語)、preparationQueue.ts(コンパイルの順番待ち)、
 │   │                  # commandEngine.ts(コマンドで動かす言語)、processRunner.ts(プロセスの起動と計測)、
-│   │                  # headerUnit.ts(C++ の header unit)
+│   │                  # programCache.ts(コンパイルしたプログラムの記憶)、headerUnit.ts(C++ の header unit)
 │   ├── settings/      # 設定ファイルの読み込みと検査(settings.ts)、パスの読み替え(settingPath.ts)、既定値(defaults.json)
 │   ├── javaLibrary/   # Java のライブラリのフォルダの検査(folder.ts)と、作業フォルダへの用意(prepare.ts)
 │   ├── migration/     # 以前のバージョンからの後始末: 古い環境変数、設定ファイルの形式、ファイル

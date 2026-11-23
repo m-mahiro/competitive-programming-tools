@@ -47,7 +47,7 @@ describe("option", () => {
 			[easyTest.options.allowableError, ["1e-6", "0.001"], ["10^-6", "1e", "0"]],
 			[sourceComments.options.runnerHeaderName, ["", "short", "java-2"], ["../x", "-a", "a b"]],
 			[submissionHelper.options.debugFlag, ["", "DEBUG", "_debug1"], ["1DEBUG", "DE-BUG", "debug flag"]],
-			[submissionHelper.options.libraryPackage, ["", "lib", "lib.io", "my_lib.x2"], ["lib.", ".lib", "lib..io", "lib-io"]],
+			[submissionHelper.options.libraryPackage, ["", "lib", "lib.io", "my_lib.x2", "競技.道具"], ["lib.", ".lib", "lib..io", "lib-io", "1lib"]],
 		] as const;
 		for (const [definition, valid, invalid] of cases) {
 			for (const value of valid) expect(definition!.normalize(value)).toBe(value);

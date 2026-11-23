@@ -112,7 +112,7 @@ final class JavaSourceTransformer {
 		}
 		cachedRoot = root;
 		cachedStamp = stamp;
-		cachedIndex = new LibraryIndex(byFqcn, byPath, packages, classPath, new HashMap<>());
+		cachedIndex = new LibraryIndex(root, byFqcn, byPath, packages, classPath, new HashMap<>());
 		return cachedIndex;
 	}
 
@@ -357,11 +357,15 @@ final class JavaSourceTransformer {
 				analysis.solution().getPackageName() != null, added, files);
 	}
 
-	/** ライブラリのファイルを、そのパッケージの階層から書いた相対パスで表す(lib/io/FastScanner.java など)。 */
+	/**
+	 * ライブラリのファイルを、そのパッケージの階層から書いた相対パスで表す(lib/io/FastScanner.java など)。
+	 * ファイルがパッケージの階層と違う場所にあれば、ライブラリのフォルダからの相対パスにする。
+	 */
 	private static String libraryRelative(final LibraryIndex index, final Path path) {
 		final LibraryType type = index.byPath().get(path);
 		final String folder = type == null || type.packageName().isEmpty() ? "" : type.packageName().replace('.', '/') + "/";
-		return folder + path.getFileName();
+		final String byPackage = folder + path.getFileName();
+		return path.endsWith(byPackage) ? byPackage : index.root().relativize(path).toString().replace(java.io.File.separatorChar, '/');
 	}
 
 	private void addDebugEdits(final Analysis analysis, final MainClass main, final boolean debug, final String debugFlag, final List<Edit> edits) {
@@ -515,7 +519,7 @@ final class JavaSourceTransformer {
 
 	private record LibraryType(String packageName, String fqcn, Path path) {}
 
-	private record LibraryIndex(Map<String, LibraryType> byFqcn, Map<Path, LibraryType> byPath, Set<String> packages,
+	private record LibraryIndex(Path root, Map<String, LibraryType> byFqcn, Map<Path, LibraryType> byPath, Set<String> packages,
 								Path classPath, Map<Path, Set<Path>> dependencies) {
 		/**
 		 * import の名前がライブラリを指すかを返します。

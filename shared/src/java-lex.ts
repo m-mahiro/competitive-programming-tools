@@ -36,6 +36,11 @@ export function scanJava(source: string, decoded = false): {tokens: JavaToken[];
 	return {tokens, complete: complete && stack.length === 0};
 }
 
+/** lib、lib.io、競技.道具 のように、Java の識別子を . でつないだ名前か。import の名前を読むときと同じ規則で調べる。 */
+export function isJavaQualifiedName(name: string): boolean {
+	return name.split(".").every((part) => JAVA_IDENTIFIER.test(part));
+}
+
 /** package または import 宣言の名前とセミコロンの位置。 */
 export function qualifiedName(tokens: JavaToken[], start: number): {name: string; end: number} | null {
 	let index = start;

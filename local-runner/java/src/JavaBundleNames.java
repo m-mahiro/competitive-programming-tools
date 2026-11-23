@@ -11,14 +11,17 @@ import com.sun.source.util.*;
  * ソースを同じパッケージへ移す前に、javac が解決した宣言ごとに提出時の名前を決める。
  */
 final class JavaBundleNames {
+	// 識別子は、Unicode エスケープを含めて1つのトークンにする。名前を比べるときは、javac と同じくエスケープを読んでから比べる。
+	private static final String ESCAPE = "\\\\u+\\p{XDigit}{4}";
+	private static final Pattern UNICODE_ESCAPE = Pattern.compile("\\\\u+(\\p{XDigit}{4})");
 	// javac は宣言名だけの位置を公開しない。宣言の範囲内でコメントと空白を飛ばしてトークンを探す。
 	private static final Pattern TOKEN = Pattern.compile("//[^\r\n]*|/\\*.*?\\*/|\"\"\".*?\"\"\"|\"(?:[^\"\\\\]++|\\\\.)*+\"|'(?:[^'\\\\]++|\\\\.)*+'"
-			+ "|\\s+|\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*|.", Pattern.DOTALL);
+			+ "|\\s+|(?:" + ESCAPE + "|\\p{javaJavaIdentifierStart})(?:" + ESCAPE + "|\\p{javaJavaIdentifierPart})*|.", Pattern.DOTALL);
 	private final List<Unit> units;
 	private final Set<String> reserved = new HashSet<>();
 	/**
-	 * どこかで変数、型パラメーター、入れ子の型の名前に使われている名前。展開でライブラリの型を完全修飾名なしで書くと、
-	 * これらに隠されてしまうので、同じ名前のライブラリの型は別の名前にする。
+	 * どこかで変数、型パラメーター、入れ子の型の名前に使われている名前と、継承して見える入れ子の型とフィールドの名前。
+	 * 展開でライブラリの型を完全修飾名なしで書くと、これらに隠されてしまうので、同じ名前のライブラリの型は別の名前にする。
 	 */
 	private final Set<String> shadowingNames = new HashSet<>();
 	private final Set<String> topLevelNames = new HashSet<>();
@@ -63,6 +66,12 @@ final class JavaBundleNames {
 				&& !token.group().startsWith("//") && !token.group().startsWith("/*"));
 	}
 
+	/** トークンの文字列。Unicode エスケープは、javac と同じく文字として読む。 */
+	private static String text(final MatchResult token) {
+		return UNICODE_ESCAPE.matcher(token.group())
+				.replaceAll(escape -> Matcher.quoteReplacement(String.valueOf((char) Integer.parseInt(escape.group(1), 16))));
+	}
+
 	private static JavaSourceTransformer.Edit edit(final MatchResult token, final String text) {
 		return new JavaSourceTransformer.Edit(token.start(), token.end(), text);
 	}
@@ -72,8 +81,8 @@ final class JavaBundleNames {
 		final Iterator<MatchResult> tokens = tokens(unit.code, start, end).iterator();
 		while (tokens.hasNext()) {
 			final MatchResult token = tokens.next();
-			if (!token.group().equals(name)) continue;
-			if (constructor && (!tokens.hasNext() || !Set.of("(", "{").contains(tokens.next().group()))) continue;
+			if (!text(token).equals(name)) continue;
+			if (constructor && (!tokens.hasNext() || !Set.of("(", "{").contains(text(tokens.next())))) continue;
 			return edit(token, replacement);
 		}
 		throw new IllegalStateException("Could not identify the declaration of " + name + " at offset " + start);
@@ -116,6 +125,9 @@ final class JavaBundleNames {
 				// 入れ子の型の名前は、その外側の型の中で同じ名前のライブラリの型を隠す
 				if (!(getCurrentPath().getParentPath().getLeaf() instanceof CompilationUnitTree))
 					shadowingNames.add(node.getSimpleName().toString());
+				// Thread を継承した型の中では、State が Thread.State を指す
+				if (unit.analysis.trees().getElement(getCurrentPath()) instanceof TypeElement type)
+					collectInheritedNames(unit, type.asType(), new HashSet<>());
 				return super.visitClass(node, unused);
 			}
 
@@ -136,6 +148,21 @@ final class JavaBundleNames {
 				return super.visitMemberSelect(node, unused);
 			}
 		}.scan(unit.analysis.solution(), null);
+	}
+
+	/** 上位の型から継承して、単純名で見える入れ子の型とフィールドの名前を集める。 */
+	private void collectInheritedNames(final Unit unit, final TypeMirror type, final Set<String> visited) {
+		for (final TypeMirror parent : unit.analysis.types().directSupertypes(type)) {
+			if (!(parent instanceof DeclaredType declared) || !(declared.asElement() instanceof TypeElement element)
+					|| !visited.add(unit.binary(element)))
+				continue;
+			for (final Element member : element.getEnclosedElements()) {
+				final ElementKind kind = member.getKind();
+				if (!member.getModifiers().contains(Modifier.PRIVATE) && (kind.isClass() || kind.isInterface() || kind.isField()))
+					shadowingNames.add(member.getSimpleName().toString());
+			}
+			collectInheritedNames(unit, parent, visited);
+		}
 	}
 
 	private String nextName(final String base) {
@@ -160,7 +187,7 @@ final class JavaBundleNames {
 				if (type == entry) name = "Main";
 				else if (old.equals("Main") || topLevel && topLevelNames.contains(old)) name = nextName(old);
 				// 展開ではライブラリの型を完全修飾名なしで書くので、同じ名前の変数、型パラメーター、入れ子の型があると、そちらを指してしまう
-				// (int Helper と mine.Helper.tag()、<Helper> と mine.Helper.tag())
+				// (int Helper と mine.Helper.tag()、<Helper> と mine.Helper.tag()、Thread を継承した型の中の mine.State.tag())
 				else if (topLevel && unit != units.getFirst() && shadowingNames.contains(old)) name = nextName(old);
 				typeNames.put(binary, name);
 				if (topLevel) {
@@ -363,7 +390,7 @@ final class JavaBundleNames {
 					edits.add(new JavaSourceTransformer.Edit(start, start, "public "));
 				if (type != entry && type.getNestingKind() == NestingKind.TOP_LEVEL && type.getModifiers().contains(Modifier.PUBLIC)) {
 					for (final MatchResult token : tokens(unit.code, start, afterModifiers).toList()) {
-						if (!token.group().equals("public")) continue;
+						if (!text(token).equals("public")) continue;
 						int end = token.end();
 						while (end < afterModifiers + 1 && end < unit.code.length() && unit.code.charAt(end) == ' ')
 							end++;
@@ -410,7 +437,7 @@ final class JavaBundleNames {
 				if (name != null) {
 					final int end = tree.getInitializer() == null ? unit.end(tree) : unit.start(tree.getInitializer());
 					final List<MatchResult> beforeValue = tokens(unit.code, unit.start(tree), end).toList();
-					final MatchResult declared = beforeValue.reversed().stream().filter(token -> token.group().equals(tree.getName().toString()))
+					final MatchResult declared = beforeValue.reversed().stream().filter(token -> text(token).equals(tree.getName().toString()))
 							.findFirst().orElseThrow(() -> new IllegalStateException("Could not identify variable " + tree.getName()));
 					edits.add(edit(declared, name));
 				}

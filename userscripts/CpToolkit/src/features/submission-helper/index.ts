@@ -1,4 +1,4 @@
-import {isIdentifier} from "@atcoder-tools/shared";
+import {isIdentifier, isJavaQualifiedName} from "@atcoder-tools/shared";
 import type {Translate} from "@catalog/messages";
 import {isWholeCode} from "@domain/source/comment";
 import {option, sharedAcrossSites} from "@domain/settings/option";
@@ -12,9 +12,6 @@ import {
 	transformSubmission,
 } from "@application/source/submission-transform";
 import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
-
-/** Java のパッケージ名(lib、lib.io など)。 */
-const JAVA_PACKAGE_NAME = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 
 const FOLD_DELAY_MS = 100;
 const PASTE_ORDER = 10;
@@ -67,7 +64,7 @@ export const submissionHelper = defineFeature({
 			invalidMessage: "submissionHelper.debugFlagInvalid",
 		})),
 		libraryPackage: sharedAcrossSites(option.text("", "submissionHelper.libraryPackage", {
-			validate: (value) => value === "" || JAVA_PACKAGE_NAME.test(value),
+			validate: (value) => value === "" || isJavaQualifiedName(value),
 			invalidMessage: "submissionHelper.libraryPackageInvalid",
 		})),
 		foldOnPaste: option.boolean(false, "submissionHelper.foldOnPaste"),

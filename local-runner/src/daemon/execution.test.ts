@@ -18,6 +18,12 @@ describe("withLineOffset", () => {
 		expect(withLineOffset(java, source, response(finished), 2).lineOffset).toEqual({header: 2, transform: 2});
 	});
 
+	test("ヘッダーに型の宣言があっても、変換の行数は解答の宣言で数える", () => {
+		const source = "\n\npublic class A { public static void main(String[] a) { throw null; } }\n";
+		const finished = "class Marker {}\n\n\n\npublic class Main { public static void main(String[] a) { throw null; } }\n";
+		expect(withLineOffset(java, source, response(finished), 2).lineOffset).toEqual({header: 2, transform: 0});
+	});
+
 	test("Java の変換の前に見つかったエラーは、元のソースのままなので 0 にする", () => {
 		const source = "import lib.io.*;\n\npublic class A { int x = \"\"; }\n";
 		expect(withLineOffset(java, source, {...response(source), status: "compileError"}).lineOffset).toEqual({header: 0, transform: 0});

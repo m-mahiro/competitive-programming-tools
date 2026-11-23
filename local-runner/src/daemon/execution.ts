@@ -98,10 +98,13 @@ function transformOffset(language: RunnerLanguage, sourceCode: string, transform
 	return before === null || after === null ? null : after - before;
 }
 
-/** header は、変換のあとに付けたヘッダーの行数。返すソースはヘッダーを含むので、変換の行数からは除く。 */
+/**
+ * header は、変換のあとに付けたヘッダーの行数。返すソースは先頭にヘッダーを含むので、その行を除いてから変換の行数を数える。
+ * ヘッダーの中に型の宣言があっても、元のソースの宣言と比べられる。
+ */
 export function withLineOffset<T extends LocalRunnerTransformResponse>(language: RunnerLanguage, sourceCode: string, response: T, header = 0): T {
-	const transform = transformOffset(language, sourceCode, response.sourceCode);
-	const lineOffset: LocalRunnerLineOffset = {header, transform: transform === null || language.command !== null ? transform : transform - header};
+	const transformed = header === 0 ? response.sourceCode : response.sourceCode.split("\n").slice(header).join("\n");
+	const lineOffset: LocalRunnerLineOffset = {header, transform: transformOffset(language, sourceCode, transformed)};
 	return {...response, lineOffset};
 }
 

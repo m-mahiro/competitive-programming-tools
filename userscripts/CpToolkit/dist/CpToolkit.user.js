@@ -740,13 +740,18 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 
 	// ../shared/src/easy-test-judge.ts
 	var NUMBER_PATTERN = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/;
+	var SCALE = 2 ** -512;
 
 	function withinAllowableError(x, y, allowableError) {
 		if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(x.includes(".") || y.includes("."))) return false;
 		const a = Number(x);
 		const b = Number(y);
 		if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(allowableError)) return false;
-		return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);
+		const difference = Math.abs(a - b);
+		if (Number.isFinite(difference)) return difference <= Math.max(allowableError, Math.abs(b) * allowableError);
+		const a2 = a * SCALE;
+		const b2 = b * SCALE;
+		return Math.abs(a2 - b2) <= Math.max(allowableError * SCALE, Math.abs(b2) * allowableError);
 	}
 
 	function evaluateEasyTestOutput(runResult, expectedOutput, options = {trim: true, split: true}) {
@@ -812,6 +817,10 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			tokens.push(token);
 		}
 		return {tokens, complete: complete && stack.length === 0};
+	}
+
+	function isJavaQualifiedName(name) {
+		return name.split(".").every((part) => JAVA_IDENTIFIER.test(part));
 	}
 
 	function qualifiedName(tokens, start) {
@@ -9952,7 +9961,7 @@ summary {
 			button.classList.toggle("disabled", !pending && !this.runnable);
 		}
 
-		snapshot() {
+		snapshot(allowableError) {
 			const explicit = this.selection.explicit;
 			return {
 				source: this.site.sourceCode(),
@@ -9960,6 +9969,7 @@ summary {
 				language: this.site.language()?.id,
 				runner: explicit ?? this.currentRunner,
 				explicit,
+				allowableError,
 			};
 		}
 
@@ -9995,11 +10005,12 @@ summary {
 				window.alert(this.context.translate("easyTest.noEnvironment"));
 				return null;
 			}
-			if (this.panel.allowableError() === null) {
+			const allowableError = this.panel.allowableError();
+			if (allowableError === null) {
 				window.alert(this.context.translate("easyTest.invalidAllowableError"));
 				return null;
 			}
-			return this.snapshot();
+			return this.snapshot(allowableError);
 		}
 
 		execute(testCase, options, snapshot) {
@@ -10012,7 +10023,7 @@ summary {
 				testCase,
 				snapshot.source,
 				snapshot.runner,
-				this.panel.allowableError() ?? undefined,
+				snapshot.allowableError,
 				options,
 			);
 			result.then((value) => {
@@ -10805,7 +10816,6 @@ ${efficient_layout_default}`);
 	}
 
 	// CpToolkit/src/features/submission-helper/index.ts
-	var JAVA_PACKAGE_NAME = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 	var FOLD_DELAY_MS = 100;
 	var PASTE_ORDER = 10;
 	var LOCAL_RUNNER_GUIDE_URL = "https://github.com/nsubaru11/competitive-programming-tools/tree/main/local-runner";
@@ -10878,7 +10888,7 @@ ${efficient_layout_default}`);
 			),
 			libraryPackage: sharedAcrossSites(
 				option.text("", "submissionHelper.libraryPackage", {
-					validate: (value) => value === "" || JAVA_PACKAGE_NAME.test(value),
+					validate: (value) => value === "" || isJavaQualifiedName(value),
 					invalidMessage: "submissionHelper.libraryPackageInvalid",
 				}),
 			),

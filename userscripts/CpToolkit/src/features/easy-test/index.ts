@@ -28,7 +28,8 @@ const featureOptions = {
 };
 
 type Context = FeatureContext<typeof featureOptions>;
-type RunSnapshot = {source: string; task: string; language: string | undefined; runner: string; explicit: string | undefined};
+/** 実行を始めたときの入力。許容誤差は検証した値を持ち、サンプルの取得中に欄を変えても、全サンプルを同じ値で判定する。 */
+type RunSnapshot = {source: string; task: string; language: string | undefined; runner: string; explicit: string | undefined; allowableError: number | undefined};
 type Execution = {readonly result: Promise<RunResult>; readonly tab: DockTab};
 
 class EasyTest {
@@ -209,9 +210,9 @@ class EasyTest {
 		button.classList.toggle("disabled", !pending && !this.runnable);
 	}
 
-	private snapshot(): RunSnapshot {
+	private snapshot(allowableError?: number): RunSnapshot {
 		const explicit = this.selection.explicit;
-		return {source: this.site.sourceCode(), task: this.site.taskUri(), language: this.site.language()?.id, runner: explicit ?? this.currentRunner, explicit};
+		return {source: this.site.sourceCode(), task: this.site.taskUri(), language: this.site.language()?.id, runner: explicit ?? this.currentRunner, explicit, allowableError};
 	}
 
 	private matches(snapshot: RunSnapshot, checkRunner = true): boolean {
@@ -234,11 +235,12 @@ class EasyTest {
 			return null;
 		}
 		// 許容誤差が数として読めなければ、正しく判定できないので実行も提出もしない
-		if (this.panel.allowableError() === null) {
+		const allowableError = this.panel.allowableError();
+		if (allowableError === null) {
 			window.alert(this.context.translate("easyTest.invalidAllowableError"));
 			return null;
 		}
-		return this.snapshot();
+		return this.snapshot(allowableError);
 	}
 
 	private execute(testCase: TestCase, options: RunOptions, snapshot: RunSnapshot): Execution {
@@ -246,7 +248,7 @@ class EasyTest {
 
 		const view = createResultView(this.context.translate);
 		const tab = this.dock.addTab(`#${this.session.nextNumber()} ${testCase.title}`, view.element, {closable: true});
-		const result = this.session.start(testCase, snapshot.source, snapshot.runner, this.panel.allowableError() ?? undefined, options);
+		const result = this.session.start(testCase, snapshot.source, snapshot.runner, snapshot.allowableError, options);
 		void result.then((value) => {
 			view.show(value);
 			const tone = toneOf(value.status);

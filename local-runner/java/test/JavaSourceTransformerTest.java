@@ -327,6 +327,25 @@ public final class JavaSourceTransformerTest {
 		check(typeParameter.sourceCode().contains("Helper1.tag()") && typeParameter.sourceCode().contains("class Helper1"), typeParameter.sourceCode());
 		check(execute(typeParameter.sourceCode()).equals("2Helper"), typeParameter.sourceCode());
 
+		// 継承して見える入れ子の型(Thread.State)も、同じ名前のライブラリの型を隠す
+		Files.writeString(pkg.resolve("State.java"), "package extra; public class State { public static int tag() { return 3; } }");
+		final SourceTransformResult inherited = transformer.transform("class Solver extends Thread { public static void main(String[] a) { System.out.print(extra.State.tag()); } }", root, false, "", true);
+		check(inherited.exitCode() == 0, inherited.diagnostics());
+		check(inherited.sourceCode().contains("State1.tag()") && execute(inherited.sourceCode()).equals("3"), inherited.sourceCode());
+
+		// Unicode エスケープで書いた起動クラスの名前も、javac と同じく読んで Main にする
+		final SourceTransformResult escaped = transformer.transform("class Sol\\u0076er { public static void main(String[] a) { System.out.print(new Sol\\u0076er().getClass().getSimpleName()); } }", root, false, "", true);
+		check(escaped.exitCode() == 0, escaped.diagnostics());
+		check(execute(escaped.sourceCode()).equals("Main"), escaped.sourceCode());
+
+		// 展開したファイルは、パッケージの階層と違う場所にあれば、実際の場所で表す
+		Files.writeString(root.resolve("Mine.java"), "package mine; public class Mine { public static int tag() { return 4; } }");
+		final SourceTransformResult misplaced = transformer.transform("import mine.Mine; import extra.State; class Solver { public static void main(String[] a) { System.out.print(Mine.tag() + State.tag()); } }", root, false, "", true);
+		check(misplaced.exitCode() == 0, misplaced.diagnostics());
+		check(misplaced.summary().bundledFiles().equals(java.util.List.of("Mine.java", "extra/State.java"))
+				|| misplaced.summary().bundledFiles().equals(java.util.List.of("extra/State.java", "Mine.java")), String.valueOf(misplaced.summary()));
+		Files.delete(root.resolve("Mine.java"));
+
 		Files.writeString(pkg.resolve("Base.java"),"package extra; public class Base { void f() {} public void run() { f(); } }");
 		final SourceTransformResult overridden = transformer.transform("import extra.Base; class Solver extends Base { void f() {} public static void main(String[] a) { new Solver().run(); } }", root, false, "", false);
 		check(overridden.exitCode() != 0 && overridden.diagnostics().contains("overrides"), overridden.diagnostics());

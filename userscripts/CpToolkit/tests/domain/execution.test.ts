@@ -73,6 +73,16 @@ describe("実行結果の判定", () => {
 		expect(status("-.5", "-0.5")).toBe("AC");
 	});
 
+	test("差が表せる最大の数を超えても、相対誤差で正しく比べる", () => {
+		const big = "17" + "0".repeat(307) + ".0";
+		const status = (output: string, expected: string, allowableError: number) =>
+			judgeResult({status: "OK", input: "", output}, expected, {trim: true, split: true, allowableError}).status;
+		// 相対誤差は 2 なので、許容誤差 1.5 では WA、3 なら AC
+		expect(status(big, "-" + big, 1.5)).toBe("WA");
+		expect(status(big, "-" + big, 3)).toBe("AC");
+		expect(status(big, big, 1e-6)).toBe("AC");
+	});
+
 	test("許容誤差の欄は、全体が有限の正の数の表記のときだけ読む", () => {
 		expect(parseAllowableError("1e-6")).toBe(1e-6);
 		expect(parseAllowableError(" 0.001 ")).toBe(0.001);

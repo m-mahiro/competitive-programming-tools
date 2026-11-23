@@ -25,6 +25,9 @@ export type EasyTestJudgeOptions = {
  */
 const NUMBER_PATTERN = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/;
 
+/** 差があふれたときに数を縮める倍率(2^-512)。 */
+const SCALE = 2 ** -512;
+
 /** 両方が数の表記で、少なくとも一方が小数の表記なら、許容誤差で比べる。どちらも整数なら文字列で比べる。 */
 function withinAllowableError(x: string, y: string, allowableError: number): boolean {
 	if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(x.includes(".") || y.includes("."))) return false;
@@ -32,7 +35,12 @@ function withinAllowableError(x: string, y: string, allowableError: number): boo
 	const b = Number(y);
 	// 桁が多すぎて Infinity になる数どうしは、Infinity <= Infinity で通ってしまうので文字列で比べる
 	if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(allowableError)) return false;
-	return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);
+	const difference = Math.abs(a - b);
+	if (Number.isFinite(difference)) return difference <= Math.max(allowableError, Math.abs(b) * allowableError);
+	// 差が表せる最大の数を超えたら、2 の累乗で縮めて比べる。2 の累乗で割っても、この大きさの数の値は変わらない
+	const a2 = a * SCALE;
+	const b2 = b * SCALE;
+	return Math.abs(a2 - b2) <= Math.max(allowableError * SCALE, Math.abs(b2) * allowableError);
 }
 
 export function evaluateEasyTestOutput(

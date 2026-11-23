@@ -3,7 +3,7 @@ export * from "./atcoder-url";
 export * from "./debug-flag";
 export * from "./easy-test-judge";
 export * from "./java-imports";
-export {decodeUnicodeEscapes, firstDeclarationLine, type JavaToken, scanJava} from "./java-lex";
+export {decodeUnicodeEscapes, firstDeclarationLine, isJavaQualifiedName, type JavaToken, scanJava} from "./java-lex";
 export * from "./java-transform";
 export * from "./json";
 export * from "./local-runner";
