@@ -56,12 +56,15 @@ describe("実行結果の判定", () => {
 		expect(judgeResult({status: "OK", input: "", output: "1.5"}, "1.0", options).status).toBe("WA");
 	});
 
-	test("誤差は、両方のトークンが末尾まで数の表記のときだけ許容する", () => {
+	test("誤差は、両方のトークンが末尾まで整数か小数の表記のときだけ許容する", () => {
 		const options = {trim: true, split: true, allowableError: 1e-6};
 		const status = (output: string, expected: string) => judgeResult({status: "OK", input: "", output}, expected, options).status;
 		expect(status("1garbage", "1.0")).toBe("WA");
 		expect(status("1.0", "1garbage")).toBe("WA");
-		expect(status("1e3", "1000")).toBe("AC");
+		// 指数の表記は、ジャッジが受け付けるか分からないので文字列で比べる
+		expect(status("1e3", "1000")).toBe("WA");
+		expect(status("1.0e3", "1000.0")).toBe("WA");
+		expect(status("1e3", "1e3")).toBe("AC");
 		expect(status("1000.0000001", "1000")).toBe("AC");
 		expect(status("1000000007", "1000000008")).toBe("WA");
 		expect(status("-.5", "-0.5")).toBe("AC");

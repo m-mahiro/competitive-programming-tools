@@ -85,6 +85,8 @@ export const sourceComments = defineFeature({
 			const syntax = syntaxOf() ?? {};
 			const active = new Set<Slot>();
 			const original = normalizeNewlines(source);
+			// 言語の切り替えでは、空のコードに何も入れない。覚えている内容は、次に書き直すときのために残す。
+			if (refresh && !original.trim()) return {code: source, commit() {}};
 			let body = original;
 			// 編集されて位置を見失ったブロックも、挿入したものとして覚えておく。未挿入とみなすと、次の書き直しで同じブロックを足してしまう。
 			const lost: Blocks = {};

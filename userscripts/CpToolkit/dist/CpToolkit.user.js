@@ -733,12 +733,10 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 	}
 
 	// ../shared/src/easy-test-judge.ts
-	var NUMBER_PATTERN = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?$/;
-	var REAL_PATTERN = /[.eE]/;
+	var NUMBER_PATTERN = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/;
 
 	function withinAllowableError(x, y, allowableError) {
-		if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(REAL_PATTERN.test(x) || REAL_PATTERN.test(y)))
-			return false;
+		if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(x.includes(".") || y.includes("."))) return false;
 		const a = Number(x);
 		const b = Number(y);
 		return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);
@@ -11937,6 +11935,8 @@ ${efficient_layout_default}`);
 				const syntax = syntaxOf() ?? {};
 				const active = new Set();
 				const original = normalizeNewlines(source);
+				if (refresh && !original.trim()) return {code: source, commit() {
+				}};
 				let body = original;
 				const lost = {};
 				for (const slot of order) {

@@ -19,14 +19,15 @@ export type EasyTestJudgeOptions = {
 	allowableError?: number;
 };
 
-/** トークン全体が数の表記か。整数、小数、指数(1e3 など)を受け付け、数の後ろに文字が続くものは数としない。 */
-const NUMBER_PATTERN = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?$/;
-/** 小数点か指数を含む表記。どちらも整数の表記なら、誤差を許さず文字列で比べる。 */
-const REAL_PATTERN = /[.eE]/;
+/**
+ * トークン全体が整数か小数の表記か。数の後ろに文字が続くもの(1garbage)と、指数の表記(1e3)は数としない。
+ * 許容誤差は既定で全問題にかかり、Test & Submit は全問正解で提出するので、ジャッジが受け付けるか分からない表記は文字列で比べる。
+ */
+const NUMBER_PATTERN = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/;
 
-/** 両方が数の表記で、少なくとも一方が小数か指数の表記なら、許容誤差で比べる。 */
+/** 両方が数の表記で、少なくとも一方が小数の表記なら、許容誤差で比べる。どちらも整数なら文字列で比べる。 */
 function withinAllowableError(x: string, y: string, allowableError: number): boolean {
-	if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(REAL_PATTERN.test(x) || REAL_PATTERN.test(y))) return false;
+	if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(x.includes(".") || y.includes("."))) return false;
 	const a = Number(x);
 	const b = Number(y);
 	return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);

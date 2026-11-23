@@ -392,6 +392,35 @@ describe("sourceComments", () => {
 		expect(context.code()).toBe("// edited\n// server\n\nclass Main {}\n");
 	});
 
+	test("言語を切り替えても、空のコードにはヘッダーを入れない", async () => {
+		// 貼り付けたときは Local Runner のヘッダーが無く、あとから付けられるようになった場合
+		let header: string | null = null;
+		const http = new FakeHttpClient(({body}) => {
+			const {mode} = JSON.parse(String(body)) as {mode: string};
+			if (mode === "status") return {status: 200, text: JSON.stringify({status: "running", version: "2.0.0"})};
+			const response = mode === "list"
+				? [{language: "Java", compilerName: "java", label: "Java", family: "java"}]
+				: {status: "success", header};
+			return {status: 200, text: JSON.stringify(response)};
+		});
+		const context = await open({runnerHeader: "above"}, new LocalRunnerClient(http, () => "http://localhost:8080"));
+		setText(0, "task");
+		await context.pasteCode("class Main {}\n");
+		expect(context.code()).toBe("// task\nclass Main {}\n");
+		header = "// server";
+		context.setCode("");
+		for (const next of [python, java, python, java]) {
+			await context.changeLanguage(next);
+			await flush();
+			expect(context.code()).toBe("");
+		}
+		// 改行だけのコードも空として扱う
+		context.setCode("\n");
+		await context.changeLanguage(python);
+		await flush();
+		expect(context.code()).toBe("\n");
+	});
+
 	test("ボタンで現在のコードへ反映する", async () => {
 		const context = await open();
 		setText(0, "header");
