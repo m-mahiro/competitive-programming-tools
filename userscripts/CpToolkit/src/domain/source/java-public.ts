@@ -1,4 +1,4 @@
-import {type JavaToken, scanJava} from "@atcoder-tools/shared";
+import {type JavaToken, maskUnicodeEscapes, scanJava} from "@atcoder-tools/shared";
 
 const TYPE_KEYWORDS = new Set(["class", "interface", "enum", "record"]);
 /** 型の宣言で public の後に続けられる修飾子。non-sealed は non、-、sealed の3つの字句になる。 */
@@ -28,7 +28,8 @@ function typeKeywordAfter(tokens: readonly JavaToken[], index: number): number {
  * コメント、文字列、テキストブロックの中と、型の中のメンバーには触れない。字句を読み切れないソースは変えない。
  */
 export function withoutPublicTypes(source: string): string {
-	const {tokens, complete} = scanJava(source);
+	// 文字列の中の Unicode エスケープ(× など)があっても外せるよう、位置を変えずに読む
+	const {tokens, complete} = scanJava(maskUnicodeEscapes(source));
 	if (!complete) return source;
 	const parts: string[] = [];
 	let cursor = 0;

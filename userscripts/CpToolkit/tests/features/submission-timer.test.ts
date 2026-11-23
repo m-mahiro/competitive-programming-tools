@@ -38,7 +38,7 @@ function advance(): void {
 	next.callback();
 }
 
-async function openTimer(): Promise<{submit: ReturnType<typeof mock>; schedule: (minutes: string) => void}> {
+async function openTimer(): Promise<{submit: ReturnType<typeof mock>; schedule: (minutes: string) => void; info: () => string}> {
 	document.body.innerHTML = '<button id="submit">Submit</button>';
 	const submit = mock();
 	document.querySelector("#submit")?.addEventListener("click", submit);
@@ -54,6 +54,7 @@ async function openTimer(): Promise<{submit: ReturnType<typeof mock>; schedule: 
 			input.value = minutes;
 			set.click();
 		},
+		info: () => root.querySelector(".modal-body p")?.textContent ?? "",
 	};
 }
 
@@ -79,5 +80,17 @@ describe("submissionTimer", () => {
 		}
 		expect(Date.now()).toBe(due);
 		expect(submit).toHaveBeenCalledTimes(1);
+	});
+
+	test("今日でない予約は日付も示し、日時として表せない先は予約しない", async () => {
+		const {schedule, info} = await openTimer();
+		schedule("2");
+		expect(info()).toContain(new Date(START + 2 * 60_000).toLocaleTimeString());
+		expect(info()).not.toContain(new Date(START).toLocaleDateString());
+		schedule("36000");
+		expect(info()).toContain(new Date(START + 36000 * 60_000).toLocaleString());
+		schedule("1e15");
+		expect(pending).toEqual([]);
+		expect(info()).not.toContain("Invalid Date");
 	});
 });

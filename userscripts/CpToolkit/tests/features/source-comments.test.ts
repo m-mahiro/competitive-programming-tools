@@ -409,11 +409,15 @@ describe("sourceComments", () => {
 		expect(context.code()).toBe("// task\nclass Main {}\n");
 		header = "// server";
 		context.setCode("");
+		// 空のコードでは、ヘッダーも取りに行かない(取りに行く間の提出を待たせないため)
+		const headerRequests = () => http.requests.filter(({body}) => String(body).includes('"mode":"header"')).length;
+		const before = headerRequests();
 		for (const next of [python, java, python, java]) {
 			await context.changeLanguage(next);
 			await flush();
 			expect(context.code()).toBe("");
 		}
+		expect(headerRequests()).toBe(before);
 		// 改行だけのコードも空として扱う
 		context.setCode("\n");
 		await context.changeLanguage(python);

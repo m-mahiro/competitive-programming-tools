@@ -39,7 +39,7 @@ Easy Test+ の実行は Local Runner 1.x でも使えます。提出補助の変
     - `family` は言語の種類の ID（`cpp`、`python3`、`java` など）です。あれば、`language` からの判定の代わりに使います。
     - `match` は語の配列です。同じ種類の実行環境が複数あるとき、ページの言語の表記にその語を含むものを先頭にし、残りは `list` の順に並べます。たとえば PyPy の実行環境に `["PyPy"]` を付けると、PyPy のページで先に選ばれます。
 - メモリは、`peakMemory` があれば使用量として、`memory` があれば累積の割り当て量として表示します。
-- `lineOffset` の `header` と `transform` の和が 0 でなければ、エラーの欄に、エディタの行よりずれている行数を表示します。`transform` が `null`(bundle で分からない)なら表示しません。
+- `lineOffset` の `header` と `transform` の和が 0 でなければ、エラーの欄に、エディタの行よりずれている行数を表示します。`transform` が `null`(bundle を通したか、Java の字句を読み切れず分からない)なら表示しません。コンパイルエラーの応答にも付けます。
 - `run` の `status` は `success`、`compileError`、`timeLimitExceeded`、`runtimeError`、`internalError`、`badRequest` のいずれかです。
 - `run` は、そのソースのコンパイルが終わるのを待ってから実行します。コンパイルエラーなら、`status` を `compileError`、`stderr` をエラーの内容にして返してください。
 - Easy Test+ は最後の編集から約180 ms 後に `precompile` を送ります。応答を待つ間は CP Toolkit のほかの要求も止まるので、コンパイルを待たずに返してください。同じソースの `run` が来たら、その結果を使えます。

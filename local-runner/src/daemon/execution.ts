@@ -74,14 +74,14 @@ export function headerKeys(language: RunnerLanguage): string[] {
 const NO_JAVA_TRANSFORM = {inlinedClasses: [], diagnosticItems: []};
 
 /**
- * 変換で増えた行数。Java は最初の型の宣言の行を前後で比べる。ほかの言語の DEBUG の書き換えは行数を変えず、
- * bundle のコマンドは行をどう変えるか分からないので null にする。
+ * 変換で増えた行数。Java は最初の型の宣言の行を前後で比べる(変換は宣言より後の改行を保つ)。字句を読み切れなければ null。
+ * ほかの言語の DEBUG の書き換えは行数を変えず、bundle のコマンドは行をどう変えるか分からないので null にする。
  */
 function transformOffset(language: RunnerLanguage, sourceCode: string, transformed: string): number | null {
 	if (language.command !== null) return language.command.bundle === null ? 0 : null;
 	const before = firstDeclarationLine(sourceCode);
 	const after = firstDeclarationLine(transformed);
-	return before === null || after === null ? 0 : after - before;
+	return before === null || after === null ? null : after - before;
 }
 
 function withLineOffset<T extends LocalRunnerTransformResponse>(language: RunnerLanguage, sourceCode: string, response: T): T {
@@ -179,11 +179,14 @@ export async function runSource(
 	// コンパイルの結果が追い出されていたら、作り直して1回だけやり直す
 	for (let attempt = 0; attempt < 2; attempt++) {
 		const prepared = await preparations.wait(language.name, sourceCode, options);
+		// コンパイルエラーも、診断を出したソースが元より増えた行数を返す。
+		// Java の変換の前に javac が見つけたエラーは元のソースのままなので、変換の行数は 0 になる
+		const lineOffset = prepared.lineOffset ? {lineOffset: prepared.lineOffset} : {};
 		if (prepared.status !== "success" || !prepared.programId) {
-			return compileErrorResponse(prepared.diagnostics, language.name, receivedAt);
+			return {...compileErrorResponse(prepared.diagnostics, language.name, receivedAt), ...lineOffset};
 		}
 		const response = await runProgram(prepared.programId, stdin, receivedAt);
-		if (response) return prepared.lineOffset ? {...response, lineOffset: prepared.lineOffset} : response;
+		if (response) return {...response, ...lineOffset};
 		preparations.forget(language.name, sourceCode, options);
 	}
 	return missingProgramResponse("(recompiled program)");

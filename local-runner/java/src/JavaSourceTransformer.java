@@ -297,9 +297,22 @@ final class JavaSourceTransformer {
 			edits.add(new Edit(span.start(), span.end(), prefix + "// " + original.stripLeading().replace("\n", "\n// ") + "\n"));
 			firstLibraryImport = false;
 		}
-		if (firstLibraryImport && !hoisted.isEmpty()) edits.add(new Edit(0, 0, String.join("\n", hoisted) + "\n"));
+		// ライブラリの import が無ければ、先頭のコメント(提出用ヘッダーなど)の後、最初の import か型の宣言の前に入れる
+		if (firstLibraryImport && !hoisted.isEmpty()) {
+			final int at = firstCodePosition(analysis);
+			edits.add(new Edit(at, at, String.join("\n", hoisted) + "\n"));
+		}
 		addDebugEdits(analysis, main, debug, debugFlag, edits);
 		return LEADING_BLANK_LINES.matcher(applyEdits(source, edits)).replaceFirst("");
+	}
+
+	/** package を除く、最初の import か型の宣言の位置。どちらも無ければ 0。 */
+	private int firstCodePosition(final Analysis analysis) {
+		final CompilationUnitTree unit = analysis.solution();
+		return Stream.concat(unit.getImports().stream(), unit.getTypeDecls().stream())
+				.mapToInt(tree -> (int) analysis.positions().getStartPosition(unit, tree))
+				.filter(position -> position >= 0)
+				.min().orElse(0);
 	}
 
 	private boolean isCoveredBySolutionImport(final String candidate, final List<? extends ImportTree> solutionImports) {
@@ -462,7 +475,9 @@ final class JavaSourceTransformer {
 		for (final Edit edit : sorted) {
 			if (edit.start() < 0 || edit.end() < edit.start() || edit.end() > source.length() || edit.end() > previousStart)
 				throw new IllegalStateException("Could not apply source edit at offset " + edit.start());
-			result = result.substring(0, edit.start()) + edit.text() + result.substring(edit.end());
+			// 置き換える範囲の改行を残し、それより後の行番号を変えない(2行に分けた mine. と Helper を Helper にするときなど)
+			final long lost = result.substring(edit.start(), edit.end()).chars().filter(c -> c == '\n').count() - edit.text().chars().filter(c -> c == '\n').count();
+			result = result.substring(0, edit.start()) + edit.text() + "\n".repeat((int) Math.max(0, lost)) + result.substring(edit.end());
 			previousStart = edit.start();
 		}
 		return result;

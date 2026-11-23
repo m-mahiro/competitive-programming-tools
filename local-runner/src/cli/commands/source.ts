@@ -44,11 +44,12 @@ function formatLines(lines: number): string {
  * 実行したソースで増えた行数を、利用者への1行の案内にする。増えていなければ null。
  * 意味と使い方(エラーの行番号から引く、Java のコンパイルエラーはヘッダーの分だけ)は README に書く。
  */
-export function describeLineOffset(offset: shared.LocalRunnerLineOffset | undefined): string | null {
+export function describeLineOffset(offset: shared.LocalRunnerLineOffset | undefined, isJava = false): string | null {
 	if (!offset) return null;
 	const parts: string[] = [];
 	if (offset.header !== 0) parts.push(`header ${formatLines(offset.header)}`);
-	if (offset.transform === null) parts.push("bundle (unknown)");
+	// Java は字句を読み切れないとき、ほかの言語は bundle を通したときに分からない
+	if (offset.transform === null) parts.push(isJava ? "imports (unknown)" : "bundle (unknown)");
 	else if (offset.transform !== 0) parts.push(`imports ${formatLines(offset.transform)}`);
 	return parts.length === 0 ? null : `Line offset: ${parts.join(", ")}.`;
 }
@@ -85,7 +86,7 @@ async function requestSource(
 	const restoreNames = createNameRestorer(language, originalFileName);
 	const result = await request();
 	// 実行するもの(prepare)だけ、エラーの行番号が元のソースからずれる行数を示す
-	const offset = mode === "prepare" ? describeLineOffset(result.lineOffset) : null;
+	const offset = mode === "prepare" ? describeLineOffset(result.lineOffset, language.isJava) : null;
 	if (offset) console.log(offset);
 	if (result.status !== "success") {
 		// Java の診断は、変換の前のソースについて javac が返したものなので、名前を戻さない。
@@ -123,16 +124,28 @@ export async function compileSource(sourceFilePath: string, debug: boolean, opti
 		...(options.lang !== undefined && {lang: options.lang}),
 		validate: false,
 	});
-	const programIdOf = (response: ServerResult): string => {
-		if (response.status !== "success") throw new Error(response.diagnostics || "The source could not be prepared.");
-		if (!("programId" in response) || !response.programId) throw new Error("Local Runner did not return a prepared program ID.");
-		return response.programId;
-	};
+	return {...source, program: preparedProgram(result, request)};
+}
+
+function programIdOf(response: ServerResult): string {
+	if (response.status !== "success") throw new Error(response.diagnostics || "The source could not be prepared.");
+	if (!("programId" in response) || !response.programId) throw new Error("Local Runner did not return a prepared program ID.");
+	return response.programId;
+}
+
+/**
+ * コンパイルしたプログラム。消えていたら request で作り直す。
+ * 作り直したソースが最初と違えば(ヘッダーやライブラリのファイルが変わったなど)、試したプログラムと提出物が食い違うので止める。
+ */
+export function preparedProgram(first: ServerResult, request: () => Promise<ServerResult>): PreparedProgram {
 	return {
-		...source,
-		program: {
-			programId: programIdOf(result),
-			refresh: async () => programIdOf(await request()),
+		programId: programIdOf(first),
+		refresh: async () => {
+			const next = await request();
+			if (next.status === "success" && next.sourceCode !== first.sourceCode) {
+				throw new Error("The source changed while running the samples (a header or library file was edited). Run the command again.");
+			}
+			return programIdOf(next);
 		},
 	};
 }

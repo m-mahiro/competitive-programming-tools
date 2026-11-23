@@ -350,6 +350,18 @@ describe("実行環境", () => {
 		expect((await runWith(undefined)).lineOffset).toBeUndefined();
 	});
 
+	test("Local Runner のコンパイルエラーでも、変換で増えた行数を返す", async () => {
+		const client = new LocalRunnerClient(new FakeHttpClient(({body}) => {
+			if (body?.includes('"list"')) {
+				return {status: 200, text: JSON.stringify([{language: "Java", compilerName: "java24", label: "Java 24"}])};
+			}
+			const failed = {status: "compileError", exitCode: 1, stdout: "", stderr: "ERROR 2:13 code too large", time: 0, memory: 0, lineOffset: {header: 0, transform: -1}};
+			return {status: 200, text: JSON.stringify(failed)};
+		}), () => "http://localhost:8080");
+		const [runner] = await new LocalRunnerProvider(client).runnersFor(java);
+		expect(await runner!.run("code", "", {})).toMatchObject({status: "CE", lineOffset: -1});
+	});
+
 	test("Local Runner を使わない設定なら候補にしない", async () => {
 		const client = new LocalRunnerClient(noHttp, () => null);
 		expect(await new LocalRunnerProvider(client).runnersFor(java)).toEqual([]);

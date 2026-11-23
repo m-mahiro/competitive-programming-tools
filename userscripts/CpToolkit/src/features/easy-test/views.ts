@@ -203,8 +203,9 @@ export function createTestPanel(
 		input,
 		expected,
 		allowableError() {
+			// 1e999 のように Infinity になる値は、どの出力も通してしまうので使わない
 			const value = Number.parseFloat(allowable.value);
-			return useAllowable.checked && value > 0 ? value : undefined;
+			return useAllowable.checked && Number.isFinite(value) && value > 0 ? value : undefined;
 		},
 		setRunnable(runnable) {
 			runButton.disabled = !runnable;

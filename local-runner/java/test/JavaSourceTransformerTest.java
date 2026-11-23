@@ -292,6 +292,29 @@ public final class JavaSourceTransformerTest {
 		check(staticImports.sourceCode().contains("java.lang.Integer.max(a, b)") && staticImports.sourceCode().contains("java.util.Map.Entry<String, Integer> e = java.util.Map.entry("), staticImports.sourceCode());
 		check(!staticImports.sourceCode().contains("import static java.lang.Integer.max;\n") && execute(staticImports.sourceCode()).equals("11"), staticImports.sourceCode());
 
+		Files.writeString(pkg.resolve("Unit.java"), "package extra; import static java.util.concurrent.TimeUnit.*; import java.util.concurrent.TimeUnit; public class Unit { public static String of(TimeUnit u) { switch (u) { case SECONDS: return \"s\"; default: return \"?\"; } } public static long ms() { return SECONDS.toMillis(1); } }");
+		final SourceTransformResult enumCase = transformer.transform("import extra.Unit; class Solver { public static void main(String[] a) { System.out.print(Unit.of(java.util.concurrent.TimeUnit.SECONDS) + Unit.ms()); } }", root, false, "", true);
+		check(enumCase.exitCode() == 0, enumCase.diagnostics());
+		// enum の case ラベルは修飾しない(修飾は Java 21 からしか書けない)
+		check(enumCase.sourceCode().contains("case SECONDS:") && enumCase.sourceCode().contains("java.util.concurrent.TimeUnit.SECONDS.toMillis"), enumCase.sourceCode());
+		check(execute(enumCase.sourceCode()).equals("s1000"), enumCase.sourceCode());
+
+		Files.writeString(pkg.resolve("Helper.java"), "package extra; import java.util.List; public class Helper { public static String tag() { return String.valueOf(List.of(2).getFirst()); } }");
+		final String qualified = "// header\n\nclass Solver {\n\tpublic static void main(String[] a) {\n\t\tint Helper = 1;\n\t\tSystem.out.print(Helper + extra.\n\t\t\tHelper.tag());\n\t\tSystem.out.print(new int[0][-1]);\n\t}\n}\n";
+		final SourceTransformResult shadowed = transformer.transform(qualified, root, false, "", true);
+		check(shadowed.exitCode() == 0, shadowed.diagnostics());
+		// ライブラリの import は先頭のコメントの後に入れ、同じ名前の変数がある型は別の名前にする
+		check(shadowed.sourceCode().startsWith("// header\n\nimport java.util.List;\n"), shadowed.sourceCode());
+		check(shadowed.sourceCode().contains("Helper + Helper1\n.tag()") && shadowed.sourceCode().contains("class Helper1"), shadowed.sourceCode());
+		final String solution = shadowed.sourceCode().substring(0, shadowed.sourceCode().indexOf("// ===== inlined:"));
+		final java.util.List<String> before = qualified.lines().toList();
+		final java.util.List<String> after = solution.lines().toList();
+		// 2行に分けた完全修飾名を短くしても、それより後の行はずれない(import の1行だけ下がる)
+		final String line = "\t\tSystem.out.print(new int[0][-1]);";
+		check(after.indexOf(line) - before.indexOf(line) == 1, solution);
+		final String run = executeAllowingFailure(shadowed.sourceCode());
+		check(run.startsWith("12") && run.contains("Main.java:9)"), run);
+
 		Files.writeString(pkg.resolve("Base.java"),"package extra; public class Base { void f() {} public void run() { f(); } }");
 		final SourceTransformResult overridden = transformer.transform("import extra.Base; class Solver extends Base { void f() {} public static void main(String[] a) { new Solver().run(); } }", root, false, "", false);
 		check(overridden.exitCode() != 0 && overridden.diagnostics().contains("overrides"), overridden.diagnostics());
@@ -308,6 +331,26 @@ public final class JavaSourceTransformerTest {
 			final String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
 			check(process.waitFor() == 0, stderr);
 			return stdout;
+		} finally {
+			try (var files = Files.walk(folder)) {
+				for (final Path path : files.sorted(java.util.Comparator.reverseOrder()).toList())
+					Files.deleteIfExists(path);
+			}
+		}
+	}
+
+	/** 例外で終わってもよい実行。標準出力のあとに標準エラー出力を続けて返す。 */
+	private static String executeAllowingFailure(final String source) throws Exception {
+		final Path folder = Files.createTempDirectory("bundle-execution-");
+		try {
+			final Path file = folder.resolve("Main.java");
+			Files.writeString(file, source);
+			check(javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", folder.toString(), file.toString()) == 0, source);
+			final Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", folder.toString(), "Main").start();
+			final String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			final String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
+			process.waitFor();
+			return stdout + stderr;
 		} finally {
 			try (var files = Files.walk(folder)) {
 				for (final Path path : files.sorted(java.util.Comparator.reverseOrder()).toList())

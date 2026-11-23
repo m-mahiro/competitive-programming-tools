@@ -65,6 +65,9 @@ describe("実行結果の判定", () => {
 		expect(status("1e3", "1000")).toBe("WA");
 		expect(status("1.0e3", "1000.0")).toBe("WA");
 		expect(status("1e3", "1e3")).toBe("AC");
+		// 310 桁の数は Infinity になるので、誤差では比べない
+		expect(status("0.0", "9".repeat(310))).toBe("WA");
+		expect(judgeResult({status: "OK", input: "", output: "1.5"}, "1.0", {trim: true, split: true, allowableError: Infinity}).status).toBe("WA");
 		expect(status("1000.0000001", "1000")).toBe("AC");
 		expect(status("1000000007", "1000000008")).toBe("WA");
 		expect(status("-.5", "-0.5")).toBe("AC");

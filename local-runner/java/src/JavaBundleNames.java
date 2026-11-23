@@ -16,6 +16,8 @@ final class JavaBundleNames {
 			+ "|\\s+|\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*|.", Pattern.DOTALL);
 	private final List<Unit> units;
 	private final Set<String> reserved = new HashSet<>();
+	/** どこかで変数の名前に使われている名前。同じ名前の型は、変数に隠されないよう別の名前にする。 */
+	private final Set<String> variableNames = new HashSet<>();
 	private final Set<String> topLevelNames = new HashSet<>();
 	private final Map<String, String> typeNames = new HashMap<>();
 	private final Map<String, String> binaryNames = new HashMap<>();
@@ -94,7 +96,10 @@ final class JavaBundleNames {
 			@Override
 			public Void scan(final Tree node, final Void unused) {
 				if (node instanceof ClassTree tree) reserved.add(tree.getSimpleName().toString());
-				if (node instanceof VariableTree tree) reserved.add(tree.getName().toString());
+				if (node instanceof VariableTree tree) {
+					reserved.add(tree.getName().toString());
+					variableNames.add(tree.getName().toString());
+				}
 				if (node instanceof TypeParameterTree tree) reserved.add(tree.getName().toString());
 				if (node instanceof IdentifierTree tree) reserved.add(tree.getName().toString());
 				return super.scan(node, unused);
@@ -140,6 +145,8 @@ final class JavaBundleNames {
 				String name = old;
 				if (type == entry) name = "Main";
 				else if (old.equals("Main") || topLevel && topLevelNames.contains(old)) name = nextName(old);
+				// 展開ではライブラリの型を完全修飾名なしで書くので、同じ名前の変数があると変数を指してしまう(int Helper と mine.Helper.tag())
+				else if (topLevel && unit != units.getFirst() && variableNames.contains(old)) name = nextName(old);
 				typeNames.put(binary, name);
 				if (topLevel) {
 					topLevelNames.add(name);
@@ -188,7 +195,11 @@ final class JavaBundleNames {
 	 * static import で使えるメンバーなら、宣言した型の正規名を返す。ライブラリのファイルの static import は先頭へ集めないので、
 	 * javac が解決した宣言元の型で修飾する。静的なメンバーを宣言元の型で修飾しても、指す宣言は変わらない。
 	 */
-	private static String staticImportOwner(final Unit unit, final Element symbol) {
+	private static String staticImportOwner(final Unit unit, final Element symbol, final TreePath path) {
+		// enum の switch の case ラベルは、static import ではなく switch の型から決まる。修飾は Java 21 からしか書けない
+		final Tree parent = path.getParentPath() == null ? null : path.getParentPath().getLeaf();
+		if (symbol != null && symbol.getKind() == ElementKind.ENUM_CONSTANT && (parent instanceof CaseTree || parent instanceof ConstantCaseLabelTree))
+			return null;
 		if (unit.staticImports.isEmpty() || symbol == null || !symbol.getModifiers().contains(Modifier.STATIC)
 				|| !(symbol.getEnclosingElement() instanceof TypeElement owner))
 			return null;
@@ -254,7 +265,7 @@ final class JavaBundleNames {
 				reference();
 				// 展開では、この名前を宣言元の型で修飾する(edits)。修飾した型の参照も、展開後と同じ順に数える。
 				final Element element = unit.analysis.trees().getElement(getCurrentPath());
-				if (original && !(element instanceof TypeElement) && staticImportOwner(unit, element) != null)
+				if (original && !(element instanceof TypeElement) && staticImportOwner(unit, element, getCurrentPath()) != null)
 					result.add("type " + owner((TypeElement) element.getEnclosingElement()));
 				return super.visitIdentifier(tree, unused);
 			}
@@ -394,7 +405,7 @@ final class JavaBundleNames {
 			@Override
 			public Void visitIdentifier(final IdentifierTree tree, final Void unused) {
 				final Element symbol = element();
-				final String imported = staticImportOwner(unit, symbol);
+				final String imported = staticImportOwner(unit, symbol, getCurrentPath());
 				if (imported != null && unit.end(tree) >= 0) {
 					edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.end(tree), imported + "." + tree.getName()));
 					return super.visitIdentifier(tree, unused);

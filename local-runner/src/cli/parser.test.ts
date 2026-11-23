@@ -35,6 +35,11 @@ describe("extractSamples", () => {
 		]);
 	});
 
+	test("<pre> の直後の改行は、HTML と同じく例に含めない", () => {
+		const html = '<h3>入力例 1</h3><pre class="prettyprint linenums">\n15\n10\n</pre><h3>出力例 1</h3><pre>\r\n5\n</pre>';
+		expect(extractSamples(html)).toEqual([{index: 1, input: "15\n10\n", expectedOutput: "5\n"}]);
+	});
+
 	test("片方しか無い番号があれば、別の番号と組にせず止める", () => {
 		const html = sampleSection("入力例", 1, "1") + sampleSection("入力例", 2, "3") + sampleSection("出力例", 2, "4");
 		expect(() => extractSamples(html)).toThrow("Sample 1 has only an input or only an output");

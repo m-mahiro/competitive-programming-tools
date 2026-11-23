@@ -104,6 +104,11 @@ describe("Java の public な型", () => {
 			.replace("public non-sealed", "non-sealed"));
 	});
 
+	test("文字列の中に Unicode エスケープがあっても public を外す", () => {
+		const source = 'public class Main {\n\tpublic static void main(String[] a) { System.out.print("\\u00d7"); }\n}\n';
+		expect(withoutPublicTypes(source)).toBe(source.replace("public class Main", "class Main"));
+	});
+
 	test("public な型がなければ変えない", () => {
 		const source = "class Main {\n\tpublic int value;\n}\n";
 		expect(withoutPublicTypes(source)).toBe(source);

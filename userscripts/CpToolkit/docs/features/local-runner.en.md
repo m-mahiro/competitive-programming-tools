@@ -39,7 +39,7 @@ Open this feature’s “Detailed settings” in CP Toolkit.
     - `family` is the ID of the language family (`cpp`, `python3`, `java` and so on). When present, it is used instead of detecting the family from `language`.
     - `match` is an array of words. When several environments share a family, those whose words appear in the language name on the page come first, and the rest follow the order of `list`. For example, `["PyPy"]` on a PyPy environment makes it the first choice on PyPy pages.
 - Memory is shown as usage when `peakMemory` is present, and as cumulative allocation when `memory` is present.
-- When the sum of `header` and `transform` in `lineOffset` is not 0, the error field shows how many lines the error line numbers are shifted from the editor. Nothing is shown when `transform` is `null` (unknown because of a bundle command).
+- When the sum of `header` and `transform` in `lineOffset` is not 0, the error field shows how many lines the error line numbers are shifted from the editor. Nothing is shown when `transform` is `null` (unknown because of a bundle command, or because the Java source could not be tokenized). Compile-error responses include it too.
 - The `status` of `run` is one of `success`, `compileError`, `timeLimitExceeded`, `runtimeError`, `internalError` and `badRequest`.
 - `run` waits for the code to finish compiling before running it. On a compile error, respond with `status` `compileError` and the errors in `stderr`.
 - `precompile` is sent about 180 ms after editing pauses. Other CP Toolkit requests are held while it waits for the response, so respond without waiting for the compile. A later `run` of the same code can use the result.

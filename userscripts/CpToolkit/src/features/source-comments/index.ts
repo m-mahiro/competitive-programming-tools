@@ -182,6 +182,8 @@ export const sourceComments = defineFeature({
 		else (mount ?? button)?.after(panel.button);
 		form.observe(editor, () => {
 			panel.reload();
+			// 空のコードには何も入れないので、ヘッダーを取りに行かない。取りに行くと、その間の提出を待たせて取り消してしまう
+			if (!editor.getValue().trim()) return;
 			if (applied && options.runnerHeader !== "none") {
 				void paste.apply(editor, {...manual, transform: (code, ctx) => process(code, ctx, true)});
 			} else refresh();

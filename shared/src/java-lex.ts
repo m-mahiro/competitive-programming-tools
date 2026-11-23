@@ -49,11 +49,19 @@ export function qualifiedName(tokens: JavaToken[], start: number): {name: string
 }
 
 /**
+ * Unicode エスケープ(\uXXXX)を、同じ長さの x に置き換える。位置と行を変えずに、字句を読み切れるようにする。
+ * 文字列の中の × などのためで、引用符や改行を表すエスケープ("、\u000a)は読み違える。字句の位置を使う処理だけに使う。
+ */
+export function maskUnicodeEscapes(source: string): string {
+	return source.replace(/\\u+[\da-fA-F]{4}/g, (escape) => "x".repeat(escape.length));
+}
+
+/**
  * package と import の宣言より後の、最初の字句(型の宣言や、その注釈)がある行(1 から)。無いか、字句を読み切れなければ null。
  * Local Runner の変換は、この行より前(import と package)だけで行数を変えるので、前後の差がそれより後のずれになる。
  */
 export function firstDeclarationLine(source: string): number | null {
-	const {tokens, complete} = scanJava(source);
+	const {tokens, complete} = scanJava(maskUnicodeEscapes(source));
 	if (!complete) return null;
 	let index = 0;
 	while (tokens[index]?.text === "package" || tokens[index]?.text === "import" || tokens[index]?.text === ";") {

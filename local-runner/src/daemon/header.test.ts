@@ -147,9 +147,34 @@ describe("prepareWithSubmissionHeader", () => {
 		expect(response.programId).toBeUndefined();
 	});
 
-	test("ヘッダーを読めないときは、コンパイルしても失敗として返す", async () => {
-		const response = await prepareWithSubmissionHeader(SOURCE, "missing", ["java"], compiled);
+	test("ヘッダーを読めないときは、コンパイルせずに失敗として返す", async () => {
+		const sources: string[] = [];
+		const response = await prepareWithSubmissionHeader(SOURCE, "missing", ["java"], (code) => {
+			sources.push(code);
+			return compiled(code);
+		});
 		expect(response.status).toBe("compileError");
 		expect(response.diagnostics).toContain("Header is not set");
+		expect(sources).toEqual([]);
+	});
+
+	test("コンパイルの間にヘッダーのファイルが変わっても、読んだときの文で付けて確かめる", async () => {
+		const file = writeHeader("java.txt", "// first");
+		writeUserSettings(settingsFile, {headers: {java: file}});
+		const response = await prepareWithSubmissionHeader(SOURCE, true, ["java"], (code) => {
+			fs.writeFileSync(file, "// second");
+			return compiled(code);
+		});
+		expect(response.status).toBe("success");
+		expect(response.sourceCode).toBe(`// first\n\n${SOURCE}`);
+	});
+});
+
+describe("applySubmissionHeader の行数", () => {
+	test("付けたヘッダーと空行の行数を返し、付けなければ 0 にする", () => {
+		writeUserSettings(settingsFile, {headers: {java: writeHeader("java.txt", "// java")}});
+		expect(applySubmissionHeader(success, true, ["java"]).lineOffset).toEqual({header: 2, transform: 0});
+		expect(applySubmissionHeader({...success, sourceCode: `// java\n\n${SOURCE}`}, true, ["java"]).lineOffset).toEqual({header: 0, transform: 0});
+		expect(applySubmissionHeader({...success, lineOffset: {header: 0, transform: 3}}, true, ["java"]).lineOffset).toEqual({header: 2, transform: 3});
 	});
 });

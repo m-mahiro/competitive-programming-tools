@@ -739,6 +739,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(x.includes(".") || y.includes("."))) return false;
 		const a = Number(x);
 		const b = Number(y);
+		if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(allowableError)) return false;
 		return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);
 	}
 
@@ -819,6 +820,10 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			if (part === "*") break;
 		}
 		return tokens[index]?.text === ";" ? {name, end: index} : null;
+	}
+
+	function maskUnicodeEscapes(source) {
+		return source.replace(/\\u+[\da-fA-F]{4}/g, (escape) => "x".repeat(escape.length));
 	}
 
 	// ../shared/src/java-imports.ts
@@ -4219,7 +4224,7 @@ a:focus > .cp-settings-entry {
 		"easyTest.internalError":
 			"The code could not be run because the environment failed. Choose another environment and try again.",
 		"easyTest.lineOffset":
-			"Local Runner added imports for the library, so line numbers in errors are shifted by {lines} from the editor.",
+			"Local Runner transformed the code, so line numbers in errors are shifted by {lines} from the editor.",
 		"easyTest.restoreConfirm": "Your current code will be replaced. Continue?",
 		"paizaLanguage.title": "paiza language selection",
 		"paizaLanguage.description": "Automatically select your preferred language on paiza submission pages.",
@@ -4481,7 +4486,7 @@ a:focus > .cp-settings-entry {
 		"easyTest.internalError":
 			"実行環境でエラーが起きたので、コードを実行できませんでした。別の実行環境を選んでやり直してください。",
 		"easyTest.lineOffset":
-			"Local Runner がライブラリのための import を足したので、エラーの行番号はエディタより {lines} 行ずれています。",
+			"Local Runner がコードを変換したので、エラーの行番号はエディタより {lines} 行ずれています。",
 		"easyTest.restoreConfirm": "現在のコードを置き換えます。よろしいですか?",
 		"paizaLanguage.title": "paiza の言語選択",
 		"paizaLanguage.description": "paiza の提出ページで、あらかじめ指定した言語を自動選択します。",
@@ -6914,7 +6919,12 @@ def __run(source):
 		async run(sourceCode, input) {
 			const response = await this.client.run(sourceCode, input, this.compilerName);
 			if (response.status === "compileError") {
-				return {status: "CE", input, error: response.stderr || "Local Runner could not compile the code."};
+				return {
+					status: "CE",
+					input,
+					error: response.stderr || "Local Runner could not compile the code.",
+					...lineOffsetOf(response),
+				};
 			}
 			return {
 				status: toEasyTestStatus(response.status, response.exitCode, response.stdoutTruncated),
@@ -6988,7 +6998,7 @@ def __run(source):
 	}
 
 	function withoutPublicTypes(source) {
-		const {tokens, complete} = scanJava(source);
+		const {tokens, complete} = scanJava(maskUnicodeEscapes(source));
 		if (!complete) return source;
 		const parts = [];
 		let cursor = 0;
@@ -9648,7 +9658,7 @@ summary {
 			expected,
 			allowableError() {
 				const value = Number.parseFloat(allowable.value);
-				return useAllowable.checked && value > 0 ? value : undefined;
+				return useAllowable.checked && Number.isFinite(value) && value > 0 ? value : undefined;
 			},
 			setRunnable(runnable) {
 				runButton.disabled = !runnable;
@@ -12076,6 +12086,7 @@ ${efficient_layout_default}`);
 			else (mount ?? button)?.after(panel.button);
 			form.observe(editor, () => {
 				panel.reload();
+				if (!editor.getValue().trim()) return;
 				if (applied && options.runnerHeader !== "none") {
 					paste.apply(editor, {...manual, transform: (code, ctx) => process(code, ctx, true)});
 				} else refresh();
@@ -12562,13 +12573,15 @@ ${statement_highlight_default}`);
 			const schedule = () => {
 				const value = minutes.valueAsNumber;
 				clearTimeout(timer);
-				if (!(value > 0)) {
+				const dueAt = Date.now() + value * MINUTE_MS2;
+				const due = new Date(dueAt);
+				if (!(value > 0) || Number.isNaN(due.getTime())) {
 					cancel();
 					return;
 				}
-				const dueAt = Date.now() + value * MINUTE_MS2;
 				waitUntil(dueAt);
-				const at = new Date(dueAt).toLocaleTimeString();
+				const at =
+					due.toDateString() === new Date().toDateString() ? due.toLocaleTimeString() : due.toLocaleString();
 				info.textContent = translate("submissionTimer.scheduled").replace("{time}", at);
 			};
 			modal.body.append(

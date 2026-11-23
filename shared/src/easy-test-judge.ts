@@ -30,6 +30,8 @@ function withinAllowableError(x: string, y: string, allowableError: number): boo
 	if (!NUMBER_PATTERN.test(x) || !NUMBER_PATTERN.test(y) || !(x.includes(".") || y.includes("."))) return false;
 	const a = Number(x);
 	const b = Number(y);
+	// 桁が多すぎて Infinity になる数どうしは、Infinity <= Infinity で通ってしまうので文字列で比べる
+	if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(allowableError)) return false;
 	return Math.abs(a - b) <= Math.max(allowableError, Math.abs(b) * allowableError);
 }
 

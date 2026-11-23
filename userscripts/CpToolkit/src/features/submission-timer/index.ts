@@ -45,13 +45,16 @@ export const submissionTimer = defineFeature({
 		const schedule = (): void => {
 			const value = minutes.valueAsNumber;
 			clearTimeout(timer);
-			if (!(value > 0)) {
+			const dueAt = Date.now() + value * MINUTE_MS;
+			const due = new Date(dueAt);
+			// 日時として表せない先(Invalid Date)も、ほかの無効な入力と同じく予約しない
+			if (!(value > 0) || Number.isNaN(due.getTime())) {
 				cancel();
 				return;
 			}
-			const dueAt = Date.now() + value * MINUTE_MS;
 			waitUntil(dueAt);
-			const at = new Date(dueAt).toLocaleTimeString();
+			// 今日でなければ、日付も示す
+			const at = due.toDateString() === new Date().toDateString() ? due.toLocaleTimeString() : due.toLocaleString();
 			info.textContent = translate("submissionTimer.scheduled").replace("{time}", at);
 		};
 		modal.body.append(

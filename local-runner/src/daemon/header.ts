@@ -24,11 +24,27 @@ export function resolveSubmissionHeader(header: LocalRunnerHeaderOption, languag
 	return normalizeNewlines(fs.readFileSync(headerFile, "utf8")).trimEnd();
 }
 
-/** ソースの先頭にヘッダーを付ける。toclip の出力を貼り付けたときなど、すでにそのヘッダーを含むソースには重ねて付けない。 */
-function prependHeader(sourceCode: string, header: LocalRunnerHeaderOption, languageKeys: readonly string[]): string {
-	const headerText = resolveSubmissionHeader(header, languageKeys);
-	if (headerText === null || includesSubmissionHeader(sourceCode, headerText)) return sourceCode;
-	return `${headerText}\n\n${sourceCode}`;
+/**
+ * 読んだヘッダーの文をソースの先頭に付け、増えた行数と返す。toclip の出力を貼り付けたときなど、
+ * すでにそのヘッダーで始まるソースには重ねて付けない(増えた行数は 0)。
+ */
+function prependHeaderText(sourceCode: string, headerText: string | null): {sourceCode: string; lines: number} {
+	if (headerText === null || includesSubmissionHeader(sourceCode, headerText)) return {sourceCode, lines: 0};
+	const lines = headerText.split("\n").length + 1;
+	return {sourceCode: `${headerText}\n\n${sourceCode}`, lines};
+}
+
+/** ヘッダーを読む。読めなければ、その理由を返す。 */
+function readHeader(header: LocalRunnerHeaderOption, languageKeys: readonly string[]): {text: string | null} | {error: string} {
+	try {
+		return {text: resolveSubmissionHeader(header, languageKeys)};
+	} catch (error) {
+		return {error: error instanceof Error ? error.message : String(error)};
+	}
+}
+
+function withHeaderLines<T extends LocalRunnerTransformResponse>(response: T, lines: number): T {
+	return {...response, lineOffset: {header: lines, transform: response.lineOffset === undefined ? 0 : response.lineOffset.transform}};
 }
 
 /** 変換結果の提出用ソースにヘッダーを付ける。ヘッダーを読めないときは変換の失敗として返す。 */
@@ -38,15 +54,10 @@ export function applySubmissionHeader<T extends LocalRunnerTransformResponse>(
 	languageKeys: readonly string[],
 ): T {
 	if (response.status !== "success") return response;
-	try {
-		return {...response, sourceCode: prependHeader(response.sourceCode, header, languageKeys)};
-	} catch (error) {
-		return {
-			...response,
-			status: "compileError",
-			diagnostics: error instanceof Error ? error.message : String(error)
-		};
-	}
+	const read = readHeader(header, languageKeys);
+	if ("error" in read) return {...response, status: "compileError", diagnostics: read.error};
+	const headered = prependHeaderText(response.sourceCode, read.text);
+	return withHeaderLines({...response, sourceCode: headered.sourceCode}, headered.lines);
 }
 
 /**
@@ -61,18 +72,14 @@ export async function prepareWithSubmissionHeader(
 	languageKeys: readonly string[],
 	prepare: (sourceCode: string) => Promise<LocalRunnerPrepareResponse>,
 ): Promise<LocalRunnerPrepareResponse> {
-	let headerText: string | null;
-	try {
-		headerText = resolveSubmissionHeader(header, languageKeys);
-	} catch {
-		// ヘッダーを読めないときの応答は applySubmissionHeader と同じにする
-		return applySubmissionHeader(await prepare(sourceCode), header, languageKeys);
-	}
+	// ヘッダーは1回だけ読み、付けるのも確かめるのも同じ文を使う。読めなければコンパイルせずに止める。
+	// コンパイルの間にファイルが変わって、実行するプログラムと返すソースが食い違わないようにするため。
+	const read = readHeader(header, languageKeys);
+	if ("error" in read) return {status: "compileError", sourceCode, diagnostics: read.error, inlinedClasses: [], diagnosticItems: []};
+	const headerText = read.text;
 	if (headerText === null || !headerText.trim()) return prepare(sourceCode);
-	const headered = prependHeader(sourceCode, header, languageKeys);
-	const prepared = await prepare(headered);
-	const headerLines = headered === sourceCode ? 0 : headered.split("\n").length - sourceCode.split("\n").length;
-	const response = {...prepared, lineOffset: {header: headerLines, transform: prepared.lineOffset === undefined ? 0 : prepared.lineOffset.transform}};
+	const headered = prependHeaderText(sourceCode, headerText);
+	const response = withHeaderLines(await prepare(headered.sourceCode), headered.lines);
 	if (response.status !== "success" || includesSubmissionHeader(response.sourceCode, headerText)) return response;
 	return {
 		status: "compileError",

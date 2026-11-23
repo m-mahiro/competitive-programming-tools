@@ -123,7 +123,7 @@ class LocalCodeRunner implements CodeRunner {
 	async run(sourceCode: string, input: string): Promise<RunResult> {
 		const response = await this.client.run(sourceCode, input, this.compilerName);
 		if (response.status === "compileError") {
-			return {status: "CE", input, error: response.stderr || "Local Runner could not compile the code."};
+			return {status: "CE", input, error: response.stderr || "Local Runner could not compile the code.", ...lineOffsetOf(response)};
 		}
 		return {
 			status: toEasyTestStatus(response.status, response.exitCode, response.stdoutTruncated),
