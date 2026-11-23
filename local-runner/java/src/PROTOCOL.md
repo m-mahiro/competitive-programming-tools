@@ -133,10 +133,12 @@ TRANSFORM \t <id> \t b64(sourceCode) \t b64(librarySourceRoot) \t <debug> \t b64
 応答:
 
 ```text
-TRANSFORMED \t <id> \t <exitCode> \t b64(sourceCode) \t b64(diagnostics) \t b64(inlinedClasses) \t b64(diagnosticItemsJson)
+TRANSFORMED \t <id> \t <exitCode> \t b64(sourceCode) \t b64(diagnostics) \t b64(inlinedClasses) \t b64(diagnosticItemsJson) \t b64(summaryJson)
 ```
 
 `inlinedClasses` は展開した型の元の完全修飾名を LF で区切ったものです。javac の構文木と名前解決から実際に使う型を決めます。書かれていない import は補いません。エラーの位置が import 宣言に含まれる場合は、その名前を `diagnosticItemsJson` の該当項目の `importName` に入れます。
+
+`summaryJson` は、成功したときの変換の要約です(失敗したときは空)。`entryName`(起動クラスの元の名前)、`debugFlag`(`{"name", "value", "line"}`。書き換える宣言が無ければ `null`。`line` は元のソースの行)、`packageRemoved`(package を消したか)、`addedImports`(ライブラリのために足した import の名前)、`bundledFiles`(展開したファイルの、パッケージの階層からの相対パス。`inlinedClasses` と同じ順)を持ちます。
 
 `debugFlag` に名前を指定した場合は、起動クラスの同名フィールドの初期値が `true` または `false` なら `<debug>` の値にします。`validate=1` では提出先と同じ `Main.java` として再解析します。改名やライブラリの展開で参照先が変わりうる場合は、`validate=0` でも名前解決を検査します。
 

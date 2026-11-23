@@ -5,6 +5,7 @@ import {SETTINGS} from "../../config";
 import * as ensureServer from "../ensureServer";
 import {languageForFile, resolveSourceFile, type SourceLanguage} from "../language";
 import {requestRunner} from "../runnerClient";
+import * as color from "../../utils/color";
 
 /** コンパイル済みのプログラム。サーバーから消えていたら、refresh で作り直す。 */
 export type PreparedProgram = {
@@ -54,6 +55,45 @@ export function describeLineOffset(offset: shared.LocalRunnerLineOffset | undefi
 	return parts.length === 0 ? null : `Line offset: ${parts.join(", ")}.`;
 }
 
+/** AtCoder が受け付けるソースの大きさの上限。 */
+const ATCODER_SOURCE_LIMIT_BYTES = 512 * 1024;
+
+/** 行数。末尾の改行の後は数えない。 */
+function countLines(text: string): number {
+	return text === "" ? 0 : text.replace(/\n$/, "").split("\n").length;
+}
+
+function formatKiB(bytes: number): string {
+	return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KiB`;
+}
+
+/**
+ * 変換の結果を、利用者への案内の行にする。元のソースから変えたこと、付けたヘッダー、足した import、
+ * 展開したクラスと元のファイル、元と最終のソースの行数と大きさ。分からない項目は出さない。
+ */
+export function describeTransform(result: ServerResult, originalFileName: string, originalSource: string): string[] {
+	const lines: string[] = [];
+	const summary = result.summary;
+	const changes: string[] = [];
+	if (summary?.entryName && summary.entryName !== "Main") changes.push(`${summary.entryName} -> Main`);
+	if (summary?.debugFlag) changes.push(`${summary.debugFlag.name} = ${summary.debugFlag.value} (line ${summary.debugFlag.line})`);
+	if (summary?.packageRemoved) changes.push("package removed");
+	if (summary?.bundleCommand) changes.push("bundle command");
+	if (changes.length > 0) lines.push(`Transform: ${changes.join(", ")}`);
+	if (result.header) lines.push(`Header: ${result.header.name} (${result.header.lines} lines)`);
+	if (summary?.addedImports && summary.addedImports.length > 0) lines.push(`Added imports: ${summary.addedImports.join(", ")}`);
+	if (result.inlinedClasses.length > 0) {
+		const files = summary?.bundledFiles ?? [];
+		lines.push(`Bundled: ${result.inlinedClasses.map((name, i) => files[i] ? `${name} (${files[i]})` : name).join(", ")}`);
+	}
+	if (result.status === "success") {
+		const bytes = Buffer.byteLength(result.sourceCode, "utf8");
+		const over = bytes > ATCODER_SOURCE_LIMIT_BYTES ? ` (over the AtCoder limit of ${formatKiB(ATCODER_SOURCE_LIMIT_BYTES)})` : "";
+		lines.push(`Source: ${originalFileName} ${countLines(originalSource)} lines -> ${countLines(result.sourceCode)} lines, ${formatKiB(bytes)}${over}`);
+	}
+	return lines;
+}
+
 function createNameRestorer(language: SourceLanguage, originalFileName: string): (text: string) => string {
 	const runtimeFileName = language.runtimeFileName;
 	if (language.isJava) {
@@ -85,6 +125,9 @@ async function requestSource(
 	const originalFileName = path.basename(resolvedSourcePath);
 	const restoreNames = createNameRestorer(language, originalFileName);
 	const result = await request();
+	for (const line of describeTransform(result, originalFileName, sourceText)) {
+		console.log(line.includes("over the AtCoder limit") ? color.colorizeWarning(line, "cli") : line);
+	}
 	// 実行するもの(prepare)だけ、エラーの行番号が元のソースからずれる行数を示す
 	const offset = mode === "prepare" ? describeLineOffset(result.lineOffset, language.isJava) : null;
 	if (offset) console.log(offset);
@@ -92,9 +135,6 @@ async function requestSource(
 		// Java の診断は、変換の前のソースについて javac が返したものなので、名前を戻さない。
 		const diagnostics = language.isJava ? result.diagnostics : restoreNames(result.diagnostics);
 		throw new Error(diagnostics || "The source could not be prepared.");
-	}
-	if (result.inlinedClasses.length > 0) {
-		console.log(`Bundled library classes: ${result.inlinedClasses.join(", ")}`);
 	}
 	const source: PreparedSource = {
 		resolvedSourcePath,

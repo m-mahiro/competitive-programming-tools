@@ -5,7 +5,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {stripAnsi} from "../utils/color";
 import {CommandEngine, type CommandLanguage, expandArguments} from "./commandEngine";
-import {canRewriteDebugFlag, DEBUG_FLAG_FAMILIES, rewriteDebugFlag} from "@atcoder-tools/shared";
+import {canRewriteDebugFlag, DEBUG_FLAG_FAMILIES, locateDebugFlag, rewriteDebugFlag} from "@atcoder-tools/shared";
 import {CanceledError, ensureLauncher, findOnPath} from "./processRunner";
 
 describe("expandArguments", () => {
@@ -65,6 +65,13 @@ describe("rewriteDebugFlag", () => {
 		const unchanged = "fn first<'a>(s: &'a str) -> &'a str { s }\nconst S: &str = r#\"\nconst DEBUG: bool = true;\n\"#;\nfn main() {\n    const DEBUG: bool = true;\n}\n";
 		expect(rewriteDebugFlag(unchanged + "pub const DEBUG: bool = true;\n", "DEBUG", false, "rust"))
 			.toBe(unchanged + "pub const DEBUG: bool = false;\n");
+	});
+
+	test("書き換える宣言の行を返し、無いか2つ以上なら null を返す", () => {
+		expect(locateDebugFlag("import sys\n\nDEBUG = True\n", "DEBUG", "python3")).toBe(3);
+		expect(locateDebugFlag("print(1)\n", "DEBUG", "python3")).toBeNull();
+		expect(locateDebugFlag("DEBUG = True\nDEBUG = False\n", "DEBUG", "python3")).toBeNull();
+		expect(locateDebugFlag("DEBUG = True\n", "DEBUG", "brainfuck")).toBeNull();
 	});
 
 	test("Rust の入れ子のコメントは、いちばん外側が閉じるまで宣言として数えない", () => {

@@ -13,29 +13,36 @@ import * as config from "../config";
  * languageKeys は言語の既定のヘッダーを探す名前で、先に書いたものを優先する(言語の名前、種類の順)。
  */
 export function resolveSubmissionHeader(header: LocalRunnerHeaderOption, languageKeys: readonly string[]): string | null {
+	return resolveSubmissionHeaderEntry(header, languageKeys)?.text ?? null;
+}
+
+/** ヘッダーの文と、使った設定の名前(言語の名前、種類、名前付きのヘッダーの名前)。 */
+function resolveSubmissionHeaderEntry(header: LocalRunnerHeaderOption, languageKeys: readonly string[]): {name: string; text: string} | null {
 	if (header === false) return null;
 	const names = typeof header === "string" ? [header] : languageKeys;
-	const headerFile = names.map((name) => config.resolveSubmissionHeaderFile(name)).find((file) => file !== null) ?? null;
-	if (headerFile === null) {
+	const found = names.map((name) => ({name, file: config.resolveSubmissionHeaderFile(name)})).find(({file}) => file !== null);
+	if (found === undefined || found.file === null) {
 		if (typeof header === "string") throw new Error(`Header is not set: ${header}. Set it with setheader ${header} <file>.`);
 		return null;
 	}
-	if (!fs.existsSync(headerFile)) throw new Error(`Header file not found: ${headerFile}`);
-	return normalizeNewlines(fs.readFileSync(headerFile, "utf8")).trimEnd();
+	if (!fs.existsSync(found.file)) throw new Error(`Header file not found: ${found.file}`);
+	return {name: found.name, text: normalizeNewlines(fs.readFileSync(found.file, "utf8")).trimEnd()};
 }
 
 /** ヘッダーを読む。読めなければ、その理由を返す。空白だけのヘッダーは付けないので null にする。 */
-export function readSubmissionHeader(header: LocalRunnerHeaderOption, languageKeys: readonly string[]): {text: string | null} | {error: string} {
+export function readSubmissionHeader(header: LocalRunnerHeaderOption, languageKeys: readonly string[]): {text: string | null; name: string} | {error: string} {
 	try {
-		const text = resolveSubmissionHeader(header, languageKeys);
-		return {text: text !== null && text.trim() ? text : null};
+		const entry = resolveSubmissionHeaderEntry(header, languageKeys);
+		return entry !== null && entry.text.trim() ? entry : {text: null, name: ""};
 	} catch (error) {
 		return {error: error instanceof Error ? error.message : String(error)};
 	}
 }
 
-function withHeaderLines<T extends LocalRunnerTransformResponse>(response: T, lines: number): T {
-	return {...response, lineOffset: {header: lines, transform: response.lineOffset === undefined ? 0 : response.lineOffset.transform}};
+/** 付けたヘッダーの行数を lineOffset に、名前と行数を header に入れる。付けなければ header は書かない。 */
+function withHeaderLines<T extends LocalRunnerTransformResponse>(response: T, lines: number, name: string): T {
+	const lineOffset = {header: lines, transform: response.lineOffset === undefined ? 0 : response.lineOffset.transform};
+	return {...response, lineOffset, ...(lines > 0 ? {header: {name, lines}} : {})};
 }
 
 /** 変換結果の提出用ソースにヘッダーを付ける(tomain、toclip)。ヘッダーを読めないときは変換の失敗として返す。 */
@@ -48,7 +55,7 @@ export function applySubmissionHeader<T extends LocalRunnerTransformResponse>(
 	const read = readSubmissionHeader(header, languageKeys);
 	if ("error" in read) return {...response, status: "compileError", diagnostics: read.error};
 	const headered = prependSubmissionHeader(response.sourceCode, read.text);
-	return withHeaderLines({...response, sourceCode: headered.sourceCode}, headered.lines);
+	return withHeaderLines({...response, sourceCode: headered.sourceCode}, headered.lines, read.name);
 }
 
 /**
@@ -64,5 +71,8 @@ export async function prepareWithSubmissionHeader(
 ): Promise<LocalRunnerPrepareResponse> {
 	const read = readSubmissionHeader(header, languageKeys);
 	if ("error" in read) return {status: "compileError", sourceCode, diagnostics: read.error, inlinedClasses: [], diagnosticItems: []};
-	return prepare(sourceCode, read.text);
+	const response = await prepare(sourceCode, read.text);
+	// 付けた行数は prepare が数える(変換のあとに付けるので、元のソースがヘッダーで始まっていれば付けない)
+	const lines = response.lineOffset?.header ?? 0;
+	return lines > 0 ? {...response, header: {name: read.name, lines}} : response;
 }

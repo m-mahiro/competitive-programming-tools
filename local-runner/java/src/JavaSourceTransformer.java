@@ -70,7 +70,7 @@ final class JavaSourceTransformer {
 					return failure(source, "The submission entry point is not Main.");
 				bundled.names().verify(validation);
 			}
-			return new SourceTransformResult(0, bundled.source(), "", bundled.inlined(), List.of());
+			return new SourceTransformResult(0, bundled.source(), "", bundled.inlined(), List.of(), bundled.summary());
 		} catch (final Exception exception) {
 			return failure(rawSource, exception.toString());
 		}
@@ -279,7 +279,7 @@ final class JavaSourceTransformer {
 		String transformedSolution = transformSolution(source, analysis, index, main, debug, debugFlag, hoisted, names, units.getFirst());
 		if (!parts.isEmpty())
 			transformedSolution = transformedSolution.stripTrailing() + "\n\n" + String.join("\n\n", parts) + "\n";
-		return new BundleOutput(transformedSolution, List.copyOf(inlined), names);
+		return new BundleOutput(transformedSolution, List.copyOf(inlined), names, summary(analysis, main, debug, debugFlag, hoisted, dependencies, index));
 	}
 
 	private String transformSolution(final String source, final Analysis analysis, final LibraryIndex index, final MainClass main, final boolean debug, final String debugFlag, final Set<String> hoisted, final JavaBundleNames names, final JavaBundleNames.Unit unit) {
@@ -336,6 +336,32 @@ final class JavaSourceTransformer {
 			final Span span = treeSpan(source, analysis.solution(), analysis.solution().getPackage(), analysis.positions());
 			edits.add(new Edit(span.start(), span.end(), ""));
 		}
+	}
+
+	/** 変換で変えたことの要約。DEBUG は、起動クラスの直下にある boolean の宣言を探す。 */
+	private TransformSummary summary(final Analysis analysis, final MainClass main, final boolean debug, final String debugFlag,
+									 final Set<String> hoisted, final List<Path> dependencies, final LibraryIndex index) {
+		String flag = null;
+		long line = 0;
+		for (final Tree member : debugFlag.isEmpty() ? List.<Tree>of() : main.tree().getMembers()) {
+			if (member instanceof VariableTree variable && variable.getName().contentEquals(debugFlag)
+					&& variable.getInitializer() instanceof LiteralTree literal && literal.getValue() instanceof Boolean) {
+				flag = debugFlag;
+				line = analysis.solution().getLineMap().getLineNumber(analysis.positions().getStartPosition(analysis.solution(), variable.getInitializer()));
+				break;
+			}
+		}
+		final List<String> added = hoisted.stream().map(text -> text.replaceFirst("^import (static )?", "").replaceFirst(";$", "")).toList();
+		final List<String> files = dependencies.stream().map(path -> libraryRelative(index, path)).toList();
+		return new TransformSummary(main.element().getSimpleName().toString(), flag, debug, line,
+				analysis.solution().getPackageName() != null, added, files);
+	}
+
+	/** ライブラリのファイルを、そのパッケージの階層から書いた相対パスで表す(lib/io/FastScanner.java など)。 */
+	private static String libraryRelative(final LibraryIndex index, final Path path) {
+		final LibraryType type = index.byPath().get(path);
+		final String folder = type == null || type.packageName().isEmpty() ? "" : type.packageName().replace('.', '/') + "/";
+		return folder + path.getFileName();
 	}
 
 	private void addDebugEdits(final Analysis analysis, final MainClass main, final boolean debug, final String debugFlag, final List<Edit> edits) {
@@ -504,7 +530,7 @@ final class JavaSourceTransformer {
 		}
 	}
 
-	private record BundleOutput(String source, List<String> inlined, JavaBundleNames names) {}
+	private record BundleOutput(String source, List<String> inlined, JavaBundleNames names, TransformSummary summary) {}
 
 	record Analysis(CompilationUnitTree solution, Trees trees,
 					SourcePositions positions, Elements elements, Types types, String diagnostics, boolean hasErrors,

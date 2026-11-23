@@ -1,7 +1,9 @@
 import {
 	firstDeclarationLine,
+	locateDebugFlag,
 	prependSubmissionHeader,
 	type LocalRunnerLineOffset,
+	type LocalRunnerTransformSummary,
 	type LocalRunnerPrepareResponse,
 	type LocalRunnerRunResponse,
 	type LocalRunnerTransformResponse,
@@ -76,6 +78,16 @@ export function headerKeys(language: RunnerLanguage): string[] {
 const NO_JAVA_TRANSFORM = {inlinedClasses: [], diagnosticItems: []};
 
 /**
+ * コマンドで動かす言語の変換の要約。bundle を通したときは、DEBUG の行を元のソースで示せないので書かない。
+ * DEBUG の値は、書き換えたあとの値(debug)。
+ */
+function commandSummary(language: CommandLanguage, sourceCode: string, debug: boolean): LocalRunnerTransformSummary {
+	if (language.bundle !== null) return {bundleCommand: true};
+	const line = language.debugFlag === null ? null : locateDebugFlag(sourceCode, language.debugFlag, language.family);
+	return {debugFlag: line === null || language.debugFlag === null ? null : {name: language.debugFlag, value: debug, line}};
+}
+
+/**
  * 変換で増えた行数。Java は最初の型の宣言の行を前後で比べる(変換は宣言より後の改行を保つ)。字句を読み切れなければ null。
  * ほかの言語の DEBUG の書き換えは行数を変えず、bundle のコマンドは行をどう変えるか分からないので null にする。
  */
@@ -96,7 +108,7 @@ export function withLineOffset<T extends LocalRunnerTransformResponse>(language:
 async function transformCommandCode(language: CommandLanguage, sourceCode: string, debug: boolean): Promise<LocalRunnerTransformResponse> {
 	const result = await commandEngine!.transformSource(language, sourceCode, debug);
 	return result.ok
-		? {...NO_JAVA_TRANSFORM, status: "success", sourceCode: result.sourceCode, diagnostics: ""}
+		? {...NO_JAVA_TRANSFORM, status: "success", sourceCode: result.sourceCode, diagnostics: "", summary: commandSummary(language, sourceCode, debug)}
 		: {...NO_JAVA_TRANSFORM, status: "compileError", sourceCode, diagnostics: result.diagnostics};
 }
 
@@ -109,7 +121,7 @@ async function prepareCommandCode(
 ): Promise<LocalRunnerPrepareResponse> {
 	const result = await commandEngine!.prepare(language, sourceCode, debug, signal, finish);
 	return result.status === "success"
-		? {...NO_JAVA_TRANSFORM, status: "success", sourceCode: result.sourceCode, diagnostics: "", programId: result.programId}
+		? {...NO_JAVA_TRANSFORM, status: "success", sourceCode: result.sourceCode, diagnostics: "", programId: result.programId, summary: commandSummary(language, sourceCode, debug)}
 		: {...NO_JAVA_TRANSFORM, status: "compileError", sourceCode: result.sourceCode, diagnostics: result.diagnostics};
 }
 

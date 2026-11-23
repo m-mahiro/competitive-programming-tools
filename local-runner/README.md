@@ -243,7 +243,7 @@ setlib C:\path\to\library\src
 
 `run`、`localtest`、`test`、`crosscheck`、`tomain`、`toclip`、`submit` が、実行の前にライブラリの import を検出し、必要なクラスと依存するクラスを1つのソースへ展開します。
 
-- 展開したクラスは `Bundled library classes: ...` と表示します。
+- 展開したクラスと元のファイルを `Bundled: lib.io.FastScanner (lib/io/FastScanner.java)` のように、ライブラリのために足した import を `Added imports: java.io.*` のように表示します。
 - `import lib.io.*;` のようなワイルドカードでも、実際に使っている型だけを展開します。
 - 提出コードの元の import はコメントアウトして残します。
 - import を書いていない型は補いません。通常の Java と同じく、コンパイルエラーになります。
@@ -287,6 +287,18 @@ setheader short C:\path\to\short.txt
 - `--no-header` で、ヘッダーを付けずに出力します。
 - 変換後のソースがヘッダーの全文で始まるとき(`toclip` の出力をそのまま使ったときなど)は、重ねて付けません。
 - どのコマンドも、ライブラリの展開(変換)、ヘッダーの付与、コンパイルの順に行い、提出するソースそのものを1回だけ実行します。`submit` は、サンプルを実行したソースをそのまま提出します。
+- ソースを受け取るコマンドは、変換の結果を次のように表示します。分からない項目と、変えていない項目は出しません。
+
+  ```text
+  Transform: A -> Main, DEBUG = false (line 12), package removed
+  Header: java (7 lines)
+  Added imports: java.lang.invoke.*, java.nio.*
+  Bundled: lib.io.FastPrinter (lib/io/FastPrinter.java), lib.io.FastScanner (lib/io/FastScanner.java)
+  Source: A.java 120 lines -> 380 lines, 23.4 KiB
+  Line offset: header +7, imports +4.
+  ```
+
+  `Transform` は元のソースから変えたこと(起動クラスの改名、DEBUG の値と行、package の削除、bundle のコマンド)、`Header` は使ったヘッダーの設定の名前と付けた行数(後ろの空行を含む)です。`Source` は元と最終のソースの行数と大きさで、AtCoder の上限(512 KiB)を超えると警告します。
 - エラーの行番号が元のソースとずれるときは、ずれた行数を `Line offset: header +2, imports +4.` のように表示します。エラーの行番号からこの行数を引くと、元のソースの行になります。`imports` は、Java でライブラリが使う import を足した分などです。Java の変換で見つかったコンパイルエラー(名前の誤りなど)は元のソースの行のままなので、表示しません。変換でずれる行数が分からないときは、Java は `imports (unknown)`、`bundle` を設定した言語は `bundle (unknown)` と表示します。
 
 ## 実行時間の警告

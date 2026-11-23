@@ -164,4 +164,18 @@ describe("applySubmissionHeader の行数", () => {
 		expect(applySubmissionHeader({...success, sourceCode: `// java\n\n${SOURCE}`}, true, ["java"]).lineOffset).toEqual({header: 0, transform: 0});
 		expect(applySubmissionHeader({...success, lineOffset: {header: 0, transform: 3}}, true, ["java"]).lineOffset).toEqual({header: 2, transform: 3});
 	});
+
+	test("使ったヘッダーの設定の名前と行数を返し、付けなければ返さない", () => {
+		writeUserSettings(settingsFile, {headers: {python3: writeHeader("python.txt", "# a\n# b")}});
+		expect(applySubmissionHeader(success, true, ["pypy", "python3"]).header).toEqual({name: "python3", lines: 3});
+		expect(applySubmissionHeader(success, false, ["pypy", "python3"]).header).toBeUndefined();
+	});
+});
+
+describe("prepareWithSubmissionHeader のヘッダーの名前", () => {
+	test("付けた行数があれば、名前と行数を返す", async () => {
+		writeUserSettings(settingsFile, {headers: {short: writeHeader("short.txt", "// s")}});
+		const prepare = async (sourceCode: string) => ({...success, sourceCode, lineOffset: {header: 2, transform: 0}});
+		expect((await prepareWithSubmissionHeader(SOURCE, "short", ["java"], prepare)).header).toEqual({name: "short", lines: 2});
+	});
 });

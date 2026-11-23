@@ -24,6 +24,7 @@ export async function transformJavaCode(sourceCode: string, debug: boolean, vali
 		diagnostics: result.diagnostics,
 		inlinedClasses: result.inlinedClasses,
 		diagnosticItems: result.diagnosticItems,
+		...(result.summary ? {summary: result.summary} : {}),
 	};
 }
 

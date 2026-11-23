@@ -77,7 +77,26 @@ record CompileResult(int exitCode, String diagnostics, boolean requiresIsolation
 					 List<CompilerDiagnostic> diagnosticItems) {}
 
 record SourceTransformResult(int exitCode, String sourceCode, String diagnostics, List<String> inlinedClasses,
-							 List<CompilerDiagnostic> diagnosticItems) {}
+							 List<CompilerDiagnostic> diagnosticItems, TransformSummary summary) {
+	SourceTransformResult(final int exitCode, final String sourceCode, final String diagnostics, final List<String> inlinedClasses,
+						  final List<CompilerDiagnostic> diagnosticItems) {
+		this(exitCode, sourceCode, diagnostics, inlinedClasses, diagnosticItems, null);
+	}
+}
+
+/**
+ * 変換で元のソースから変えたことの要約です。利用者に、何が変わったかを示すために使います。
+ *
+ * @param entryName      起動クラスの元の名前(提出では Main にする)
+ * @param debugFlag      書き換えた DEBUG の名前。宣言が無ければ null
+ * @param debugValue     DEBUG の変換後の値
+ * @param debugLine      DEBUG の宣言の行(元のソース、1 から)
+ * @param packageRemoved package 宣言を消したら true
+ * @param addedImports   ライブラリのために足した import の名前(java.io.* など)
+ * @param bundledFiles   展開したライブラリのファイル(ライブラリのフォルダからの相対パス)
+ */
+record TransformSummary(String entryName, String debugFlag, boolean debugValue, long debugLine, boolean packageRemoved,
+						List<String> addedImports, List<String> bundledFiles) {}
 
 record CompilerDiagnostic(String kind, long line, long column, String code, String message, String importName) {
 	CompilerDiagnostic(final String kind, final long line, final long column, final String code, final String message) {

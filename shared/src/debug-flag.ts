@@ -192,10 +192,8 @@ function masked(source: string, scanners: readonly Scanner[]): string {
 	return parts.join("");
 }
 
-/** ブロックの外にある flag の宣言・代入を、debug の値に書き換える。対象が無ければそのまま返し、2つ以上なら null。 */
-export function rewriteDebugFlag(source: string, flag: string, debug: boolean, family: string): string | null {
-	const syntax = DEBUG_FLAG_SYNTAXES[family];
-	if (!syntax || !isIdentifier(flag)) return source;
+/** ブロックの外にある flag の宣言・代入の値の位置。無ければ null、2つ以上なら "multiple"。 */
+function findDebugFlag(source: string, flag: string, syntax: DebugFlagSyntax): {start: number; end: number} | null | "multiple" {
 	const code = masked(source, syntax.scanners);
 	const pattern = syntax.declaration(flag);
 	let depth = 0;
@@ -208,7 +206,7 @@ export function rewriteDebugFlag(source: string, flag: string, debug: boolean, f
 		if (!continued && !preprocessor && depth === 0) {
 			const declaration = pattern.exec(line);
 			if (declaration) {
-				if (found) return null;
+				if (found) return "multiple";
 				const start = lineStart + declaration[1].length;
 				found = {start, end: start + declaration[2].length};
 			}
@@ -223,6 +221,23 @@ export function rewriteDebugFlag(source: string, flag: string, debug: boolean, f
 		continued = line.endsWith("\\");
 		lineStart = end < code.length ? afterNewline(code, end) : end + 1;
 	}
+	return found;
+}
+
+/** ブロックの外にある flag の宣言・代入を、debug の値に書き換える。対象が無ければそのまま返し、2つ以上なら null。 */
+export function rewriteDebugFlag(source: string, flag: string, debug: boolean, family: string): string | null {
+	const syntax = DEBUG_FLAG_SYNTAXES[family];
+	if (!syntax || !isIdentifier(flag)) return source;
+	const found = findDebugFlag(source, flag, syntax);
+	if (found === "multiple") return null;
 	if (!found) return source;
 	return source.slice(0, found.start) + syntax.literals[debug ? 1 : 0] + source.slice(found.end);
+}
+
+/** 書き換える flag の宣言がある行(1 から)。無いか、2つ以上あるか、対応していない言語なら null。 */
+export function locateDebugFlag(source: string, flag: string, family: string): number | null {
+	const syntax = DEBUG_FLAG_SYNTAXES[family];
+	if (!syntax || !isIdentifier(flag)) return null;
+	const found = findDebugFlag(source, flag, syntax);
+	return found === null || found === "multiple" ? null : source.slice(0, found.start).split("\n").length;
 }

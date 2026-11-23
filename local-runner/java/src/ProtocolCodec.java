@@ -110,7 +110,20 @@ final class ProtocolCodec {
 
 	private static String encodeTransformed(final Transformed response) {
 		final SourceTransformResult result = response.result();
-		return new StringJoiner(SEPARATOR).add("TRANSFORMED").add(response.requestId()).add(Integer.toString(result.exitCode())).add(b64(result.sourceCode())).add(b64(result.diagnostics())).add(b64(String.join("\n", result.inlinedClasses()))).add(b64(diagnosticsJson(result.diagnosticItems()))).toString();
+		return new StringJoiner(SEPARATOR).add("TRANSFORMED").add(response.requestId()).add(Integer.toString(result.exitCode())).add(b64(result.sourceCode())).add(b64(result.diagnostics())).add(b64(String.join("\n", result.inlinedClasses()))).add(b64(diagnosticsJson(result.diagnosticItems()))).add(b64(summaryJson(result.summary()))).toString();
+	}
+
+	/** 変換の要約を JSON にする。失敗したときは空の文字列。 */
+	private static String summaryJson(final TransformSummary summary) {
+		if (summary == null) return "";
+		final StringJoiner added = new StringJoiner(",", "[", "]");
+		for (final String name : summary.addedImports()) added.add("\"" + jsonEscape(name) + "\"");
+		final StringJoiner files = new StringJoiner(",", "[", "]");
+		for (final String file : summary.bundledFiles()) files.add("\"" + jsonEscape(file) + "\"");
+		final String debug = summary.debugFlag() == null ? "null"
+				: "{\"name\":\"" + jsonEscape(summary.debugFlag()) + "\",\"value\":" + summary.debugValue() + ",\"line\":" + summary.debugLine() + "}";
+		return "{\"entryName\":\"" + jsonEscape(summary.entryName()) + "\",\"debugFlag\":" + debug + ",\"packageRemoved\":" + summary.packageRemoved()
+				+ ",\"addedImports\":" + added + ",\"bundledFiles\":" + files + "}";
 	}
 
 	private static String diagnosticsJson(final List<CompilerDiagnostic> diagnostics) {

@@ -1,6 +1,6 @@
 import {type ChildProcessWithoutNullStreams, spawn} from "node:child_process";
 import readline from "node:readline";
-import type {CompilerDiagnostic} from "@atcoder-tools/shared";
+import type {CompilerDiagnostic, LocalRunnerTransformSummary} from "@atcoder-tools/shared";
 import type {CompileEntry, DispatcherRunResult} from "../types";
 import {RUNNER_CONFIG, SETTINGS} from "../config";
 import * as logging from "../utils/logging";
@@ -24,6 +24,8 @@ export interface DispatcherTransformResult {
 	diagnostics: string;
 	inlinedClasses: string[];
 	diagnosticItems: CompilerDiagnostic[];
+	/** 変換で変えたことの要約(JSON)。失敗したときは無い。 */
+	summary?: LocalRunnerTransformSummary;
 	timedOut?: boolean;
 }
 
@@ -154,6 +156,7 @@ function handleDispatcherResponse(line: string) {
 			diagnostics: decodeField(parts[4] || ""),
 			inlinedClasses: decodeField(parts[5] || "").split("\n").filter(Boolean),
 			diagnosticItems: parts[6] ? JSON.parse(decodeField(parts[6])) as CompilerDiagnostic[] : [],
+			...(parts[7] && decodeField(parts[7]) ? {summary: JSON.parse(decodeField(parts[7])) as LocalRunnerTransformSummary} : {}),
 		});
 		dispatcherState.currentRequest = null;
 		return;

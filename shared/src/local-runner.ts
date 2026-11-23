@@ -110,6 +110,28 @@ export type LocalRunnerLineOffset = {
 	transform: number | null;
 };
 
+/** 変換で元のソースから変えたことの要約。利用者に示すために使う。分からない項目は書かない。 */
+export type LocalRunnerTransformSummary = {
+	/** Java の起動クラスの元の名前。提出では Main にする。 */
+	entryName?: string;
+	/** 書き換えた DEBUG の名前、変換後の値、元のソースの行(1 から)。 */
+	debugFlag?: {name: string; value: boolean; line: number} | null;
+	/** Java の package 宣言を消したか。 */
+	packageRemoved?: boolean;
+	/** Java でライブラリのために足した import の名前(java.io.* など)。 */
+	addedImports?: string[];
+	/** 展開したライブラリのファイル(lib/io/FastScanner.java など)。 */
+	bundledFiles?: string[];
+	/** 設定の bundle のコマンドを通したか。 */
+	bundleCommand?: boolean;
+};
+
+/** 付けたヘッダーの、設定での名前と行数(後ろの空行を含む)。 */
+export type LocalRunnerHeaderInfo = {
+	name: string;
+	lines: number;
+};
+
 export type LocalRunnerTransformResponse = {
 	status: "success" | "compileError";
 	sourceCode: string;
@@ -117,6 +139,9 @@ export type LocalRunnerTransformResponse = {
 	inlinedClasses: string[];
 	diagnosticItems: CompilerDiagnostic[];
 	lineOffset?: LocalRunnerLineOffset;
+	summary?: LocalRunnerTransformSummary;
+	/** ヘッダーを付けたときだけ。 */
+	header?: LocalRunnerHeaderInfo;
 };
 
 export type LocalRunnerPrepareResponse = LocalRunnerTransformResponse & {

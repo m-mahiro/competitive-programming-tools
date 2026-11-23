@@ -699,9 +699,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return parts.join("");
 	}
 
-	function rewriteDebugFlag(source, flag, debug, family) {
-		const syntax = DEBUG_FLAG_SYNTAXES[family];
-		if (!syntax || !isIdentifier(flag)) return source;
+	function findDebugFlag(source, flag, syntax) {
 		const code = masked(source, syntax.scanners);
 		const pattern = syntax.declaration(flag);
 		let depth = 0;
@@ -714,7 +712,7 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			if (!continued && !preprocessor && depth === 0) {
 				const declaration = pattern.exec(line);
 				if (declaration) {
-					if (found) return null;
+					if (found) return "multiple";
 					const start = lineStart + declaration[1].length;
 					found = {start, end: start + declaration[2].length};
 				}
@@ -728,6 +726,14 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 			continued = line.endsWith("\\");
 			lineStart = end < code.length ? afterNewline(code, end) : end + 1;
 		}
+		return found;
+	}
+
+	function rewriteDebugFlag(source, flag, debug, family) {
+		const syntax = DEBUG_FLAG_SYNTAXES[family];
+		if (!syntax || !isIdentifier(flag)) return source;
+		const found = findDebugFlag(source, flag, syntax);
+		if (found === "multiple") return null;
 		if (!found) return source;
 		return source.slice(0, found.start) + syntax.literals[debug ? 1 : 0] + source.slice(found.end);
 	}

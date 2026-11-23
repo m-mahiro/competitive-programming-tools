@@ -68,6 +68,12 @@ public final class JavaSourceTransformerTest {
 			final SourceTransformResult unrelatedWildcard = transformer.transform(wildcardSource.replace("import java.util.*;", "import java.util.concurrent.*;"), root, false, "DEBUG", true);
 			check(unrelatedWildcard.exitCode() == 0, unrelatedWildcard.diagnostics());
 			check(unrelatedWildcard.sourceCode().contains("import java.util.Arrays;"), "unrelated wildcard incorrectly covered dependency import");
+			// 変えたことの要約: 元のクラス名、DEBUG の値と行、足した import、展開したファイル
+			final TransformSummary summary = unrelatedWildcard.summary();
+			check(summary != null && summary.entryName().equals("A") && "DEBUG".equals(summary.debugFlag()) && !summary.debugValue()
+					&& summary.debugLine() == 4 && !summary.packageRemoved(), String.valueOf(summary));
+			check(summary.addedImports().equals(java.util.List.of("java.util.Arrays")) && summary.bundledFiles().equals(java.util.List.of("lib/ds/UnionFind.java")), String.valueOf(summary));
+			check(wildcard.summary().addedImports().isEmpty(), String.valueOf(wildcard.summary()));
 
 			final SourceTransformResult transitive = transformer.transform("""
 					import lib.graph.Kruskal;
