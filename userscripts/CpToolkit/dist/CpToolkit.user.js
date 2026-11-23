@@ -2,7 +2,7 @@
 // @name           CP Toolkit
 // @name:en        CP Toolkit
 // @namespace      https://github.com/nsubaru11/atcoder-java-tools/tree/main/userscripts
-// @version        3.0.0
+// @version        3.0.1
 // @description    入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全27機能をまとめた UserScript です。機能ごとに ON/OFF できます。
 // @description:en 27 individually configurable features for competitive programming, primarily on AtCoder, including side-by-side samples, verdict notifications and a Tasks dropdown.
 // @description:ja 入出力例の横並び、提出結果の通知、問題のドロップダウンなど、AtCoder を中心に使える全27機能をまとめた UserScript です。機能ごとに ON/OFF できます。
