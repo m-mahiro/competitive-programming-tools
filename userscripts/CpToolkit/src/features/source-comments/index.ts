@@ -9,7 +9,7 @@ import {defineFeature} from "@application/feature/definition";
 import {EDITOR_SETUP_DELAY_MS} from "@application/ports/code-editor";
 import type {PasteContext, PasteStep} from "@application/source/paste-pipeline";
 import {type CommentSlot, SourceComments} from "@application/source/source-comments";
-import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
+import {showActionWarning} from "@ui/toast/toast";
 import {createCommentPanel} from "./panel";
 
 type Slot = CommentSlot | "runner";
@@ -50,12 +50,7 @@ export const sourceComments = defineFeature({
 		const mount = document.querySelector(target.commentMount ?? ".editor-buttons");
 		const button = form.submitButton() as Element | null;
 		if (!mount && !button) return;
-		form.holdSubmitWhile(paste, () => showToast({
-			tone: "warning",
-			title: translate("submissionHelper.submitChanged"),
-			detail: "",
-			durationMs: ACTION_NOTICE_DURATION_MS,
-		}));
+		form.holdSubmitWhile(paste, () => showActionWarning({title: translate("submissionHelper.submitChanged"), detail: ""}));
 		const comments = new SourceComments(state);
 		const defaultMultiline = options.style === "block";
 		const order: Slot[] = options.runnerHeader === "above" ? ["runner", "header", "footer"] : ["header", "runner", "footer"];
@@ -156,9 +151,8 @@ export const sourceComments = defineFeature({
 				runner = await runnerHeader();
 			} catch (error) {
 				if (error instanceof LocalRunnerError && error.status !== 0) {
-					if (context.isCurrent() && error.notify !== false) showToast({
+					if (context.isCurrent() && error.notify !== false) showActionWarning({
 						title: translate("sourceComments.runnerHeaderFailed"), detail: error.message,
-						tone: "warning", durationMs: ACTION_NOTICE_DURATION_MS,
 					});
 					throw error;
 				}

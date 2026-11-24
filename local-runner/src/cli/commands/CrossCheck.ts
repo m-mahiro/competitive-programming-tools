@@ -1,4 +1,3 @@
-import type {LocalRunnerHeaderOption} from "@atcoder-tools/shared";
 import {CliUsageError, Command} from "./Command";
 import * as options from "./options";
 import * as sampleJudge from "../sampleJudge";
@@ -25,31 +24,14 @@ export class CrossCheck implements Command {
 
 	/** ローカルの .in を入力として与え、2つのコードの実行結果を突き合わせます。 **/
 	async execute(args: readonly string[]): Promise<number> {
-		const positionals: string[] = [];
 		const display: sampleJudge.SampleDisplayOptions = {};
-		let lang: string | undefined;
 		let expectedLang: string | undefined;
-		let header: LocalRunnerHeaderOption = true;
-		for (const arg of args) {
-			const l = options.parseLangFlag(arg);
-			if (l !== undefined) {
-				lang = l;
-				continue;
-			}
-			const e = options.parseLangFlag(arg, "--expected-lang");
-			if (e !== undefined) {
-				expectedLang = e;
-				continue;
-			}
-			const h = options.parseHeaderFlag(arg);
-			if (h !== undefined) {
-				header = h;
-				continue;
-			}
-			if (options.parseDisplayFlag(arg, display)) continue;
-			if (arg.startsWith("-")) throw new CliUsageError(`Unknown option: ${arg}`);
-			positionals.push(arg);
-		}
+		const {positionals, lang, header} = options.parseSourceArgs(args, 3, (arg) => {
+			const expected = options.parseLangFlag(arg, "--expected-lang");
+			if (expected === undefined) return options.parseDisplayFlag(arg, display);
+			expectedLang = expected;
+			return true;
+		});
 		const [actualSourceFile, expectedSourceFile, testDir] = positionals;
 		if (!actualSourceFile || !expectedSourceFile) throw new CliUsageError();
 

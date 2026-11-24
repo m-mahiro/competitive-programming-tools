@@ -3,7 +3,7 @@ import type {SamplePair, SampleResult} from "../types";
 import * as color from "../utils/color";
 import * as formatter from "../utils/formatter";
 import type {PreparedProgram} from "./commands/source";
-import {requestRunner} from "./runnerClient";
+import {requestRunner} from "../runnerClient";
 
 /**
  * 比較用に出力を行の配列へ正規化する。AtCoder の既定ジャッジに合わせ、

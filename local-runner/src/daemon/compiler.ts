@@ -256,11 +256,12 @@ export function hasCompiledProgram(programId: string, root = config.RUNNER_CONFI
 	return fs.existsSync(path.join(root, programId, "classes", "Main.class"));
 }
 
-/** programId だけの run 用。メモリキャッシュ、次にディスクキャッシュから解決する。 */
-export async function getCompiledEntryByProgramId(programId: string): Promise<CompileEntry | null> {
-	const cached = await compileCache.find(programId);
-	if (cached !== null) return cached;
-	// 覚えていないか、クラスが消えていれば、作業フォルダに残ったソースからコンパイルし直す
+/** 実行の間はクラスを保持する。メモリに無ければ、作業フォルダのソースから復元する。 */
+export function withCompiledProgram<R>(programId: string, run: (entry: CompileEntry) => Promise<R>): Promise<R | null> {
+	return compileCache.use(programId, run, () => restoreCompiledEntry(programId));
+}
+
+async function restoreCompiledEntry(programId: string): Promise<CompileEntry | null> {
 	if (!isProgramId(programId)) return null;
 
 	const sourceFile = path.join(config.RUNNER_CONFIG.compileRootDir, programId, "Main.java");

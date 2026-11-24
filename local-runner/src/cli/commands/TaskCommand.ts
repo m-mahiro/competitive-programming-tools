@@ -48,10 +48,6 @@ export abstract class TaskCommand implements Command {
 	protected abstract readonly debug: boolean;
 	/** -d/--debug=true/false を受け付けるか（test のみ true。submit は本番なので不可）。 */
 	protected readonly supportsDebugOption: boolean = false;
-	/** --full / --wa-only の表示オプションを受け付けるか（test / submit は true）。 */
-	protected readonly supportsDisplayOptions: boolean = false;
-	/** 提出用ヘッダーを付け、--no-header / --header=<名前> を受け付けるか（test と submit は true）。 */
-	protected readonly supportsHeaderOption: boolean = false;
 
 	async execute(args: readonly string[]): Promise<number> {
 		const {task, sourceFilePath, force, debug, header, display, lang} = this.validate(args);
@@ -84,44 +80,27 @@ export abstract class TaskCommand implements Command {
 		display: sampleJudge.SampleDisplayOptions;
 		lang: string | undefined;
 	} {
-		const positionals: string[] = [];
 		let force = false;
 		let debug = this.debug; // 既定値。-d/--debug があれば上書き。
-		let header: LocalRunnerHeaderOption = this.supportsHeaderOption;
 		const display: sampleJudge.SampleDisplayOptions = {};
-		let lang: string | undefined;
-		for (const arg of args) {
-			const l = options.parseLangFlag(arg);
-			if (l !== undefined) {
-				lang = l;
-				continue;
-			}
+		const {positionals, lang, header} = options.parseSourceArgs(args, 2, (arg) => {
 			if (arg === "-f" || arg === "--force") {
 				// test は提出しないので force を受け付けない。
 				if (!this.allowForce) {
 					throw new CliUsageError("-f/--force is only supported with the submit and tomain commands.");
 				}
 				force = true;
-				continue;
+				return true;
 			}
 			if (this.supportsDebugOption) {
 				const d = options.parseBoolFlag(arg, "--debug", "-d");
 				if (d !== undefined) {
 					debug = d;
-					continue;
+					return true;
 				}
 			}
-			if (this.supportsHeaderOption) {
-				const h = options.parseHeaderFlag(arg);
-				if (h !== undefined) {
-					header = h;
-					continue;
-				}
-			}
-			if (this.supportsDisplayOptions && options.parseDisplayFlag(arg, display, {timeLimit: false})) continue;
-			if (arg.startsWith("-")) throw new CliUsageError(`Unknown option: ${arg}`);
-			positionals.push(arg);
-		}
+			return options.parseDisplayFlag(arg, display, {timeLimit: false});
+		});
 
 		let task: Task | undefined;
 		let sourceFilePath: string | undefined;

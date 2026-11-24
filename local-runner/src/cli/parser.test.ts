@@ -25,6 +25,12 @@ describe("isAtCoderLoginPage", () => {
 });
 
 describe("extractSamples", () => {
+	test("入力の本文が欠けても、次の出力を入力とみなさない", () => {
+		const valid = sampleSection("入力例", 1, "&#xDF;") + sampleSection("出力例", 1, "");
+		expect(extractSamples(valid)[0]).toMatchObject({input: "ß", expectedOutput: ""});
+		expect(() => extractSamples(valid + "<h3>入力例 2</h3><h3>出力例 2</h3><pre>42</pre>")).toThrow("missing its input block");
+	});
+
 	test("番号で入力と出力を組にし、日本語と英語の同じ例は1つにする", () => {
 		const html = sampleSection("入力例", 1, "1") +sampleSection("出力例", 1, "2")
 			+ sampleSection("入力例", 2, "3") + sampleSection("出力例", 2, "4")

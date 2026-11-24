@@ -180,6 +180,7 @@ describe("キーの書き方", () => {
 		expect(normalizeShortcut("command+p")).toBe("Cmd+P");
 		expect(normalizeShortcut("option+cmd+ctrl+[")).toBe("Ctrl+Alt+Cmd+[");
 		expect(normalizeShortcut("meta+p")).toBeNull();
+		expect(normalizeShortcut("ctrl+f12")).toBe("Ctrl+F12");
 		expect(isShortcutSetting("None")).toBe(true);
 	});
 

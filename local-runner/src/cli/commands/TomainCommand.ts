@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import type {LocalRunnerHeaderOption} from "@atcoder-tools/shared";
 import {CliUsageError, type Command} from "./Command";
 import * as options from "./options";
 import * as source from "./source";
@@ -13,28 +12,12 @@ export class TomainCommand implements Command {
 	];
 
 	async execute(args: readonly string[]): Promise<number> {
-		const positionals: string[] = [];
 		let force = false;
-		let header: LocalRunnerHeaderOption = true;
-		let lang: string | undefined;
-		for (const arg of args) {
-			const l = options.parseLangFlag(arg);
-			if (l !== undefined) {
-				lang = l;
-				continue;
-			}
-			if (arg === "-f" || arg === "--force") {
-				force = true;
-				continue;
-			}
-			const h = options.parseHeaderFlag(arg);
-			if (h !== undefined) {
-				header = h;
-				continue;
-			}
-			if (arg.startsWith("-")) throw new CliUsageError(`Unknown option: ${arg}`);
-			positionals.push(arg);
-		}
+		const {positionals, lang, header} = options.parseSourceArgs(args, 2, (arg) => {
+			if (arg !== "-f" && arg !== "--force") return false;
+			force = true;
+			return true;
+		});
 		const [sourceFilePath, outFilePath] = positionals;
 		if (!sourceFilePath) throw new CliUsageError();
 

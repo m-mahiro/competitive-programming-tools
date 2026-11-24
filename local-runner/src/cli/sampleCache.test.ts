@@ -14,9 +14,9 @@ const {getSampleCacheDir, readCachedSamples, writeCachedSamples} = await import(
 
 const task = {taskScreenName: "abc1_a"} as Task;
 
-function writeRaw(samples: unknown): void {
+function writeRaw(samples: unknown, version = 3): void {
 	fs.mkdirSync(getSampleCacheDir(), {recursive: true});
-	fs.writeFileSync(path.join(getSampleCacheDir(), "abc1_a.json"), JSON.stringify({version: 2, taskScreenName: "abc1_a", fetchedAt: 0, samples}));
+	fs.writeFileSync(path.join(getSampleCacheDir(), "abc1_a.json"), JSON.stringify({version, taskScreenName: "abc1_a", fetchedAt: 0, samples}));
 }
 
 beforeEach(() => {
@@ -32,6 +32,10 @@ afterAll(() => {
 });
 
 describe("readCachedSamples", () => {
+	test("見出しをまたいで取得した可能性がある旧形式のサンプルは取り直す", () => {
+		writeRaw([{index: 1, input: "42", expectedOutput: "42"}], 2);
+		expect(readCachedSamples(task)).toBeNull();
+	});
 	test("保存したサンプルを読む", () => {
 		const samples = [{index: 1, input: "1\n", expectedOutput: "2\n"}];
 		writeCachedSamples(task, samples, 2000);

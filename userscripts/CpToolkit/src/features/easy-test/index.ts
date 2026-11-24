@@ -9,7 +9,7 @@ import type {JudgeSite, SampleCase} from "@application/ports/judge-site";
 import {SHORTCUT_ACTIONS} from "@application/shortcuts/shortcut-actions";
 import {createDock, type Dock, type DockTab} from "@ui/dock/dock";
 import {h, injectStyle} from "@ui/element";
-import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
+import {showActionWarning} from "@ui/toast/toast";
 import {addTooltip} from "@ui/tooltip/tooltip";
 import css from "./easy-test.css" with {type: "text"};
 import resultRowCss from "./result-row.css" with {type: "text"};
@@ -28,7 +28,7 @@ const featureOptions = {
 };
 
 type Context = FeatureContext<typeof featureOptions>;
-/** 実行を始めたときの入力。許容誤差は検証した値を持ち、サンプルの取得中に欄を変えても、全サンプルを同じ値で判定する。 */
+/** 実行を始めたときの入力。全サンプルを同じ許容誤差で判定する。 */
 type RunSnapshot = {source: string; task: string; language: string | undefined; runner: string; explicit: string | undefined; allowableError: number | undefined};
 type Execution = {readonly result: Promise<RunResult>; readonly tab: DockTab};
 
@@ -44,6 +44,8 @@ class EasyTest {
 		show: (candidates, selected) => this.showEnvironment(candidates, selected),
 	};
 	private submitButton: HTMLButtonElement | undefined;
+	/** 準備中または判定中の操作数。重ねて実行したときは最後の操作が終わってから許容誤差の欄を戻す。 */
+	private activeRuns = 0;
 	private runnable = false;
 	private currentRunner = "";
 	private readonly site: JudgeSite;
@@ -222,25 +224,30 @@ class EasyTest {
 	}
 
 	private changed(): void {
-		showToast({title: this.context.translate("easyTest.title"), detail: this.context.translate("easyTest.submitChanged"), tone: "warning", durationMs: ACTION_NOTICE_DURATION_MS});
+		showActionWarning({title: this.context.translate("easyTest.title"), detail: this.context.translate("easyTest.submitChanged")});
 	}
 
-	private async prepareRun(): Promise<RunSnapshot | null> {
-		if (!await this.context.paste.settled() || !this.hasSource()) return null;
-		const before = this.snapshot();
-		await this.refreshEnvironment();
-		if (!this.matches(before, false)) { this.changed(); return null; }
-		if (!this.selection.candidates.some(({id}) => id === this.currentRunner)) {
-			window.alert(this.context.translate("easyTest.noEnvironment"));
-			return null;
+	private async withPreparedRun<T>(run: (snapshot: RunSnapshot) => Promise<T>): Promise<T | false> {
+		this.activeRuns++;
+		this.panel.setAllowableErrorLocked(true);
+		try {
+			const allowableError = this.panel.allowableError();
+			if (allowableError === null) {
+				window.alert(this.context.translate("easyTest.invalidAllowableError"));
+				return false;
+			}
+			if (!await this.context.paste.settled() || !this.hasSource()) return false;
+			const before = this.snapshot();
+			await this.refreshEnvironment();
+			if (!this.matches(before, false)) { this.changed(); return false; }
+			if (!this.selection.candidates.some(({id}) => id === this.currentRunner)) {
+				window.alert(this.context.translate("easyTest.noEnvironment"));
+				return false;
+			}
+			return await run(this.snapshot(allowableError));
+		} finally {
+			if (--this.activeRuns === 0) this.panel.setAllowableErrorLocked(false);
 		}
-		// 許容誤差が数として読めなければ、正しく判定できないので実行も提出もしない
-		const allowableError = this.panel.allowableError();
-		if (allowableError === null) {
-			window.alert(this.context.translate("easyTest.invalidAllowableError"));
-			return null;
-		}
-		return this.snapshot(allowableError);
 	}
 
 	private execute(testCase: TestCase, options: RunOptions, snapshot: RunSnapshot): Execution {
@@ -264,19 +271,19 @@ class EasyTest {
 		return false;
 	}
 
-	private async runPanel(): Promise<void> {
-		const snapshot = await this.prepareRun();
-		if (!snapshot) return;
-		const {input, expected} = this.panel;
-		this.execute({title: "Run", input: input.value, output: expected.value || null}, {}, snapshot);
+	private runPanel() {
+		return this.withPreparedRun((snapshot) => {
+			const {input, expected} = this.panel;
+			return this.execute({title: "Run", input: input.value, output: expected.value || null}, {}, snapshot).result;
+		});
 	}
 
-	private async runSample(sample: SampleCase): Promise<void> {
-		const snapshot = await this.prepareRun();
-		if (!snapshot) return;
-		const {result, tab} = this.execute(sample, {}, snapshot);
-		await result;
-		tab.show();
+	private runSample(sample: SampleCase) {
+		return this.withPreparedRun(async (snapshot) => {
+			const {result, tab} = this.execute(sample, {}, snapshot);
+			await result;
+			tab.show();
+		});
 	}
 
 	private readSamples(): Promise<readonly SampleCase[]> {
@@ -305,17 +312,16 @@ class EasyTest {
 		return results.every(({status}) => status === "AC");
 	}
 
-	private async testAll(): Promise<void> {
-		const snapshot = await this.prepareRun();
-		if (snapshot) await this.runSamples(snapshot);
+	private testAll() {
+		return this.withPreparedRun((snapshot) => this.runSamples(snapshot));
 	}
 
 	private async testAndSubmit(): Promise<void> {
 		let tested: RunSnapshot | null = null;
-		await this.session.testAndSubmit(async (cancel) => {
-			tested = await this.prepareRun();
-			return tested !== null && await this.runSamples(tested, cancel) && await this.context.paste.settled();
-		}, () => {
+		await this.session.testAndSubmit((cancel) => this.withPreparedRun(async (snapshot) => {
+			tested = snapshot;
+			return await this.runSamples(snapshot, cancel) && await this.context.paste.settled();
+		}), () => {
 			if (tested && this.matches(tested)) this.site.submit();
 			else this.changed();
 		});

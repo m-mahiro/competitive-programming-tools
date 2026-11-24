@@ -4,7 +4,7 @@ import * as shared from "@atcoder-tools/shared";
 import {SETTINGS} from "../../config";
 import * as ensureServer from "../ensureServer";
 import {languageForFile, resolveSourceFile, type SourceLanguage} from "../language";
-import {requestRunner} from "../runnerClient";
+import {requestRunner} from "../../runnerClient";
 import * as color from "../../utils/color";
 
 /** コンパイル済みのプログラム。サーバーから消えていたら、refresh で作り直す。 */
@@ -139,7 +139,7 @@ async function requestSource(
 	const offset = mode === "prepare" ? describeLineOffset(result.lineOffset, language.isJava) : null;
 	if (offset) console.log(offset);
 	if (result.status !== "success") {
-		// Java の診断は、変換の前のソースについて javac が返したものなので、名前を戻さない。
+		// Java の診断は元ソースと展開後の Main.java のどちらからも返るので、javac の名前をそのまま示す。
 		const diagnostics = language.isJava ? result.diagnostics : restoreNames(result.diagnostics);
 		throw new Error(diagnostics || "The source could not be prepared.");
 	}

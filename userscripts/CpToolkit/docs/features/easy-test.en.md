@@ -15,6 +15,7 @@ Easy Test+ is based on [AtCoder Easy Test v2](https://greasyfork.org/scripts/433
 ### Running tests and submitting
 
 - Click “Run” beside a sample to test that case, or “Test All Samples” to run them all. Use the bottom panel to enter your own input.
+- Starting a test locks the tolerance field and its checkbox. You can change them again once all pending tests have finished.
 - “Test & Submit” submits once every sample passes. A change to the tested source, task, language or environment cancels submission and keeps the results. Cancel the pending submission while the tests are running to keep the results without submitting.
 - If no samples are found, “Test All Samples” and “Test & Submit” skip testing and submission. You can set a tolerance for comparing output. The tolerance is used only when both tokens are integers or decimals to the end and at least one is a decimal. An exponent such as `1e3` is compared as text. Write the allowed error as a positive number such as `1e-6` or `0.001`. A value that is not a number, such as `10^-6`, marks the field as invalid and stops testing and submission.
 - When Local Runner truncates the output at its limit, the result is `OLE` even if the beginning matches.

@@ -11,7 +11,7 @@ import {
 	type SubmissionTransformResult,
 	transformSubmission,
 } from "@application/source/submission-transform";
-import {ACTION_NOTICE_DURATION_MS, showToast} from "@ui/toast/toast";
+import {showActionWarning} from "@ui/toast/toast";
 
 const FOLD_DELAY_MS = 100;
 const PASTE_ORDER = 10;
@@ -28,23 +28,19 @@ function notifyTransformProblem(
 	const support = languageSupport(family);
 	if (failure) {
 		if (failure.notify === false) return;
-		const imports = support.unresolvedImports?.(code, failure.items) ?? [];
+		const imports = support.unresolvedImports?.(failure.diagnosticSource ?? code, failure.items) ?? [];
 		const firstError = failure.items.find((item) => item.kind === "ERROR");
-		showToast({
+		showActionWarning({
 			title: translate(via === "fallback" ? "submissionHelper.fallbackFailed" : imports.length > 0 ? "submissionHelper.unresolvedImports" : "submissionHelper.transformFailed"),
 			detail: imports.length > 0 ? imports.join("\n") : firstError?.message ?? failure.diagnostics.split("\n", 1)[0] ?? "",
-			tone: "warning",
-			durationMs: ACTION_NOTICE_DURATION_MS,
 			...(failure.diagnostics && {more: {label: translate("submissionHelper.diagnostics"), text: failure.diagnostics}}),
 		});
 	} else if (via !== "localRunner" && support.needsLocalRunner?.(code, options)) {
 		// ライブラリの展開は Local Runner の Java Compiler API が行う。ブラウザの字句の置換ではできない
-		showToast({
+		showActionWarning({
 			title: translate("submissionHelper.localRunnerRequired").replace("{package}", options.libraryPackage),
 			detail: translate("submissionHelper.localRunnerGuide"),
-			tone: "warning",
 			href: LOCAL_RUNNER_GUIDE_URL,
-			durationMs: ACTION_NOTICE_DURATION_MS,
 		});
 	}
 }
@@ -75,12 +71,7 @@ export const submissionHelper = defineFeature({
 		if (!target) return;
 
 		const form = await submissionForm(target);
-		form.holdSubmitWhile(paste, () => showToast({
-			tone: "warning",
-			title: translate("submissionHelper.submitChanged"),
-			detail: "",
-			durationMs: ACTION_NOTICE_DURATION_MS,
-		}));
+		form.holdSubmitWhile(paste, () => showActionWarning({title: translate("submissionHelper.submitChanged"), detail: ""}));
 		const languageOf = (editor: CodeEditor): SubmissionLanguage | null => {
 			const language = form.language(editor);
 			return language?.family ? {...language, family: language.family} : null;

@@ -11,9 +11,6 @@ export class SubmitCommand extends TaskCommand {
 	];
 	protected readonly allowForce = true;
 	protected readonly debug = false;
-	// 提出前のサンプル表示は test と同じ表示オプションを使える（DEBUG は本番固定なので -d は不可）。
-	protected readonly supportsDisplayOptions = true;
-	protected readonly supportsHeaderOption = true;
 
 	protected async onSamplesComplete({task, language, transformed, allAccepted, force}: TaskRunContext): Promise<number> {
 		if (!allAccepted) {

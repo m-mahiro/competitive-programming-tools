@@ -10,6 +10,21 @@ const bridge = createFakePage();
 
 const noHttp = new FakeHttpClient(() => ({status: 500, text: ""}));
 
+test("一部の入出力欄が欠けていたら、残りを全サンプルとして返さない", async () => {
+	history.replaceState(null, "", "/contests/abc1/tasks/abc1_a");
+	document.body.innerHTML = '<div id="task-statement"><h3>入力例 1</h3><pre>1</pre><h3>出力例 1</h3><pre></pre><h3>入力例 2</h3><h3>出力例 2</h3><pre>42</pre></div>';
+	const site = new AtCoderSite(bridge, noHttp);
+	expect(await site.samples()).toEqual([]);
+	document.querySelectorAll("#task-statement h3")[2]!.insertAdjacentHTML("afterend", "<pre>2</pre>");
+	expect(await site.samples()).toHaveLength(2);
+	document.body.innerHTML = '<div class="sample"><pre>1</pre><pre></pre></div><div class="sample"><pre>2</pre></div>';
+	expect(await new YukicoderSite(bridge).samples()).toEqual([]);
+	document.body.innerHTML = '<div class="sample-test"><div class="input"><pre class="content">1</pre></div><div class="output"><pre class="content"></pre></div></div>';
+	for (const mobile of [true, false]) expect(readCodeforcesSamples(document, mobile)[0]?.output).toBe("");
+	document.body.insertAdjacentHTML("beforeend", '<div class="sample-test"><div class="input"><pre>2</pre></div></div>');
+	for (const mobile of [true, false]) expect(readCodeforcesSamples(document, mobile)).toEqual([]);
+});
+
 describe("languagesOf", () => {
 	test("選択欄から言語を読み取り、空の選択肢を除く", () => {
 		document.body.innerHTML = `<select>
@@ -41,7 +56,7 @@ describe("AtCoderSite", () => {
 		history.replaceState(null, "", "/contests/abc1/tasks/abc1_a");
 		document.body.innerHTML = `<div id="task-statement">
 			<div class="part io-style"><pre>N</pre></div>
-			<div class="part"><section><h3>入力例 1<span class="btn-copy"></span></h3><pre>1 2</pre></section></div>
+			<div class="part"><section><h3>入力例 1<span class="btn-copy">Copy</span></h3><pre>1 2</pre></section></div>
 			<div class="part"><section><h3>出力例 1</h3><pre>3</pre></section></div>
 		</div>`;
 		const samples = await new AtCoderSite(bridge, noHttp).samples();

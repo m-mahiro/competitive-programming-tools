@@ -3,6 +3,32 @@ import type {SampleDisplayOptions} from "../sampleJudge";
 import {isHeaderName} from "../../settings/settings";
 import {CliUsageError} from "./Command";
 
+/** ソースを扱うコマンドに共通の言語・ヘッダー指定を読み、位置引数とコマンド固有の指定を検査する。 */
+export function parseSourceArgs(args: readonly string[], maxPositionals: number, parseOption?: (arg: string) => boolean) {
+	const positionals: string[] = [];
+	let lang: string | undefined;
+	let header: LocalRunnerHeaderOption = true;
+	for (const arg of args) {
+		if (!arg.startsWith("-")) {
+			positionals.push(arg);
+			continue;
+		}
+		const language = parseLangFlag(arg);
+		if (language !== undefined) {
+			lang = language;
+			continue;
+		}
+		const value = parseHeaderFlag(arg);
+		if (value !== undefined) {
+			header = value;
+			continue;
+		}
+		if (!parseOption?.(arg)) throw new CliUsageError(`Unknown option: ${arg}`);
+	}
+	if (positionals.length === 0 || positionals.length > maxPositionals) throw new CliUsageError();
+	return {positionals, lang, header};
+}
+
 /**
  * サンプルの結果の表示に関するオプション(--full、--wa-only、--max-lines=N、--time-limit=N)を解釈し、display に書き込む。
  * 解釈したら true を返す。test と submit は問題ページの制限を使うので、timeLimit: false で --time-limit を受け付けない。

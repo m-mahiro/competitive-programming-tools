@@ -9,7 +9,7 @@ export class ServeCommand implements Command {
 	];
 
 	async execute(): Promise<number> {
-		await ensureServer.ensureLocalRunnerReady();
+		await ensureServer.ensureLocalRunnerReady(true);
 		console.log("Local Runner is up. test, submit and localtest will now start immediately.");
 		return 0;
 	}

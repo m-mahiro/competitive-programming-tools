@@ -3,7 +3,7 @@ import type {PageBridge} from "@application/ports/page-bridge";
 import type {HttpClient} from "@application/ports/services";
 import {AtCoderSite} from "./atcoder";
 import type {TestCase} from "@domain/execution/result";
-import {CodeforcesMobileSite, CodeforcesSite, readCodeforcesMobileSamples, readCodeforcesSamples} from "./codeforces";
+import {CodeforcesMobileSite, CodeforcesSite, readCodeforcesSamples} from "./codeforces";
 import {YukicoderSite} from "./yukicoder";
 
 const CODEFORCES_MOBILE_HOST = /^m[1-3]\.codeforces\.com$/;
@@ -35,7 +35,7 @@ export async function readPageSamples(
 	judgeSite: () => Promise<JudgeSite | null>,
 ): Promise<readonly TestCase[]> {
 	if (judgeId === "codeforces") {
-		return CODEFORCES_MOBILE_HOST.test(location.host) ? readCodeforcesMobileSamples() : readCodeforcesSamples();
+		return readCodeforcesSamples(document, CODEFORCES_MOBILE_HOST.test(location.host));
 	}
 	const site = await judgeSite();
 	return site ? await site.samples() : [];

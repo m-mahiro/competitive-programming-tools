@@ -132,6 +132,7 @@ export type TestPanel = {
 	readonly expected: HTMLTextAreaElement;
 	/** 許容誤差を使わないなら undefined、欄の値が数として正しくなければ null を返す。 */
 	allowableError(): number | undefined | null;
+	setAllowableErrorLocked(locked: boolean): void;
 	setRunnable(runnable: boolean): void;
 };
 
@@ -213,6 +214,10 @@ export function createTestPanel(
 		expected,
 		allowableError() {
 			return useAllowable.checked ? parseAllowableError(allowable.value) : undefined;
+		},
+		setAllowableErrorLocked(locked) {
+			useAllowable.disabled = locked;
+			allowable.disabled = locked || !useAllowable.checked;
 		},
 		setRunnable(runnable) {
 			runButton.disabled = !runnable;

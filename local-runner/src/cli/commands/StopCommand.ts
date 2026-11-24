@@ -1,4 +1,4 @@
-import {postToRunner} from "../runnerClient";
+import {postToRunner} from "../../runnerClient";
 import type {Command} from "./Command";
 
 /** Local Runner サーバーを停止する（mode:shutdown を投げて graceful 終了させる）。 */

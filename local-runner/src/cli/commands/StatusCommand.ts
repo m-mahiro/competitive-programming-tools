@@ -1,11 +1,10 @@
 import fs from "node:fs";
-import type {RunnerStatusInfo} from "../../types";
 import {CLI_CONFIG, SETTINGS, SETTINGS_FILE} from "../../config";
 import {configuredLibrarySourceRoot} from "../../javaLibrary/prepare";
 import {serverSettingsDigest} from "../../settings/settings";
 import {VERSION} from "../../version";
 import * as color from "../../utils/color";
-import {postToRunner} from "../runnerClient";
+import {getRunnerStatus} from "../../runnerClient";
 import * as sampleCache from "../sampleCache";
 import type {Command} from "./Command";
 
@@ -43,12 +42,10 @@ export class StatusCommand implements Command {
 
 	async execute(): Promise<number> {
 		const isSupportCliColor: boolean = color.supportsCliColor();
-		let info: RunnerStatusInfo | null = null;
-		try {
-			const res = await postToRunner({mode: "status"}, 3000);
-			if (res.ok) info = await res.json() as RunnerStatusInfo;
-		} catch {
-			// 接続失敗＝停止中として扱う
+		const info = await getRunnerStatus(3000);
+		if (info?.status === "starting") {
+			console.log(`Local Runner: starting (${CLI_CONFIG.defaultLocalRunnerUrl})`);
+			return 0;
 		}
 
 		const sampleCacheCount = countSampleCacheEntries();
@@ -59,7 +56,7 @@ export class StatusCommand implements Command {
 			console.log(`  settings:      ${SETTINGS_FILE}`);
 			console.log(`  java library:  ${configuredLibrarySourceRoot() ?? "not set (setlib <path>)"}`);
 			console.log(`  sample cache:  ${sampleCacheCount} task(s) (${sampleCache.getSampleCacheDir() || "-"})`);
-			console.log(`  To start it: serve (test, localtest and run also start it automatically)`);
+			console.log("  To start it: serve");
 			return 1;
 		}
 

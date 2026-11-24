@@ -1,8 +1,9 @@
-import type http from "node:http";
+import {once} from "node:events";
 import * as config from "../config";
 import {prepareLibrarySourceRoot, resolveLibrarySourceRoot} from "../javaLibrary/prepare";
 import {migrateFromEarlierVersions} from "../migration";
 import {checkForUpdate} from "../update/check";
+import {getRunnerStatus} from "../runnerClient";
 import {VERSION} from "../version";
 import * as color from "../utils/color";
 import * as filesystem from "../utils/filesystem";
@@ -18,9 +19,10 @@ import {ALLOWED_ORIGIN_HOSTS} from "./origin";
 import {ensureLauncher} from "./processRunner";
 import {createRunnerServer} from "./server";
 
-// サーバーの起動と終了。起動時の準備(言語、ライブラリ、常駐 JVM)を順に行ってから待ち受ける。
-
-const server: http.Server = createRunnerServer(() => shutdown("api"));
+// 待ち受けポートを確保したプロセスだけが作業フォルダを準備する。
+let ready = false;
+let stopping = false;
+const server = createRunnerServer(() => shutdown("api"), () => ready);
 
 /** 設定から使える言語を決め、コマンドで動かす言語の実行環境を用意する。 */
 async function prepareLanguages(): Promise<void> {
@@ -56,7 +58,14 @@ async function prepareLanguages(): Promise<void> {
 		config.RUNNER_CONFIG.headerUnitCacheDir,
 		headerUnitLanguages.flatMap((language) => [true, false].map((debug) => engine.compileTemplate(language, debug) ?? [])),
 	);
-	for (const language of headerUnitLanguages) engine.warmUp(language);
+	await Promise.all(headerUnitLanguages.map((language) => engine.warmUp(language)));
+}
+
+async function prepareJava(): Promise<void> {
+	compiler.warmUpJavaTools();
+	filesystem.ensureDirectory(config.RUNNER_CONFIG.dispatcherBuildDir);
+	await dispatcher.ensureDispatcherReady();
+	await dispatcher.warmUpDispatcher(resolveLibrarySourceRoot());
 }
 
 async function bootstrap() {
@@ -88,23 +97,22 @@ async function bootstrap() {
 	if (process.platform === "linux" && config.RUNNER_CONFIG.baseDir.startsWith("/dev/shm")) {
 		logging.logInfo("Using /dev/shm for low-latency compile cache.");
 	}
-	await prepareLanguages();
-	compiler.warmUpJavaTools();
-	filesystem.ensureDirectory(config.RUNNER_CONFIG.dispatcherBuildDir);
-	await dispatcher.ensureDispatcherReady();
-	await dispatcher.warmUpDispatcher(resolveLibrarySourceRoot());
-	const host = config.RUNNER_CONFIG.host;
-	server.listen(config.RUNNER_CONFIG.port, host, () => {
-		const message = "✓ Local Runner server is ready:";
-		const link = `http://${host}:${config.RUNNER_CONFIG.port}`;
-		logging.logInfo(color.supportsRunnerColor() ? `${color.ANSI.GREEN}${message}${color.ANSI.RESET} ${color.ANSI.CYAN}${link}${color.ANSI.RESET}` : `${message} ${link}`);
-		logging.logInfo(`Allowed browser origins: ${[...ALLOWED_ORIGIN_HOSTS, ...config.SETTINGS.server.extraOrigins].join(", ")}`);
-		logging.logInfo(`Runner label: ${compiler.RUNNER_LABEL}`);
-		if (config.SETTINGS.update.check) void checkForUpdate(config.SETTINGS.update.repository, VERSION, (message) => logging.logInfo(color.colorizeWarning(message)));
-	});
+	await Promise.all([prepareLanguages(), prepareJava()]);
+	if (stopping) return;
+	ready = true;
+	const {host, port} = config.RUNNER_CONFIG;
+	const message = "✓ Local Runner server is ready:";
+	const link = `http://${host}:${port}`;
+	logging.logInfo(color.supportsRunnerColor() ? `${color.ANSI.GREEN}${message}${color.ANSI.RESET} ${color.ANSI.CYAN}${link}${color.ANSI.RESET}` : `${message} ${link}`);
+	logging.logInfo(`Allowed browser origins: ${[...ALLOWED_ORIGIN_HOSTS, ...config.SETTINGS.server.extraOrigins].join(", ")}`);
+	logging.logInfo(`Runner label: ${compiler.RUNNER_LABEL}`);
+	if (config.SETTINGS.update.check) void checkForUpdate(config.SETTINGS.update.repository, VERSION, (message) => logging.logInfo(color.colorizeWarning(message)));
 }
 
 function shutdown(signal: string) {
+	if (stopping) return;
+	stopping = true;
+	ready = false;
 	logging.logInfo(`Shutting down Local Runner server (${signal})...`);
 	dispatcher.stopDispatcher();
 	server.close(() => {
@@ -119,16 +127,24 @@ function shutdown(signal: string) {
  * 1つの実行ファイルにまとめると、どのモジュールでも import.meta.url が同じになるので、直接実行されたかでは決めない。
  */
 export async function startServer(): Promise<void> {
-	server.on("error", (error) => {
-		logging.logError(color.colorizeError(`[Server] ${error.message}`));
-		process.exit(1);
-	});
 	process.on("SIGINT", () => shutdown("SIGINT"));
 	process.on("SIGTERM", () => shutdown("SIGTERM"));
 	process.on("exit", () => dispatcher.stopDispatcher());
 	try {
+		const listening = once(server, "listening");
+		server.listen({host: config.RUNNER_CONFIG.host, port: config.RUNNER_CONFIG.port, exclusive: true});
+		await listening;
+		server.on("error", (error) => {
+			logging.logError(color.colorizeError(`[Server] ${error.message}`));
+			process.exit(1);
+		});
 		await bootstrap();
+		await once(server, "close");
 	} catch (error) {
+		if (stopping) return;
+		// 同時に起動しても、先に待ち受けた Local Runner だけが準備を進める。
+		if (!server.listening && (error as NodeJS.ErrnoException).code === "EADDRINUSE"
+				&& await getRunnerStatus(config.SETTINGS.server.startTimeoutMs)) return;
 		const message = error instanceof Error ? error.message : String(error);
 		logging.logError(color.colorizeError(`[Bootstrap] ${message}`));
 		process.exit(1);

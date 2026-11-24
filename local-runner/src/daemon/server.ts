@@ -70,7 +70,7 @@ function statusResponse(): RunnerStatusInfo {
 }
 
 /** HTTP のサーバーを作る。requestShutdown は、shutdown の要求を受けたときに呼ぶ。 */
-export function createRunnerServer(requestShutdown: () => void): http.Server {
+export function createRunnerServer(requestShutdown: () => void, isReady = () => true): http.Server {
 	return http.createServer(async (req, res) => {
 		// 実行の記録の Wait は、この時刻から数える
 		const receivedAt = Date.now();
@@ -133,6 +133,12 @@ export function createRunnerServer(requestShutdown: () => void): http.Server {
 		if (!request || typeof request !== "object" || Array.isArray(request)) {
 			res.writeHead(400, {"Content-Type": "application/json"});
 			res.end(JSON.stringify({status: "badRequest", stderr: "Request body must be a JSON object."}));
+			return;
+		}
+
+		if (!isReady() && request.mode !== "shutdown") {
+			res.writeHead(503, {"Content-Type": "application/json"});
+			res.end(JSON.stringify({status: "starting", stderr: "Local Runner is starting."}));
 			return;
 		}
 

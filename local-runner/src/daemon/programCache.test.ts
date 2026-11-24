@@ -61,6 +61,15 @@ describe("ProgramCache", () => {
 		expect(cache.size).toBe(2);
 	});
 
+	test("準備済み ID の実行も直近の使用に数える", async () => {
+		const {cache, get, evicted} = createCache(2);
+		await get("a");
+		await get("b");
+		await cache.use("a", async (program) => program.id);
+		await get("c");
+		expect(evicted).toEqual(["b"]);
+	});
+
 	test("例外で終わった作成は覚えず、次に頼まれたときにやり直す", async () => {
 		const cache = new ProgramCache<Program>({limit: () => 10, usable: () => true, evict: () => undefined});
 		await expect(cache.get("a", async () => {
@@ -68,6 +77,25 @@ describe("ProgramCache", () => {
 		})).rejects.toThrow("broken");
 		expect(cache.has("a")).toBe(false);
 		expect(await cache.get("a", async () => ({id: "a", build: 2}))).toEqual({id: "a", build: 2});
+	});
+
+	test("同じ id を使う最後の実行が終わるまで、上限を超えても追い出さない", async () => {
+		const {cache, get, evicted} = createCache(1);
+		await get("a");
+		const first = Promise.withResolvers<void>();
+		const last = Promise.withResolvers<void>();
+		const a = cache.use("a", () => first.promise);
+		const b = cache.use("a", () => last.promise);
+		await get("b");
+		await get("c");
+		expect(evicted).toEqual(["b"]);
+		first.resolve();
+		await a;
+		expect(cache.has("a")).toBe(true);
+		last.reject(new Error("run failed"));
+		await expect(b).rejects.toThrow("run failed");
+		expect(evicted).toEqual(["b", "a"]);
+		expect(cache.size).toBe(1);
 	});
 });
 

@@ -22,19 +22,18 @@ export function decodeHtmlEntities(text: string) {
 }
 
 export function extractSamples(taskHtml: string): SamplePair[] {
-	const inputRegex = /<h3[^>]*>\s*(?:入力例|Sample Input)\s*([0-9]+)?\s*<\/h3>[\s\S]*?<pre[^>]*>([\s\S]*?)<\/pre>/gi;
-	const outputRegex = /<h3[^>]*>\s*(?:出力例|Sample Output)\s*([0-9]+)?\s*<\/h3>[\s\S]*?<pre[^>]*>([\s\S]*?)<\/pre>/gi;
 	const inputs: IndexedBlock[] = [];
 	const outputs: IndexedBlock[] = [];
-
-	// HTML は <pre> の直後の改行を表示しない。古い問題は <pre> の次の行から例を書くので、その改行を除く
-	const preText = (html: string) => decodeHtmlEntities(html.replace(/^\r?\n/, ""));
-	let m: RegExpExecArray | null;
-	while ((m = inputRegex.exec(taskHtml)) !== null) {
-		inputs.push({idx: m[1] ? Number(m[1]) : inputs.length + 1, text: preText(m[2])});
-	}
-	while ((m = outputRegex.exec(taskHtml)) !== null) {
-		outputs.push({idx: m[1] ? Number(m[1]) : outputs.length + 1, text: preText(m[2])});
+	for (const section of taskHtml.split(/(?=<h[1-6]\b)/i)) {
+		const title = /^<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/i.exec(section);
+		const heading = title && shared.atCoderSampleHeading(decodeHtmlEntities(title[2]));
+		if (!heading) continue;
+		const blocks = heading.input ? inputs : outputs;
+		const idx = heading.number ?? blocks.length + 1;
+		const pre = /<pre\b[^>]*>([\s\S]*?)<\/pre>/i.exec(section.slice(title[0].length));
+		if (!pre) throw new Error(`Sample ${idx} is missing its ${heading.input ? "input" : "output"} block.`);
+		// HTML は <pre> の直後の改行を表示しない。
+		blocks.push({idx, text: decodeHtmlEntities(pre[1].replace(/^\r?\n/, ""))});
 	}
 	const inputByIndex = indexBlocks(inputs, "input");
 	const outputByIndex = indexBlocks(outputs, "output");

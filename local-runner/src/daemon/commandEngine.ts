@@ -178,21 +178,25 @@ export class CommandEngine {
 
 	/** コンパイル済みのプログラムを実行する。programId を知らないか、作業フォルダが消えていれば null を返す。 */
 	async run(programId: string, stdin: string): Promise<RunOutcome | null> {
-		const program = await this.programs.find(programId);
-		if (program === null || program.result.status !== "success") return null;
-		// 同時に動かすと時間の測定がぶれるので、1つずつ実行する。
-		const outcome = this.runQueue.catch(() => null).then(() => this.execute(program, stdin));
-		this.runQueue = outcome;
-		return {...await outcome, language: program.language.name};
+		return this.programs.use(programId, async (program) => {
+			if (program.result.status !== "success") return null;
+			// 同時に動かすと時間の測定がぶれるので、1つずつ実行する。
+			const outcome = this.runQueue.catch(() => null).then(() => this.execute(program, stdin));
+			this.runQueue = outcome;
+			return {...await outcome, language: program.language.name};
+		});
 	}
 
-	/** デバッグありの設定で header unit を先に作っておく。失敗しても、最初のコンパイルが遅くなるだけ。 */
-	warmUp(language: CommandLanguage): void {
+	/** デバッグ有効時の header unit を準備する。失敗は記録し、解答のコンパイル時に再試行する。 */
+	async warmUp(language: CommandLanguage): Promise<void> {
 		if (!language.headerUnit) return;
 		const started = Date.now();
-		ensureHeaderUnit(this.compileTemplate(language, true) ?? [], this.options.headerUnitCacheDir)
-			.then(() => this.options.log(`[Setup] Lang=${language.name} Status=OK Time=${Date.now() - started}ms header unit`))
-			.catch((error: unknown) => this.options.log(`[Setup] Lang=${language.name} Status=NG header unit: ${(error as Error).message}`));
+		try {
+			await ensureHeaderUnit(this.compileTemplate(language, true) ?? [], this.options.headerUnitCacheDir);
+			this.options.log(`[Setup] Lang=${language.name} Status=OK Time=${Date.now() - started}ms header unit`);
+		} catch (error) {
+			this.options.log(`[Setup] Lang=${language.name} Status=NG header unit: ${(error as Error).message}`);
+		}
 	}
 
 	/** デバッグの有無を反映した、コンパイルの引数のひな形。{command} だけを先に置き換える。 */

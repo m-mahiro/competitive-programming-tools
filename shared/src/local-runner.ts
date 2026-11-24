@@ -134,6 +134,7 @@ export type LocalRunnerHeaderInfo = {
 
 export type LocalRunnerTransformResponse = {
 	status: "success" | "compileError";
+	/** 診断があるときは、行・列が指すソース。展開後の検証で失敗した場合は展開後の本文。 */
 	sourceCode: string;
 	diagnostics: string;
 	inlinedClasses: string[];
@@ -154,7 +155,7 @@ export type CompilerDiagnostic = {
 	kind: string;
 	line: number;
 	column: number;
-	/** 元ソースの診断位置を含む、解決できなかった import。 */
+	/** 診断位置を含む、解決できなかった import。 */
 	importName?: string;
 	code: string;
 	message: string;

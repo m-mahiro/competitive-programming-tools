@@ -66,15 +66,17 @@ export class YukicoderSite extends JudgeSiteBase {
 	}
 
 	async samples(): Promise<readonly SampleCase[]> {
-		return [...document.querySelectorAll(".sample")].flatMap((sample, index) => {
+		const samples: SampleCase[] = [];
+		for (const sample of document.querySelectorAll(".sample")) {
 			const [input, output] = sample.querySelectorAll("pre");
 			if (!input || !output) return [];
-			return [{
-				title: `Sample ${index + 1}`,
+			samples.push({
+				title: `Sample ${samples.length + 1}`,
 				input: input.textContent ?? "",
 				output: output.textContent ?? "",
 				anchors: [sample.querySelector(".copy-sample-input") ?? sample],
-			}];
-		});
+			});
+		}
+		return samples;
 	}
 }

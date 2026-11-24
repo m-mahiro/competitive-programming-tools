@@ -290,6 +290,7 @@ describe("easyTest", () => {
 			expect(run).not.toHaveBeenCalled();
 			expect(site.submit).not.toHaveBeenCalled();
 			expect(alert).toHaveBeenCalledTimes(1);
+			expect(allowable.disabled).toBe(false);
 			allowable.value = "1e-6";
 			allowable.dispatchEvent(new Event("input"));
 			expect(allowable.getAttribute("aria-invalid")).toBe("false");
@@ -297,7 +298,7 @@ describe("easyTest", () => {
 
 		// 10 なら WA が AC に、読めない 10^-6 なら文字列の比較になって AC が WA に変わる
 		for (const [changed, expected, output, tone] of [["10", "1000.0", "1.0", "warning"], ["10^-6", "1.0", "1.0000001", "success"]] as const) {
-			test(`サンプルの取得中に欄を ${changed} に変えても、押したときに確かめた値で判定する`, async () => {
+			test(`押した直後から許容誤差を固定し、スクリプトが欄を ${changed} に変えても当初の値で判定する`, async () => {
 				window.alert = mock(() => undefined);
 				const fetched = Promise.withResolvers<void>();
 				const release = Promise.withResolvers<void>();
@@ -314,15 +315,23 @@ describe("easyTest", () => {
 				});
 				await start(site, async (_code, input) => ({status: "OK", input, output}));
 				const allowable = dock()?.querySelector<HTMLInputElement>('.input-group input[type="text"]');
-				if (!allowable) throw new Error("the allowed error field was not found");
+				const checkbox = dock()?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+				if (!allowable || !checkbox) throw new Error("the allowed error controls were not found");
 				button("Test & Submit")?.click();
-				await fetched.promise;
+				expect(allowable.disabled).toBe(true);
+				expect(checkbox.disabled).toBe(true);
+				checkbox.click();
+				expect(checkbox.checked).toBe(true);
 				allowable.value = changed;
 				allowable.dispatchEvent(new Event("input"));
+				await fetched.promise;
+				expect(allowable.disabled).toBe(true);
 				release.resolve();
 				await wait(30);
 				expect(site.submit).toHaveBeenCalledTimes(tone === "success" ? 1 : 0);
 				expect(row()?.dataset.tone).toBe(tone);
+				expect(allowable.disabled).toBe(false);
+				expect(checkbox.disabled).toBe(false);
 			});
 		}
 	});
@@ -439,6 +448,34 @@ describe("easyTest", () => {
 		button("Test All Samples")?.click();
 		await wait();
 		expect(tabLabels()).toHaveLength(5);
+	});
+
+	test("実行を重ねると、最後の実行が終了してから許容誤差を編集できる", async () => {
+		const first = Promise.withResolvers<void>();
+		const second = Promise.withResolvers<void>();
+		const seen: Array<number | undefined> = [];
+		await start(createSite(), async (_code, input, options) => {
+			seen.push(options.allowableError);
+			await (seen.length === 1 ? first : second).promise;
+			return {status: "OK", input, output: input};
+		});
+		const allowable = dock()?.querySelector<HTMLInputElement>('.input-group input[type="text"]');
+		const checkbox = dock()?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+		if (!allowable || !checkbox) throw new Error("the allowed error controls were not found");
+		checkbox.click();
+		dock()?.querySelector<HTMLButtonElement>(".run-button")?.click();
+		button("Run")?.click();
+		await wait();
+		expect(seen).toEqual([undefined, undefined]);
+		first.resolve();
+		await wait();
+		expect(checkbox.disabled).toBe(true);
+		second.resolve();
+		await wait();
+		expect(checkbox.disabled).toBe(false);
+		expect(allowable.disabled).toBe(true);
+		checkbox.click();
+		expect(allowable.disabled).toBe(false);
 	});
 
 	test("行に進捗を表示し、閉じると結果のタブも閉じる", async () => {

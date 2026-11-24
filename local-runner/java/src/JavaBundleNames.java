@@ -19,11 +19,8 @@ final class JavaBundleNames {
 			+ "|\\s+|(?:" + ESCAPE + "|\\p{javaJavaIdentifierStart})(?:" + ESCAPE + "|\\p{javaJavaIdentifierPart})*|.", Pattern.DOTALL);
 	private final List<Unit> units;
 	private final Set<String> reserved = new HashSet<>();
-	/**
-	 * どこかで変数、型パラメーター、入れ子の型の名前に使われている名前と、継承して見える入れ子の型とフィールドの名前。
-	 * 展開でライブラリの型を完全修飾名なしで書くと、これらに隠されてしまうので、同じ名前のライブラリの型は別の名前にする。
-	 */
-	private final Set<String> shadowingNames = new HashSet<>();
+	/** パッケージを外すか入れ子の型を修飾したとき、その参照位置で名前を隠されるトップレベルの型。 */
+	private final Set<String> shadowedTypes = new HashSet<>();
 	private final Set<String> topLevelNames = new HashSet<>();
 	private final Map<String, String> typeNames = new HashMap<>();
 	private final Map<String, String> binaryNames = new HashMap<>();
@@ -31,12 +28,19 @@ final class JavaBundleNames {
 	private final Map<String, Set<String>> candidates = new HashMap<>();
 	private final Set<String> qualify = new HashSet<>();
 	private final TypeElement entry;
+	private boolean shortenedTypeReference;
 	private final Map<String, Integer> nextSuffix = new HashMap<>();
 
 	JavaBundleNames(final List<Unit> units, final TypeElement entry) {
 		this.units = units;
 		this.entry = entry;
-		for (final Unit unit : units) collectNames(unit);
+		final Set<String> bundledTopLevels = new HashSet<>();
+		for (final Unit unit : units) {
+			for (final Tree tree : unit.analysis.solution().getTypeDecls())
+				if (tree instanceof ClassTree && unit.analysis.trees().getElement(TreePath.getPath(unit.analysis.solution(), tree)) instanceof TypeElement type)
+					bundledTopLevels.add(unit.binary(type));
+		}
+		for (final Unit unit : units) collectNames(unit, bundledTopLevels);
 		topLevelNames.add("Main");
 		for (final Unit unit : units) allocateNames(unit);
 		// 別ファイルのワイルドカードから見える型は、そこで未使用でも展開後に単純名を曖昧にする。
@@ -100,40 +104,48 @@ final class JavaBundleNames {
 	}
 
 	boolean requiresVerification() {
-		return units.size() > 1 || !entry.getSimpleName().contentEquals("Main") || !nextSuffix.isEmpty() || units.getFirst().analysis.hasErrors();
+		return shortenedTypeReference || units.size() > 1 || !entry.getSimpleName().contentEquals("Main") || !nextSuffix.isEmpty() || units.getFirst().analysis.hasErrors();
 	}
 
-	private void collectNames(final Unit unit) {
+	private void collectNames(final Unit unit, final Set<String> bundledTopLevels) {
 		new TreePathScanner<Void, Void>() {
 			@Override
 			public Void scan(final Tree node, final Void unused) {
 				if (node instanceof ClassTree tree) reserved.add(tree.getSimpleName().toString());
-				if (node instanceof VariableTree tree) {
-					reserved.add(tree.getName().toString());
-					shadowingNames.add(tree.getName().toString());
-				}
-				if (node instanceof TypeParameterTree tree) {
-					reserved.add(tree.getName().toString());
-					shadowingNames.add(tree.getName().toString());
-				}
+				if (node instanceof VariableTree tree) reserved.add(tree.getName().toString());
+				if (node instanceof TypeParameterTree tree) reserved.add(tree.getName().toString());
 				if (node instanceof IdentifierTree tree) reserved.add(tree.getName().toString());
 				return super.scan(node, unused);
 			}
 
 			@Override
-			public Void visitClass(final ClassTree node, final Void unused) {
-				// 入れ子の型の名前は、その外側の型の中で同じ名前のライブラリの型を隠す
-				if (!(getCurrentPath().getParentPath().getLeaf() instanceof CompilationUnitTree))
-					shadowingNames.add(node.getSimpleName().toString());
-				// Thread を継承した型の中では、State が Thread.State を指す
-				if (unit.analysis.trees().getElement(getCurrentPath()) instanceof TypeElement type)
-					collectInheritedNames(unit, type.asType(), new HashSet<>());
-				return super.visitClass(node, unused);
+			public Void visitImport(final ImportTree tree, final Void unused) {
+				final TreePath target = new TreePath(getCurrentPath(), tree.getQualifiedIdentifier());
+				if (unit.analysis.trees().getElement(target) instanceof TypeElement type) {
+					final String name = type.getSimpleName().toString();
+					reserved.add(name);
+					candidates.computeIfAbsent(name, key -> new HashSet<>()).add(unit.binary(type));
+					if (!tree.isStatic() && type.getNestingKind() == NestingKind.MEMBER) unit.importedMembers.add(type);
+				} else if (!tree.isStatic() && target.getLeaf() instanceof MemberSelectTree select && select.getIdentifier().contentEquals("*")
+						&& unit.analysis.trees().getElement(new TreePath(target, select.getExpression())) instanceof TypeElement owner) {
+					for (final Element member : unit.analysis.elements().getAllMembers(owner))
+						if (member instanceof TypeElement nested) unit.importedMembers.add(nested);
+				}
+				return null;
 			}
 
 			private void remember() {
-				if (unit.analysis.trees().getElement(getCurrentPath()) instanceof TypeElement type)
-					candidates.computeIfAbsent(type.getSimpleName().toString(), key -> new HashSet<>()).add(unit.binary(type));
+				final TreePath path = getCurrentPath();
+				if (!(unit.analysis.trees().getElement(path) instanceof TypeElement type)) return;
+				candidates.computeIfAbsent(type.getSimpleName().toString(), key -> new HashSet<>()).add(unit.binary(type));
+				if (!unit.hasSourceRange(path.getLeaf())) return;
+				if ((path.getLeaf() instanceof MemberSelectTree && type.getNestingKind() == NestingKind.TOP_LEVEL)
+						|| (path.getLeaf() instanceof IdentifierTree && unit.needsImportOwner(type, path))) {
+					while (type.getEnclosingElement() instanceof TypeElement owner) type = owner;
+					final String binary = unit.binary(type);
+					if (bundledTopLevels.contains(binary) && !shadowedTypes.contains(binary) && hiddenAt(unit, type, path))
+						shadowedTypes.add(binary);
+				}
 			}
 
 			@Override
@@ -150,19 +162,23 @@ final class JavaBundleNames {
 		}.scan(unit.analysis.solution(), null);
 	}
 
-	/** 上位の型から継承して、単純名で見える入れ子の型とフィールドの名前を集める。 */
-	private void collectInheritedNames(final Unit unit, final TypeMirror type, final Set<String> visited) {
-		for (final TypeMirror parent : unit.analysis.types().directSupertypes(type)) {
-			if (!(parent instanceof DeclaredType declared) || !(declared.asElement() instanceof TypeElement element)
-					|| !visited.add(unit.binary(element)))
-				continue;
-			for (final Element member : element.getEnclosedElements()) {
-				final ElementKind kind = member.getKind();
-				if (!member.getModifiers().contains(Modifier.PRIVATE) && (kind.isClass() || kind.isInterface() || kind.isField()))
-					shadowingNames.add(member.getSimpleName().toString());
-			}
-			collectInheritedNames(unit, parent, visited);
+	/** パッケージを外して書く型名が、この位置でローカルの宣言や継承したメンバーに隠れるか。 */
+	private static boolean hiddenAt(final Unit unit, final TypeElement type, final TreePath path) {
+		TreePath use = path;
+		while (use.getParentPath().getLeaf() instanceof MemberSelectTree select && select.getExpression() == use.getLeaf()
+				&& unit.analysis.trees().getElement(use.getParentPath()) instanceof TypeElement) use = use.getParentPath();
+		final Tree parent = use.getParentPath().getLeaf();
+		final boolean expression = parent instanceof MemberSelectTree select && select.getExpression() == use.getLeaf()
+				&& !select.getIdentifier().contentEquals("class") || parent instanceof MemberReferenceTree ref && ref.getMode() == MemberReferenceTree.ReferenceMode.INVOKE;
+		final var name = type.getSimpleName();
+		final java.util.function.Predicate<Element> hides = member -> member.getSimpleName().contentEquals(name)
+				&& (member instanceof TypeElement other && !unit.binary(other).equals(unit.binary(type))
+				|| member instanceof TypeParameterElement || expression && member instanceof VariableElement);
+		for (Scope scope = unit.analysis.trees().getScope(path); scope != null && scope.getEnclosingClass() != null; scope = scope.getEnclosingScope()) {
+			for (final Element local : scope.getLocalElements()) if (hides.test(local)) return true;
+			for (final Element member : unit.analysis.elements().getAllMembers(scope.getEnclosingClass())) if (hides.test(member)) return true;
 		}
+		return false;
 	}
 
 	private String nextName(final String base) {
@@ -185,10 +201,8 @@ final class JavaBundleNames {
 				final boolean topLevel = type.getNestingKind() == NestingKind.TOP_LEVEL;
 				String name = old;
 				if (type == entry) name = "Main";
-				else if (old.equals("Main") || topLevel && topLevelNames.contains(old)) name = nextName(old);
-				// 展開ではライブラリの型を完全修飾名なしで書くので、同じ名前の変数、型パラメーター、入れ子の型があると、そちらを指してしまう
-				// (int Helper と mine.Helper.tag()、<Helper> と mine.Helper.tag()、Thread を継承した型の中の mine.State.tag())
-				else if (topLevel && unit != units.getFirst() && shadowingNames.contains(old)) name = nextName(old);
+				// パッケージを外した型が、別のトップレベル型やスコープ内の宣言に隠れない名前を選ぶ。
+				else if (old.equals("Main") || topLevel && (topLevelNames.contains(old) || shadowedTypes.contains(binary))) name = nextName(old);
 				typeNames.put(binary, name);
 				if (topLevel) {
 					topLevelNames.add(name);
@@ -233,21 +247,10 @@ final class JavaBundleNames {
 				? fieldNames.getOrDefault(unit.binary(owner) + "." + name, name) : unit.localNames.getOrDefault(variable, name);
 	}
 
-	/**
-	 * static import で使えるメンバーなら、宣言した型の正規名を返す。ライブラリのファイルの static import は先頭へ集めないので、
-	 * javac が解決した宣言元の型で修飾する。静的なメンバーを宣言元の型で修飾しても、指す宣言は変わらない。
-	 */
-	private static String staticImportOwner(final Unit unit, final Element symbol, final TreePath path) {
-		// enum の switch の case ラベルは、static import ではなく switch の型から決まる。修飾は Java 21 からしか書けない
-		final Tree parent = path.getParentPath() == null ? null : path.getParentPath().getLeaf();
-		if (symbol != null && symbol.getKind() == ElementKind.ENUM_CONSTANT && (parent instanceof CaseTree || parent instanceof ConstantCaseLabelTree))
-			return null;
-		if (unit.staticImports.isEmpty() || symbol == null || !symbol.getModifiers().contains(Modifier.STATIC)
-				|| !(symbol.getEnclosingElement() instanceof TypeElement owner))
-			return null;
-		final String type = owner.getQualifiedName().toString();
-		final String name = symbol.getSimpleName().toString();
-		return unit.staticImports.contains(type + "." + name) || unit.staticImports.contains(type + ".*") ? type : null;
+	/** 入れ子も含め、展開後にトップレベルの型からたどる名前。 */
+	private String bundledName(final Unit unit, final TypeElement type) {
+		final String name = typeNames.get(unit.binary(type));
+		return type.getEnclosingElement() instanceof TypeElement owner ? bundledName(unit, owner) + "." + name : name;
 	}
 
 	boolean needsQualification(final ImportTree imported) {
@@ -305,10 +308,6 @@ final class JavaBundleNames {
 			@Override
 			public Void visitIdentifier(final IdentifierTree tree, final Void unused) {
 				reference();
-				// 展開では、この名前を宣言元の型で修飾する(edits)。修飾した型の参照も、展開後と同じ順に数える。
-				final Element element = unit.analysis.trees().getElement(getCurrentPath());
-				if (original && !(element instanceof TypeElement) && staticImportOwner(unit, element, getCurrentPath()) != null)
-					result.add("type " + owner((TypeElement) element.getEnclosingElement()));
 				return super.visitIdentifier(tree, unused);
 			}
 
@@ -446,26 +445,27 @@ final class JavaBundleNames {
 
 			@Override
 			public Void visitIdentifier(final IdentifierTree tree, final Void unused) {
+				// var やラムダの引数には javac が推論した型の参照がある。ソース上にある参照だけを書き換える。
+				if (!unit.hasSourceRange(tree)) return null;
 				final Element symbol = element();
-				final String imported = staticImportOwner(unit, symbol, getCurrentPath());
-				if (imported != null && unit.end(tree) >= 0) {
-					edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.end(tree), imported + "." + tree.getName()));
-					return super.visitIdentifier(tree, unused);
-				}
 				String replacement = nameOf(symbol);
 				final String name = tree.getName().toString();
-				if (replacement == null && symbol instanceof TypeElement type && qualify.contains(name))
-					replacement = type.getQualifiedName().toString();
-				if (replacement != null && !replacement.equals(name) && unit.end(tree) >= 0)
+				if (symbol instanceof TypeElement type) {
+					if (replacement != null && unit.needsImportOwner(type, getCurrentPath())) replacement = bundledName(unit, type);
+					else if (replacement == null && qualify.contains(name) && !hasEnclosingInstance(getCurrentPath())) replacement = type.getQualifiedName().toString();
+				}
+				if (replacement != null && !replacement.equals(name))
 					edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.end(tree), replacement));
 				return super.visitIdentifier(tree, unused);
 			}
 
 			@Override
 			public Void visitMemberSelect(final MemberSelectTree tree, final Void unused) {
+				if (!unit.hasSourceRange(tree)) return super.visitMemberSelect(tree, unused);
 				if (element() instanceof TypeElement type) {
 					final String name = nameOf(type);
 					if (name != null && type.getNestingKind() == NestingKind.TOP_LEVEL) {
+						shortenedTypeReference = true;
 						edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.end(tree), name));
 						return null;
 					}
@@ -480,17 +480,41 @@ final class JavaBundleNames {
 		return edits;
 	}
 
+	/** outer.new Inner<T>() の Inner は outer のメンバーとして解決される。型引数や注釈内の名前は通常のスコープで解決する。 */
+	private static boolean hasEnclosingInstance(TreePath path) {
+		while (path.getParentPath() != null) {
+			final Tree parent = path.getParentPath().getLeaf();
+			if (parent instanceof NewClassTree call) return call.getIdentifier() == path.getLeaf() && call.getEnclosingExpression() != null;
+			if (!(parent instanceof ParameterizedTypeTree params && params.getType() == path.getLeaf())
+					&& !(parent instanceof AnnotatedTypeTree annotated && annotated.getUnderlyingType() == path.getLeaf())) return false;
+			path = path.getParentPath();
+		}
+		return false;
+	}
+
 	static final class Unit {
 		final String code;
 		final JavaSourceTransformer.Analysis analysis;
 		final Map<Element, String> localNames = new HashMap<>();
-		/** 先頭へ集めずに、使う側を修飾する static import の名前(java.lang.Math.max、java.lang.Math.* など)。 */
-		final Set<String> staticImports = new HashSet<>();
+		private final Set<TypeElement> importedMembers = new HashSet<>();
 
 		Unit(final String code, final JavaSourceTransformer.Analysis analysis) {
 			this.code = code;
 			this.analysis = analysis;
 		}
+
+		/** 所属する型やそのサブクラスの中なら、import を外しても元から単純名で見える。 */
+		boolean needsImportOwner(final TypeElement type, final TreePath path) {
+			if (!importedMembers.contains(type) || hasEnclosingInstance(path)) return false;
+			final var types = analysis.types();
+			final TypeMirror owner = types.erasure(type.getEnclosingElement().asType());
+			for (TreePath p = path; p != null; p = p.getParentPath())
+				if (p.getLeaf() instanceof ClassTree && analysis.trees().getElement(p) instanceof TypeElement enclosing
+						&& types.isSubtype(types.erasure(enclosing.asType()), owner)) return false;
+			return true;
+		}
+
+		boolean hasSourceRange(final Tree tree) {return start(tree) >= 0 && end(tree) >= 0;}
 
 		int start(final Tree tree) {return (int) analysis.positions().getStartPosition(analysis.solution(), tree);}
 

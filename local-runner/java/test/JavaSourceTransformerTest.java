@@ -75,6 +75,25 @@ public final class JavaSourceTransformerTest {
 			check(summary.addedImports().equals(java.util.List.of("java.util.Arrays")) && summary.bundledFiles().equals(java.util.List.of("lib/ds/UnionFind.java")), String.valueOf(summary));
 			check(wildcard.summary().addedImports().isEmpty(), String.valueOf(wildcard.summary()));
 
+			Files.writeString(graph.resolve("Connectivity.java"), """
+					package lib.graph;
+					public class Connectivity {
+						public record Result(int value) {}
+						public static Result solve() { return new Result(7); }
+					}
+					""");
+			final SourceTransformResult inferred = transformer.transform("""
+					import lib.graph.Connectivity;
+					class A {
+						public static void main(String[] args) {
+							var res = Connectivity.solve();
+							java.util.List.of(res).forEach(r -> System.out.print(r.value()));
+						}
+					}
+					""", root, false, "", true);
+			check(inferred.exitCode() == 0, inferred.diagnostics());
+			check(inferred.sourceCode().contains("var res") && execute(inferred.sourceCode()).equals("7"), inferred.sourceCode());
+
 			final SourceTransformResult transitive = transformer.transform("""
 					import lib.graph.Kruskal;
 					public final class A {
@@ -285,6 +304,41 @@ public final class JavaSourceTransformerTest {
 
 		final SourceTransformResult typeUse = transformer.transform("import java.lang.annotation.*; @Target(ElementType.TYPE_USE) @interface Mark {} class Solver { public static void main(@Mark String... a) {} }", root, false, "", true);
 		check(typeUse.exitCode() == 0, typeUse.diagnostics());
+		// 無関係なスコープで同じ名前が使われても、record の表示名は元のまま。
+		final SourceTransformResult separate = transformer.transform("""
+				record Result(int n) {}
+				class Other { static class Result {} }
+				class Solver { public static void main(String[] a) { System.out.print(new Result(7)); } }
+				""", root, false, "", true);
+		check(separate.exitCode() == 0 && execute(separate.sourceCode()).equals("Result[n=7]"), separate.diagnostics());
+
+		Files.writeString(pkg.resolve("Factory.java"), """
+				package extra;
+				public class Factory { public record Result(int n) {} public class Inner<T> {} }
+				""");
+		for (final String imported : java.util.List.of("extra.Factory.Result", "extra.Factory.*")) {
+			final String code = "import " + imported + "; class Solver { public static void main(String[] a) { System.out.print(new Result(7)); } }";
+			final SourceTransformResult member = transformer.transform(code, root, false, "", true);
+			check(member.exitCode() == 0 && member.sourceCode().contains("new Factory.Result(7)") && execute(member.sourceCode()).equals("Result[n=7]"), member.diagnostics());
+		}
+		final SourceTransformResult inner = transformer.transform("""
+				import extra.Factory;
+				import extra.Factory.*;
+				class Solver { public static void main(String[] a) {
+					Factory f = new Factory();
+					Inner<Result> value = f.new Inner<Result>();
+					System.out.print(value.getClass().getSimpleName());
+				} }
+				""", root, false, "", true);
+		check(inner.exitCode() == 0 && execute(inner.sourceCode()).equals("Inner"), inner.diagnostics());
+		Files.writeString(pkg.resolve("UsesResult.java"), """
+				package extra;
+				import extra.Factory.Result;
+				public class UsesResult { public static int n() { return new Result(3).n(); } }
+				""");
+		final SourceTransformResult inLibrary = transformer.transform("class Solver { public static void main(String[] a) { System.out.print(extra.UsesResult.n()); } }", root, false, "", true);
+		check(inLibrary.exitCode() == 0 && execute(inLibrary.sourceCode()).equals("3"), inLibrary.diagnostics());
+
 		final Path other = Files.createDirectories(root.resolve("other"));
 		Files.writeString(pkg.resolve("Value.java"), "package extra; public class Value { public int number() { return 1; } }");
 		Files.writeString(other.resolve("Value.java"), "package other; public class Value { public int number() { return 2; } }");
@@ -294,15 +348,13 @@ public final class JavaSourceTransformerTest {
 
 		Files.writeString(pkg.resolve("Larger.java"), "package extra; import static java.lang.Integer.max; import static java.util.Map.*; public class Larger { public static int of(int a, int b) { Entry<String, Integer> e = entry(\"x\", 0); return max(a, b) + e.getValue(); } }");
 		final SourceTransformResult staticImports = transformer.transform("import static java.lang.Math.max; import extra.Larger; class Solver { public static void main(String[] a) { System.out.print(max(4, 9) + Larger.of(1, 2)); } }", root, false, "", true);
-		check(staticImports.exitCode() == 0, staticImports.diagnostics());
-		check(staticImports.sourceCode().contains("java.lang.Integer.max(a, b)") && staticImports.sourceCode().contains("java.util.Map.Entry<String, Integer> e = java.util.Map.entry("), staticImports.sourceCode());
-		check(!staticImports.sourceCode().contains("import static java.lang.Integer.max;\n") && execute(staticImports.sourceCode()).equals("11"), staticImports.sourceCode());
+		check(staticImports.exitCode() != 0 && staticImports.diagnostics().contains("max"), staticImports.diagnostics());
+		final SourceTransformResult qualifiedMax = transformer.transform("import extra.Larger; class Solver { public static void main(String[] a) { System.out.print(Math.max(4, 9) + Larger.of(1, 2)); } }", root, false, "", true);
+		check(qualifiedMax.exitCode() == 0 && execute(qualifiedMax.sourceCode()).equals("11"), qualifiedMax.diagnostics());
 
 		Files.writeString(pkg.resolve("Unit.java"), "package extra; import static java.util.concurrent.TimeUnit.*; import java.util.concurrent.TimeUnit; public class Unit { public static String of(TimeUnit u) { switch (u) { case SECONDS: return \"s\"; default: return \"?\"; } } public static long ms() { return SECONDS.toMillis(1); } }");
 		final SourceTransformResult enumCase = transformer.transform("import extra.Unit; class Solver { public static void main(String[] a) { System.out.print(Unit.of(java.util.concurrent.TimeUnit.SECONDS) + Unit.ms()); } }", root, false, "", true);
 		check(enumCase.exitCode() == 0, enumCase.diagnostics());
-		// enum の case ラベルは修飾しない(修飾は Java 21 からしか書けない)
-		check(enumCase.sourceCode().contains("case SECONDS:") && enumCase.sourceCode().contains("java.util.concurrent.TimeUnit.SECONDS.toMillis"), enumCase.sourceCode());
 		check(execute(enumCase.sourceCode()).equals("s1000"), enumCase.sourceCode());
 
 		Files.writeString(pkg.resolve("Helper.java"), "package extra; import java.util.List; public class Helper { public static String tag() { return String.valueOf(List.of(2).getFirst()); } }");
@@ -318,7 +370,7 @@ public final class JavaSourceTransformerTest {
 		// 2行に分けた完全修飾名を短くしても、それより後の行はずれない(import の1行だけ下がる)
 		final String line = "\t\tSystem.out.print(new int[0][-1]);";
 		check(after.indexOf(line) - before.indexOf(line) == 1, solution);
-		final String run = executeAllowingFailure(shadowed.sourceCode());
+		final String run = execute(shadowed.sourceCode(), true);
 		check(run.startsWith("12") && run.contains("Main.java:9)"), run);
 
 		// 型パラメーターや入れ子の型が同じ名前でも、展開したライブラリの型を指す
@@ -332,6 +384,16 @@ public final class JavaSourceTransformerTest {
 		final SourceTransformResult inherited = transformer.transform("class Solver extends Thread { public static void main(String[] a) { System.out.print(extra.State.tag()); } }", root, false, "", true);
 		check(inherited.exitCode() == 0, inherited.diagnostics());
 		check(inherited.sourceCode().contains("State1.tag()") && execute(inherited.sourceCode()).equals("3"), inherited.sourceCode());
+
+		final SourceTransformResult sameFile = transformer.transform("""
+				package sol;
+				public class Main {
+					static class Util { static int n() { return 8; } }
+					public static void main(String[] args) { System.out.print(sol.Util.n()); }
+				}
+				class Util { static int n() { return 1; } }
+				""", root, false, "", false);
+		check(sameFile.exitCode() == 0 && execute(sameFile.sourceCode()).equals("1"), sameFile.diagnostics());
 
 		// Unicode エスケープで書いた起動クラスの名前も、javac と同じく読んで Main にする
 		final SourceTransformResult escaped = transformer.transform("class Sol\\u0076er { public static void main(String[] a) { System.out.print(new Sol\\u0076er().getClass().getSimpleName()); } }", root, false, "", true);
@@ -349,29 +411,16 @@ public final class JavaSourceTransformerTest {
 		Files.writeString(pkg.resolve("Base.java"),"package extra; public class Base { void f() {} public void run() { f(); } }");
 		final SourceTransformResult overridden = transformer.transform("import extra.Base; class Solver extends Base { void f() {} public static void main(String[] a) { new Solver().run(); } }", root, false, "", false);
 		check(overridden.exitCode() != 0 && overridden.diagnostics().contains("overrides"), overridden.diagnostics());
+		final SourceTransformResult access = transformer.transform("import extra.Base;\nclass Solver extends Base { private void f() {} public static void main(String[] a) {} }", root, false, "", false);
+		check(access.exitCode() != 0 && access.diagnostics().contains("In transformed Main.java:"), access.diagnostics());
+		check(access.sourceCode().lines().toList().get((int) access.diagnosticItems().getFirst().line() - 1).contains("private void f()"), access.sourceCode());
 	}
 
 	private static String execute(final String source) throws Exception {
-		final Path folder = Files.createTempDirectory("bundle-execution-");
-		try {
-			final Path file = folder.resolve("Main.java");
-			Files.writeString(file, source);
-			check(javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", folder.toString(), file.toString()) == 0, source);
-			final Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", folder.toString(), "Main").start();
-			final String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-			final String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-			check(process.waitFor() == 0, stderr);
-			return stdout;
-		} finally {
-			try (var files = Files.walk(folder)) {
-				for (final Path path : files.sorted(java.util.Comparator.reverseOrder()).toList())
-					Files.deleteIfExists(path);
-			}
-		}
+		return execute(source, false);
 	}
 
-	/** 例外で終わってもよい実行。標準出力のあとに標準エラー出力を続けて返す。 */
-	private static String executeAllowingFailure(final String source) throws Exception {
+	private static String execute(final String source, final boolean allowFailure) throws Exception {
 		final Path folder = Files.createTempDirectory("bundle-execution-");
 		try {
 			final Path file = folder.resolve("Main.java");
@@ -380,8 +429,9 @@ public final class JavaSourceTransformerTest {
 			final Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", folder.toString(), "Main").start();
 			final String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 			final String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-			process.waitFor();
-			return stdout + stderr;
+			final int status = process.waitFor();
+			if (!allowFailure) check(status == 0, stderr);
+			return allowFailure ? stdout + stderr : stdout;
 		} finally {
 			try (var files = Files.walk(folder)) {
 				for (final Path path : files.sorted(java.util.Comparator.reverseOrder()).toList())

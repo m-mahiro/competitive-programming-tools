@@ -426,6 +426,13 @@ The Apache License 2.0 below applies to the parts derived from AtCoder Listing T
 		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
+	// ../shared/src/atcoder-samples.ts
+	function atCoderSampleHeading(text) {
+		const match = /^(入力例|出力例|Sample Input|Sample Output)\s*(\d*)$/i.exec(text.trim());
+		if (!match) return null;
+		return {input: /^(入力例|Sample Input)$/i.test(match[1]), number: match[2] ? Number(match[2]) : undefined};
+	}
+
 	// ../shared/src/query.ts
 	function buildQueryString(data) {
 		const params = new URLSearchParams();
@@ -2823,7 +2830,10 @@ button:hover {
 `;
 
 	// CpToolkit/src/ui/toast/toast.ts
-	var ACTION_NOTICE_DURATION_MS = 15000;
+	function showActionWarning(warning) {
+		showToast({...warning, tone: "warning", durationMs: 15000});
+	}
+
 	var labels = {region: "Notifications", close: () => "Close"};
 	var host = null;
 	var container = null;
@@ -5550,44 +5560,86 @@ ${reason}`
 	}
 
 	// CpToolkit/src/adapters/judges/atcoder.ts
-	function pairs(items) {
-		return items.flatMap((item, index) => {
-			const next = items[index + 1];
-			return index % 2 === 0 && next !== undefined ? [[item, next]] : [];
-		});
+	function sample(index, input, output, anchor) {
+		return {
+			title: `Sample ${index + 1}`,
+			input: input.textContent ?? "",
+			output: output.textContent ?? "",
+			anchors: [anchor],
+		};
 	}
 
 	function parseSamplesIn(root) {
+		const samples = [];
+		const nodes = [...root.querySelectorAll("h1,h2,h3,h4,h5,h6,pre")];
+		let input;
+		for (const [index, node] of nodes.entries()) {
+			if (node.tagName === "PRE") continue;
+			const title = node.cloneNode(true);
+			for (const control of title.querySelectorAll("button,.btn-copy,.cp-title-control")) control.remove();
+			const heading = atCoderSampleHeading(title.textContent ?? "");
+			if (!heading) continue;
+			const pre = nodes[index + 1];
+			if (pre?.tagName !== "PRE") return null;
+			if (heading.input) {
+				if (input) return null;
+				input = {
+					pre,
+					anchor: node.closest(".part, .section")?.querySelector(".btn-copy") ?? node,
+					number: heading.number,
+				};
+			} else {
+				if (!input || input.number !== heading.number) return null;
+				samples.push(sample(samples.length, input.pre, pre, input.anchor));
+				input = undefined;
+			}
+		}
+		if (input) return null;
+		if (samples.length) return samples;
 		for (const {selector, container, insideIoStyle} of atcoderSampleSelectors) {
 			const elements = [...root.querySelectorAll(selector)].filter((element) => {
 				if (insideIoStyle) return element.childElementCount === 0;
 				return !element.closest(".io-style") && !element.querySelector("var");
 			});
 			if (elements.length === 0) continue;
-			return pairs(elements).map(([input, output], index) => {
-				const parent = input.closest(container) ?? input.parentElement;
-				return {
-					title: `Sample ${index + 1}`,
-					input: input.textContent ?? "",
-					output: output.textContent ?? "",
-					anchors: [
-						parent?.querySelector(".btn-copy") ?? parent?.querySelector("h1,h2,h3,h4,h5,h6") ?? input,
-					],
-				};
-			});
+			if (elements.length % 2 !== 0) return null;
+			for (let i = 0; i < elements.length; i += 2) {
+				const pre = elements[i];
+				const parent = pre.closest(container) ?? pre.parentElement;
+				samples.push(
+					sample(
+						samples.length,
+						pre,
+						elements[i + 1],
+						parent?.querySelector(".btn-copy") ?? parent?.querySelector("h1,h2,h3,h4,h5,h6") ?? pre,
+					),
+				);
+			}
+			break;
 		}
-		return [];
+		return samples;
 	}
 
 	function parseSamples(page) {
 		const statement = page.getElementById("task-statement");
 		if (!statement) return [];
 		const languages = [...statement.querySelectorAll(".lang > .lang-ja, .lang > .lang-en")];
-		if (languages.length === 0) return parseSamplesIn(statement);
-		const [first = [], ...others] = languages.map(parseSamplesIn);
+		const translations = [];
+		for (const root of languages.length ? languages : [statement]) {
+			const samples = parseSamplesIn(root);
+			if (!samples) return [];
+			translations.push(samples);
+		}
+		const [first = [], ...others] = translations.sort((a, b) => b.length - a.length);
 		return first.map((sample, index) => ({
 			...sample,
-			anchors: [...sample.anchors, ...others.flatMap((samples) => samples[index]?.anchors ?? [])],
+			anchors: [
+				...sample.anchors,
+				...others.flatMap((samples) => {
+					const other = samples[index];
+					return other?.input === sample.input && other.output === sample.output ? other.anchors : [];
+				}),
+			],
 		}));
 	}
 
@@ -5661,7 +5713,10 @@ ${reason}`
 			const isTaskPage = /^\/contests\/[^/]+\/tasks\//.test(location.pathname);
 			const samples = isTaskPage ? Promise.resolve(parseSamples(document)) : this.fetchSamples(taskUri);
 			this.samplesByTask.set(taskUri, samples);
-			samples.catch(() => this.samplesByTask.delete(taskUri));
+			const forget = () => this.samplesByTask.delete(taskUri);
+			samples.then((result) => {
+				if (!result.length) forget();
+			}, forget);
 			return samples;
 		}
 
@@ -5695,33 +5750,29 @@ ${reason}`
 			.join("");
 	}
 
-	function readCodeforcesSamples(root = document) {
+	function readCodeforcesSamples(root = document, mobile = false) {
+		const pre = mobile ? "pre.content" : "pre";
 		const samples = [];
 		for (const block of root.querySelectorAll(".sample-test")) {
-			const inputs = block.querySelectorAll(".input pre");
-			const outputs = block.querySelectorAll(".output pre");
-			inputs.forEach((input, index) => {
-				const output = outputs[index];
-				const anchor = input.closest(".input")?.querySelector(".title .input-output-copier");
-				if (!output) return;
+			const inputs = block.querySelectorAll(".input");
+			const outputs = block.querySelectorAll(".output");
+			if (!inputs.length || inputs.length !== outputs.length) return [];
+			for (const [index, section] of inputs.entries()) {
+				const input = section.querySelector(pre);
+				const output = outputs[index]?.querySelector(pre);
+				if (!input || !output) return [];
+				const anchor = mobile
+					? (section.querySelector(".title") ?? block)
+					: section.querySelector(".title .input-output-copier");
 				samples.push({
 					title: `Sample ${samples.length + 1}`,
-					input: readSampleBlock(input),
-					output: readSampleBlock(output),
+					input: mobile ? (input.textContent ?? "") : readSampleBlock(input),
+					output: mobile ? (output.textContent ?? "") : readSampleBlock(output),
 					anchors: anchor ? [anchor] : [],
 				});
-			});
+			}
 		}
 		return samples;
-	}
-
-	function readCodeforcesMobileSamples(root = document) {
-		return [...root.querySelectorAll(".sample-test")].map((block, index) => ({
-			title: `Sample ${index + 1}`,
-			input: block.querySelector(".input pre.content")?.textContent ?? "",
-			output: block.querySelector(".output pre.content")?.textContent ?? "",
-			anchors: [block.querySelector(".input .title") ?? block],
-		}));
 	}
 
 	class CodeforcesSite extends JudgeSiteBase {
@@ -5878,7 +5929,7 @@ ${reason}`
 		}
 
 		async samples() {
-			return readCodeforcesMobileSamples();
+			return readCodeforcesSamples(document, true);
 		}
 	}
 
@@ -5945,18 +5996,18 @@ ${reason}`
 		}
 
 		async samples() {
-			return [...document.querySelectorAll(".sample")].flatMap((sample, index) => {
+			const samples = [];
+			for (const sample of document.querySelectorAll(".sample")) {
 				const [input, output] = sample.querySelectorAll("pre");
 				if (!input || !output) return [];
-				return [
-					{
-						title: `Sample ${index + 1}`,
-						input: input.textContent ?? "",
-						output: output.textContent ?? "",
-						anchors: [sample.querySelector(".copy-sample-input") ?? sample],
-					},
-				];
-			});
+				samples.push({
+					title: `Sample ${samples.length + 1}`,
+					input: input.textContent ?? "",
+					output: output.textContent ?? "",
+					anchors: [sample.querySelector(".copy-sample-input") ?? sample],
+				});
+			}
+			return samples;
 		}
 	}
 
@@ -5979,7 +6030,7 @@ ${reason}`
 
 	async function readPageSamples(judgeId, judgeSite) {
 		if (judgeId === "codeforces") {
-			return CODEFORCES_MOBILE_HOST.test(location.host) ? readCodeforcesMobileSamples() : readCodeforcesSamples();
+			return readCodeforcesSamples(document, CODEFORCES_MOBILE_HOST.test(location.host));
 		}
 		const site = await judgeSite();
 		return site ? await site.samples() : [];
@@ -9734,6 +9785,10 @@ summary {
 			allowableError() {
 				return useAllowable.checked ? parseAllowableError(allowable.value) : undefined;
 			},
+			setAllowableErrorLocked(locked) {
+				useAllowable.disabled = locked;
+				allowable.disabled = locked || !useAllowable.checked;
+			},
 			setRunnable(runnable) {
 				runButton.disabled = !runnable;
 			},
@@ -9763,6 +9818,7 @@ summary {
 			show: (candidates, selected) => this.showEnvironment(candidates, selected),
 		};
 		submitButton;
+		activeRuns = 0;
 		runnable = false;
 		currentRunner = "";
 		site;
@@ -9985,32 +10041,36 @@ summary {
 		}
 
 		changed() {
-			showToast({
+			showActionWarning({
 				title: this.context.translate("easyTest.title"),
 				detail: this.context.translate("easyTest.submitChanged"),
-				tone: "warning",
-				durationMs: ACTION_NOTICE_DURATION_MS,
 			});
 		}
 
-		async prepareRun() {
-			if (!(await this.context.paste.settled()) || !this.hasSource()) return null;
-			const before = this.snapshot();
-			await this.refreshEnvironment();
-			if (!this.matches(before, false)) {
-				this.changed();
-				return null;
+		async withPreparedRun(run) {
+			this.activeRuns++;
+			this.panel.setAllowableErrorLocked(true);
+			try {
+				const allowableError = this.panel.allowableError();
+				if (allowableError === null) {
+					window.alert(this.context.translate("easyTest.invalidAllowableError"));
+					return false;
+				}
+				if (!(await this.context.paste.settled()) || !this.hasSource()) return false;
+				const before = this.snapshot();
+				await this.refreshEnvironment();
+				if (!this.matches(before, false)) {
+					this.changed();
+					return false;
+				}
+				if (!this.selection.candidates.some(({id}) => id === this.currentRunner)) {
+					window.alert(this.context.translate("easyTest.noEnvironment"));
+					return false;
+				}
+				return await run(this.snapshot(allowableError));
+			} finally {
+				if (--this.activeRuns === 0) this.panel.setAllowableErrorLocked(false);
 			}
-			if (!this.selection.candidates.some(({id}) => id === this.currentRunner)) {
-				window.alert(this.context.translate("easyTest.noEnvironment"));
-				return null;
-			}
-			const allowableError = this.panel.allowableError();
-			if (allowableError === null) {
-				window.alert(this.context.translate("easyTest.invalidAllowableError"));
-				return null;
-			}
-			return this.snapshot(allowableError);
 		}
 
 		execute(testCase, options, snapshot) {
@@ -10040,19 +10100,20 @@ summary {
 			return false;
 		}
 
-		async runPanel() {
-			const snapshot = await this.prepareRun();
-			if (!snapshot) return;
-			const {input, expected} = this.panel;
-			this.execute({title: "Run", input: input.value, output: expected.value || null}, {}, snapshot);
+		runPanel() {
+			return this.withPreparedRun((snapshot) => {
+				const {input, expected} = this.panel;
+				return this.execute({title: "Run", input: input.value, output: expected.value || null}, {}, snapshot)
+					.result;
+			});
 		}
 
-		async runSample(sample) {
-			const snapshot = await this.prepareRun();
-			if (!snapshot) return;
-			const {result, tab} = this.execute(sample, {}, snapshot);
-			await result;
-			tab.show();
+		runSample(sample) {
+			return this.withPreparedRun(async (snapshot) => {
+				const {result, tab} = this.execute(sample, {}, snapshot);
+				await result;
+				tab.show();
+			});
 		}
 
 		readSamples() {
@@ -10082,22 +10143,18 @@ summary {
 			return results.every(({status}) => status === "AC");
 		}
 
-		async testAll() {
-			const snapshot = await this.prepareRun();
-			if (snapshot) await this.runSamples(snapshot);
+		testAll() {
+			return this.withPreparedRun((snapshot) => this.runSamples(snapshot));
 		}
 
 		async testAndSubmit() {
 			let tested = null;
 			await this.session.testAndSubmit(
-				async (cancel) => {
-					tested = await this.prepareRun();
-					return (
-						tested !== null &&
-						(await this.runSamples(tested, cancel)) &&
-						(await this.context.paste.settled())
-					);
-				},
+				(cancel) =>
+					this.withPreparedRun(async (snapshot) => {
+						tested = snapshot;
+						return (await this.runSamples(snapshot, cancel)) && (await this.context.paste.settled());
+					}),
 				() => {
 					if (tested && this.matches(tested)) this.site.submit();
 					else this.changed();
@@ -10784,7 +10841,11 @@ ${efficient_layout_default}`);
 					return {
 						sourceCode: code,
 						via: "localRunner",
-						failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems},
+						failure: {
+							diagnostics: transformed.diagnostics,
+							items: transformed.diagnosticItems,
+							diagnosticSource: transformed.sourceCode,
+						},
 					};
 				}
 			} catch (error) {
@@ -10824,9 +10885,9 @@ ${efficient_layout_default}`);
 		const support = languageSupport(family);
 		if (failure) {
 			if (failure.notify === false) return;
-			const imports = support.unresolvedImports?.(code, failure.items) ?? [];
+			const imports = support.unresolvedImports?.(failure.diagnosticSource ?? code, failure.items) ?? [];
 			const firstError = failure.items.find((item) => item.kind === "ERROR");
-			showToast({
+			showActionWarning({
 				title: translate(
 					via === "fallback"
 						? "submissionHelper.fallbackFailed"
@@ -10845,19 +10906,15 @@ ${efficient_layout_default}`);
 								1,
 							)[0] ??
 							""),
-				tone: "warning",
-				durationMs: ACTION_NOTICE_DURATION_MS,
 				...(failure.diagnostics && {
 					more: {label: translate("submissionHelper.diagnostics"), text: failure.diagnostics},
 				}),
 			});
 		} else if (via !== "localRunner" && support.needsLocalRunner?.(code, options)) {
-			showToast({
+			showActionWarning({
 				title: translate("submissionHelper.localRunnerRequired").replace("{package}", options.libraryPackage),
 				detail: translate("submissionHelper.localRunnerGuide"),
-				tone: "warning",
 				href: LOCAL_RUNNER_GUIDE_URL,
-				durationMs: ACTION_NOTICE_DURATION_MS,
 			});
 		}
 	}
@@ -10900,12 +10957,7 @@ ${efficient_layout_default}`);
 			if (!target) return;
 			const form = await submissionForm(target);
 			form.holdSubmitWhile(paste, () =>
-				showToast({
-					tone: "warning",
-					title: translate("submissionHelper.submitChanged"),
-					detail: "",
-					durationMs: ACTION_NOTICE_DURATION_MS,
-				}),
+				showActionWarning({title: translate("submissionHelper.submitChanged"), detail: ""}),
 			);
 			const languageOf = (editor) => {
 				const language = form.language(editor);
@@ -12016,12 +12068,7 @@ ${efficient_layout_default}`);
 			const button = form.submitButton();
 			if (!mount && !button) return;
 			form.holdSubmitWhile(paste, () =>
-				showToast({
-					tone: "warning",
-					title: translate("submissionHelper.submitChanged"),
-					detail: "",
-					durationMs: ACTION_NOTICE_DURATION_MS,
-				}),
+				showActionWarning({title: translate("submissionHelper.submitChanged"), detail: ""}),
 			);
 			const comments = new SourceComments(state);
 			const defaultMultiline = options.style === "block";
@@ -12144,11 +12191,9 @@ ${efficient_layout_default}`);
 				} catch (error) {
 					if (error instanceof LocalRunnerError && error.status !== 0) {
 						if (context.isCurrent() && error.notify !== false)
-							showToast({
+							showActionWarning({
 								title: translate("sourceComments.runnerHeaderFailed"),
 								detail: error.message,
-								tone: "warning",
-								durationMs: ACTION_NOTICE_DURATION_MS,
 							});
 						throw error;
 					}

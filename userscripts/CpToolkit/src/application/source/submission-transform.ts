@@ -64,6 +64,7 @@ export type SubmissionLanguage = JudgeLanguage & {readonly family: string};
 
 /** Local Runner で変換できなかったときの診断。 */
 export type SubmissionFailure = {
+	readonly diagnosticSource?: string;
 	readonly diagnostics: string;
 	readonly items: readonly CompilerDiagnostic[];
 	readonly notify?: boolean;
@@ -93,7 +94,7 @@ export async function transformSubmission(
 				return {
 					sourceCode: code,
 					via: "localRunner",
-					failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems},
+					failure: {diagnostics: transformed.diagnostics, items: transformed.diagnosticItems, diagnosticSource: transformed.sourceCode},
 				};
 			}
 		} catch (error) {

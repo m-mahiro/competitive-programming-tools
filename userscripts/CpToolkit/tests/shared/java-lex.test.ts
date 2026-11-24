@@ -26,6 +26,7 @@ describe("firstDeclarationLine", () => {
 describe("decodeUnicodeEscapes", () => {
 	test("エスケープを文字に訳し、元の位置を返す", () => {
 		expect(decodeUnicodeEscapes("a\\u0041b")).toEqual({text: "aAb", offsets: [0, 1, 7, 8]});
+		expect(decodeUnicodeEscapes("\\u00DF").text).toBe("ß");
 		expect(decodeUnicodeEscapes("\\uuu0022").text).toBe('"');
 	});
 

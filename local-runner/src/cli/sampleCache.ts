@@ -15,7 +15,8 @@ import {CLI_CONFIG} from "../config";
  *   CLI 側データなので、`stop` でサーバーを止めても削除しない。明示的な `cache clear` で消す。
  */
 
-const CACHE_FORMAT_VERSION = 2;
+// 2 以前は、入力欄が欠けたときに次の見出しの出力を入力として保存することがあった。
+const CACHE_FORMAT_VERSION = 3;
 
 type SampleCacheFile = {
 	version: number;

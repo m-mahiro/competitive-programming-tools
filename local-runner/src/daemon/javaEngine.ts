@@ -62,8 +62,7 @@ export function hasJavaProgram(programId: string): boolean {
 
 /** コンパイル済みの Java のプログラムを実行する。programId が Java のものでなければ null を返す。 */
 export async function runJavaProgram(programId: string, stdin: string, receivedAt: number): Promise<LocalRunnerRunResponse | null> {
-	const entry = await compiler.getCompiledEntryByProgramId(programId);
-	return entry === null ? null : runJavaEntry(entry, stdin, receivedAt);
+	return compiler.withCompiledProgram(programId, (entry) => runJavaEntry(entry, stdin, receivedAt));
 }
 
 async function runJavaEntry(entry: CompileEntry, stdin: string, receivedAt: number): Promise<LocalRunnerRunResponse> {

@@ -23,8 +23,11 @@
 
 ## Java
 
+For library setup, supported imports, and **the limits on `import static` during bundling**, see [Java libraries in Local Runner (Japanese)](../../../../local-runner/README.md#ライブラリを使う).
+
 - Without Local Runner, the package declaration is removed and the top-level type that has `main` is renamed to `Main`. This only replaces text and is not guaranteed to be correct. Because text alone cannot tell a type from a variable, variables with the same name are renamed too. Comments and strings are left unchanged. If the type with `main` cannot be determined, another `Main` already exists, or a variable with the same name is also used as a member of another value (such as `new A().A`), the original code is kept and a notification tells you so. Use Local Runner for a reliable transform.
 - Only a `boolean name = true` declaration directly in the class that runs is set to `false` as the debug variable.
+- Use ordinary whitespace and line breaks in Java source. If the same file declares a type or type parameter named `String`, write the `main` parameter as `java.lang.String[]` or `java.lang.String...` so the fallback can identify the entry class.
 - If you set the library package (e.g. `lib`) in the detailed settings, pasting code that imports it while Local Runner is unreachable shows a notification with a link to the setup steps. Submitting that code as it is causes a compile error.
 
 ## Detailed settings

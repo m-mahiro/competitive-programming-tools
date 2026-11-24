@@ -156,6 +156,12 @@ describe.skipIf(python === null || cc === null)("CommandEngine", () => {
 		fs.rmSync(dir, {recursive: true, force: true});
 	});
 
+	test("header unit が失敗しても、その結果を記録してから起動時の準備を終える", async () => {
+		const compile = ["{command}", "-fmodules-ts", "{source}", "-o", "{output}"];
+		await createEngine().warmUp({...cLanguage, name: "cpp", command: "/bin/false", compile, headerUnit: true});
+		expect(logs.at(-1)).toContain("[Setup] Lang=cpp Status=NG header unit");
+	});
+
 	test("起動プログラムをビルドできる", () => {
 		expect(launcher).not.toBeNull();
 	});

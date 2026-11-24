@@ -10,7 +10,6 @@ export class DaemonCommand implements Command {
 		// サーバーの処理は読み込んだ時点で java を探すので、このコマンドのときだけ読み込む。
 		const {startServer} = await import("../../daemon/lifecycle");
 		await startServer();
-		// サーバーは shutdown で終了する。ここで返すと、CLI がプロセスを終了してしまう。
-		return new Promise<number>(() => {});
+		return 0;
 	}
 }

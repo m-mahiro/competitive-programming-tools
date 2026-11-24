@@ -65,7 +65,8 @@ final class JavaSourceTransformer {
 			final BundleOutput bundled = bundle(source, analysis, dependencies, libraries, index, debug, debugFlag);
 			if (validate || bundled.names().requiresVerification()) {
 				final Analysis validation = analyze(bundled.source(), null);
-				if (validation.hasErrors()) return failure(rawSource, validation);
+				if (validation.hasErrors())
+					return new SourceTransformResult(1, bundled.source(), "In transformed Main.java:\n" + validation.diagnostics(), List.of(), validation.diagnosticItems());
 				if (!findMainClass(validation).tree().getSimpleName().contentEquals("Main"))
 					return failure(source, "The submission entry point is not Main.");
 				bundled.names().verify(validation);
@@ -262,10 +263,8 @@ final class JavaSourceTransformer {
 			final JavaBundleNames.Unit unit = units.get(i);
 			for (final ImportTree imported : unit.analysis.solution().getImports()) {
 				final String name = imported.getQualifiedIdentifier().toString();
-				if (index.isLibraryImport(name)) continue;
-				// static import は先頭へ集めると解答の static import と同じ名前で衝突するので、使う側を宣言元の型で修飾する。
-				if (imported.isStatic()) unit.staticImports.add(name);
-				else if (!names.needsQualification(imported)) hoisted.add("import " + name + ";");
+				if (!index.isLibraryImport(name) && !names.needsQualification(imported))
+					hoisted.add("import " + (imported.isStatic() ? "static " : "") + name + ";");
 			}
 			final List<Edit> edits = names.edits(unit);
 			for (final ImportTree imported : unit.analysis.solution().getImports()) {
@@ -276,13 +275,14 @@ final class JavaSourceTransformer {
 			parts.add("// ===== inlined: " + inlined.get(i - 1) + " =====\n" + applyEdits(unit.code, edits).strip());
 		}
 		hoisted.removeIf(candidate -> isCoveredBySolutionImport(candidate, analysis.solution().getImports()));
-		String transformedSolution = transformSolution(source, analysis, index, main, debug, debugFlag, hoisted, names, units.getFirst());
+		final VariableTree flag = findDebugFlag(main, debugFlag);
+		String transformedSolution = transformSolution(source, analysis, index, flag, debug, hoisted, names, units.getFirst());
 		if (!parts.isEmpty())
 			transformedSolution = transformedSolution.stripTrailing() + "\n\n" + String.join("\n\n", parts) + "\n";
-		return new BundleOutput(transformedSolution, List.copyOf(inlined), names, summary(analysis, main, debug, debugFlag, hoisted, dependencies, index));
+		return new BundleOutput(transformedSolution, List.copyOf(inlined), names, summary(analysis, main, debug, flag, hoisted, dependencies, index));
 	}
 
-	private String transformSolution(final String source, final Analysis analysis, final LibraryIndex index, final MainClass main, final boolean debug, final String debugFlag, final Set<String> hoisted, final JavaBundleNames names, final JavaBundleNames.Unit unit) {
+	private String transformSolution(final String source, final Analysis analysis, final LibraryIndex index, final VariableTree flag, final boolean debug, final Set<String> hoisted, final JavaBundleNames names, final JavaBundleNames.Unit unit) {
 		final List<Edit> edits = names.edits(unit);
 		removePackage(source, analysis, edits);
 		boolean firstLibraryImport = true;
@@ -302,7 +302,11 @@ final class JavaSourceTransformer {
 			final int at = firstCodePosition(analysis);
 			edits.add(new Edit(at, at, String.join("\n", hoisted) + "\n"));
 		}
-		addDebugEdits(analysis, main, debug, debugFlag, edits);
+		if (flag != null && !Boolean.valueOf(debug).equals(((LiteralTree) flag.getInitializer()).getValue())) {
+			final int start = unit.start(flag.getInitializer());
+			final int end = unit.end(flag.getInitializer());
+			edits.add(new Edit(start, end, Boolean.toString(debug)));
+		}
 		return LEADING_BLANK_LINES.matcher(applyEdits(source, edits)).replaceFirst("");
 	}
 
@@ -339,21 +343,12 @@ final class JavaSourceTransformer {
 	}
 
 	/** 変換で変えたことの要約。DEBUG は、起動クラスの直下にある boolean の宣言を探す。 */
-	private TransformSummary summary(final Analysis analysis, final MainClass main, final boolean debug, final String debugFlag,
+	private TransformSummary summary(final Analysis analysis, final MainClass main, final boolean debug, final VariableTree flag,
 									 final Set<String> hoisted, final List<Path> dependencies, final LibraryIndex index) {
-		String flag = null;
-		long line = 0;
-		for (final Tree member : debugFlag.isEmpty() ? List.<Tree>of() : main.tree().getMembers()) {
-			if (member instanceof VariableTree variable && variable.getName().contentEquals(debugFlag)
-					&& variable.getInitializer() instanceof LiteralTree literal && literal.getValue() instanceof Boolean) {
-				flag = debugFlag;
-				line = analysis.solution().getLineMap().getLineNumber(analysis.positions().getStartPosition(analysis.solution(), variable.getInitializer()));
-				break;
-			}
-		}
+		final long line = flag == null ? 0 : analysis.solution().getLineMap().getLineNumber(analysis.positions().getStartPosition(analysis.solution(), flag.getInitializer()));
 		final List<String> added = hoisted.stream().map(text -> text.replaceFirst("^import (static )?", "").replaceFirst(";$", "")).toList();
 		final List<String> files = dependencies.stream().map(path -> libraryRelative(index, path)).toList();
-		return new TransformSummary(main.element().getSimpleName().toString(), flag, debug, line,
+		return new TransformSummary(main.element().getSimpleName().toString(), flag == null ? null : flag.getName().toString(), debug, line,
 				analysis.solution().getPackageName() != null, added, files);
 	}
 
@@ -368,17 +363,14 @@ final class JavaSourceTransformer {
 		return path.endsWith(byPackage) ? byPackage : index.root().relativize(path).toString().replace(java.io.File.separatorChar, '/');
 	}
 
-	private void addDebugEdits(final Analysis analysis, final MainClass main, final boolean debug, final String debugFlag, final List<Edit> edits) {
-		if (debugFlag.isEmpty()) return;
+	private static VariableTree findDebugFlag(final MainClass main, final String name) {
+		if (name.isEmpty()) return null;
 		for (final Tree member : main.tree().getMembers()) {
-			if (!(member instanceof VariableTree variable) || !variable.getName().contentEquals(debugFlag)) continue;
-			if (!(variable.getInitializer() instanceof LiteralTree literal) || !(literal.getValue() instanceof Boolean value))
-				continue;
-			if (value == debug) continue;
-			final int start = (int) analysis.positions().getStartPosition(analysis.solution(), variable.getInitializer());
-			final int end = (int) analysis.positions().getEndPosition(analysis.solution(), variable.getInitializer());
-			edits.add(new Edit(start, end, Boolean.toString(debug)));
+			if (member instanceof VariableTree variable && variable.getName().contentEquals(name)
+					&& variable.getInitializer() instanceof LiteralTree literal && literal.getValue() instanceof Boolean)
+				return variable;
 		}
+		return null;
 	}
 
 	/**

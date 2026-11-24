@@ -4,7 +4,7 @@ import {PROJECT_ROOT, SETTINGS} from "../../config";
 import {findNewerRelease, installRelease} from "../../update/update";
 import * as color from "../../utils/color";
 import {VERSION} from "../../version";
-import {postToRunner} from "../runnerClient";
+import {getRunnerStatus, postToRunner} from "../../runnerClient";
 import type {Command} from "./Command";
 import {CliUsageError} from "./Command";
 
@@ -20,21 +20,13 @@ function megabytes(bytes: number): string {
 	return `${(bytes / MEBIBYTE).toFixed(1)} MB`;
 }
 
-async function isServerRunning(): Promise<boolean> {
-	try {
-		return (await postToRunner({mode: "status"}, 1000)).ok;
-	} catch {
-		return false;
-	}
-}
-
 /** サーバーが動いていれば止め、終わるまで待つ。実行ファイルを入れ替える前に呼ぶ。 */
 async function stopServer(): Promise<void> {
-	if (!await isServerRunning()) return;
+	if (!await getRunnerStatus(1000)) return;
 	console.log("Stopping the Local Runner server...");
 	await postToRunner({mode: "shutdown"}, 3000);
 	const deadline = Date.now() + SERVER_STOP_WAIT_MS;
-	while (await isServerRunning()) {
+	while (await getRunnerStatus(1000)) {
 		if (Date.now() > deadline) throw new Error("The Local Runner server did not stop. Stop it with stop and run update again.");
 		await new Promise((resolve) => setTimeout(resolve, 200));
 	}

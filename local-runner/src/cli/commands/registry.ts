@@ -59,9 +59,9 @@ export function printUsage(): void {
 	console.error("Options:");
 	console.error("  -f, --force                submit: submit even if a sample is not AC / tomain: overwrite outFile");
 	console.error("  -d, --debug[=true|false]   test/localtest/run: turn DEBUG on or off (default: on)");
-	console.error("  --no-header                submit/tomain/toclip: do not add the header");
+	console.error("  --no-header                do not add the header");
 	console.error("  --lang=<name>              choose the language by its name in the settings (default: by the file extension)");
-	console.error("  --header=<name>            submit/tomain/toclip: use the header set with setheader <name> (default: the header of the language)");
+	console.error("  --header=<name>            use the header set with setheader <name> (default: the header of the language)");
 	console.error("  --full                     test/localtest/submit/crosscheck: show the whole WA diff");
 	console.error("  --wa-only                  test/localtest/submit/crosscheck: show only mismatched lines");
 	console.error("  --max-lines=N              test/localtest/submit/crosscheck: lines of the WA diff to show (default: 20)");

@@ -19,34 +19,27 @@ function readSampleBlock(pre: Element): string {
  * 問題文の入出力例。Run ボタンの置き場所は、入力の見出しのコピーのボタン。
  * ボタンはその入力の欄の中で探す。ボタンが無い例も、全サンプルの実行のために返す(anchors は空)。
  */
-export function readCodeforcesSamples(root: ParentNode = document): SampleCase[] {
+export function readCodeforcesSamples(root: ParentNode = document, mobile = false): SampleCase[] {
+	const pre = mobile ? "pre.content" : "pre";
 	const samples: SampleCase[] = [];
 	for (const block of root.querySelectorAll(".sample-test")) {
-		const inputs = block.querySelectorAll(".input pre");
-		const outputs = block.querySelectorAll(".output pre");
-		inputs.forEach((input, index) => {
-			const output = outputs[index];
-			const anchor = input.closest(".input")?.querySelector(".title .input-output-copier");
-			if (!output) return;
+		const inputs = block.querySelectorAll(".input");
+		const outputs = block.querySelectorAll(".output");
+		if (!inputs.length || inputs.length !== outputs.length) return [];
+		for (const [index, section] of inputs.entries()) {
+			const input = section.querySelector(pre);
+			const output = outputs[index]?.querySelector(pre);
+			if (!input || !output) return [];
+			const anchor = mobile ? section.querySelector(".title") ?? block : section.querySelector(".title .input-output-copier");
 			samples.push({
 				title: `Sample ${samples.length + 1}`,
-				input: readSampleBlock(input),
-				output: readSampleBlock(output),
+				input: mobile ? input.textContent ?? "" : readSampleBlock(input),
+				output: mobile ? output.textContent ?? "" : readSampleBlock(output),
 				anchors: anchor ? [anchor] : [],
 			});
-		});
+		}
 	}
 	return samples;
-}
-
-/** モバイル版の問題文の入出力例。 */
-export function readCodeforcesMobileSamples(root: ParentNode = document): SampleCase[] {
-	return [...root.querySelectorAll(".sample-test")].map((block, index) => ({
-		title: `Sample ${index + 1}`,
-		input: block.querySelector(".input pre.content")?.textContent ?? "",
-		output: block.querySelector(".output pre.content")?.textContent ?? "",
-		anchors: [block.querySelector(".input .title") ?? block],
-	}));
 }
 
 /** 問題ページの提出欄はファイルしか受け付けないので、入力欄を用意する。 */
@@ -184,6 +177,6 @@ export class CodeforcesMobileSite extends JudgeSiteBase {
 	}
 
 	async samples(): Promise<readonly SampleCase[]> {
-		return readCodeforcesMobileSamples();
+		return readCodeforcesSamples(document, true);
 	}
 }

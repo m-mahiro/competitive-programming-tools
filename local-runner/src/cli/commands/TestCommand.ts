@@ -14,8 +14,6 @@ export class TestCommand extends TaskCommand {
 	protected readonly allowForce = false;
 	protected readonly debug = true;
 	protected readonly supportsDebugOption = true;
-	protected readonly supportsDisplayOptions = true;
-	protected readonly supportsHeaderOption = true;
 
 	protected onSamplesComplete({allAccepted}: TaskRunContext): number {
 		return allAccepted ? 0 : 5;

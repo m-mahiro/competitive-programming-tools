@@ -1,19 +1,10 @@
 import {spawn} from "node:child_process";
 import path from "node:path";
 import {PROJECT_ROOT, SETTINGS, SETTINGS_FILE} from "../config";
-import {postToRunner} from "./runnerClient";
+import {getRunnerStatus} from "../runnerClient";
 
 const READY_TIMEOUT_MS = SETTINGS.server.startTimeoutMs;
 const POLL_INTERVAL_MS = 500;
-
-/** ヘルスチェック: POST {mode:"list"} が 200 を返せば daemon は利用可能（warmUp 済み）。 */
-async function pingServer(timeoutMs = 1500): Promise<boolean> {
-	try {
-		return (await postToRunner({mode: "list"}, timeoutMs)).ok;
-	} catch {
-		return false;
-	}
-}
 
 /** bash 用シングルクオートエスケープ。 */
 function shq(s: string): string {
@@ -72,12 +63,13 @@ function startServer(): void {
 }
 
 /** CLI が server を叩く前に呼ぶ。未起動なら自動起動して ready まで待つ。 */
-export async function ensureLocalRunnerReady(): Promise<void> {
-	if (!SETTINGS.server.autoStart) return;                    // 自動起動を無効化（常駐運用に切替時）
-	if (await pingServer()) return;                            // 既に起動済み
+export async function ensureLocalRunnerReady(startIfStopped = SETTINGS.server.autoStart): Promise<void> {
+	const status = await getRunnerStatus(1500);
+	if (status?.status === "running") return;
+	if (!status && !startIfStopped) throw new Error("Local Runner is unavailable. Run serve to start it.");
 
 	try {
-		startServer();
+		if (!status) startServer();
 	} catch (e) {
 		throw new Error(`Could not start Local Runner: ${e instanceof Error ? e.message : String(e)}`);
 	}
@@ -85,7 +77,7 @@ export async function ensureLocalRunnerReady(): Promise<void> {
 	const deadline = Date.now() + READY_TIMEOUT_MS;
 	while (Date.now() < deadline) {
 		await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
-		if (await pingServer()) {
+		if ((await getRunnerStatus(1500))?.status === "running") {
 			console.error("Local Runner is ready.");
 			return;
 		}

@@ -1,51 +1,79 @@
 import {atcoderSampleSelectors} from "@catalog/judges";
+import {atCoderSampleHeading} from "@atcoder-tools/shared";
 import type {JudgeMounts, SampleCase} from "@application/ports/judge-site";
 import type {PageBridge} from "@application/ports/page-bridge";
 import type {HttpClient} from "@application/ports/services";
 import {pageGlobals} from "@adapters/page/globals";
 import {JudgeSiteBase} from "./site-base";
 
-function pairs<T>(items: readonly T[]): Array<[T, T]> {
-	return items.flatMap((item, index): Array<[T, T]> => {
-		const next = items[index + 1];
-		return index % 2 === 0 && next !== undefined ? [[item, next]] : [];
-	});
+function sample(index: number, input: Element, output: Element, anchor: Element): SampleCase {
+	return {title: `Sample ${index + 1}`, input: input.textContent ?? "", output: output.textContent ?? "", anchors: [anchor]};
 }
 
-/** コンテストにより書式が違うので、一言語分の問題文から、サンプルが見つかるセレクタまで順に試す。 */
-function parseSamplesIn(root: Element): SampleCase[] {
+/** 見出しの次の本文を、その入力例・出力例に対応付ける。片方でも欠けていれば null。 */
+function parseSamplesIn(root: Element): SampleCase[] | null {
+	const samples: SampleCase[] = [];
+	const nodes = [...root.querySelectorAll("h1,h2,h3,h4,h5,h6,pre")];
+	let input: {pre: Element; anchor: Element; number: number | undefined} | undefined;
+	for (const [index, node] of nodes.entries()) {
+		if (node.tagName === "PRE") continue;
+		const title = node.cloneNode(true) as Element;
+		for (const control of title.querySelectorAll("button,.btn-copy,.cp-title-control")) control.remove();
+		const heading = atCoderSampleHeading(title.textContent ?? "");
+		if (!heading) continue;
+		const pre = nodes[index + 1];
+		if (pre?.tagName !== "PRE") return null;
+		if (heading.input) {
+			if (input) return null;
+			input = {pre, anchor: node.closest(".part, .section")?.querySelector(".btn-copy") ?? node, number: heading.number};
+		} else {
+			if (!input || input.number !== heading.number) return null;
+			samples.push(sample(samples.length, input.pre, pre, input.anchor));
+			input = undefined;
+		}
+	}
+	if (input) return null;
+	if (samples.length) return samples;
+
+	// 見出しがない旧書式は、対応するセレクタで入出力を順に読む。
 	for (const {selector, container, insideIoStyle} of atcoderSampleSelectors) {
 		const elements = [...root.querySelectorAll(selector)].filter((element) => {
 			if (insideIoStyle) return element.childElementCount === 0;
 			return !element.closest(".io-style") && !element.querySelector("var");
 		});
 		if (elements.length === 0) continue;
-		return pairs(elements).map(([input, output], index) => {
-			const parent = input.closest(container) ?? input.parentElement;
-			return {
-				title: `Sample ${index + 1}`,
-				input: input.textContent ?? "",
-				output: output.textContent ?? "",
-				anchors: [parent?.querySelector(".btn-copy") ?? parent?.querySelector("h1,h2,h3,h4,h5,h6") ?? input],
-			};
-		});
+		if (elements.length % 2 !== 0) return null;
+		for (let i = 0; i < elements.length; i += 2) {
+			const pre = elements[i]!;
+			const parent = pre.closest(container) ?? pre.parentElement;
+			samples.push(sample(samples.length, pre, elements[i + 1]!, parent?.querySelector(".btn-copy") ?? parent?.querySelector("h1,h2,h3,h4,h5,h6") ?? pre));
+		}
+		break;
 	}
-	return [];
+	return samples;
 }
 
 /**
- * 問題文が日英で並ぶので、本文は先頭の言語から取り、Run ボタンの置き場所は全言語から集める。
+ * 日英でサンプル数が違えば多い方を使い、Run ボタンの置き場所は全言語から集める。
  * 表示中の言語は切り替えのたびに変わるので、どちらが見えているかは見ない。
  */
 function parseSamples(page: Document): SampleCase[] {
 	const statement = page.getElementById("task-statement");
 	if (!statement) return [];
 	const languages = [...statement.querySelectorAll(".lang > .lang-ja, .lang > .lang-en")];
-	if (languages.length === 0) return parseSamplesIn(statement);
-	const [first = [], ...others] = languages.map(parseSamplesIn);
+	const translations: SampleCase[][] = [];
+	for (const root of languages.length ? languages : [statement]) {
+		const samples = parseSamplesIn(root);
+		if (!samples) return [];
+		translations.push(samples);
+	}
+	const [first = [], ...others] = translations.sort((a, b) => b.length - a.length);
 	return first.map((sample, index) => ({
 		...sample,
-		anchors: [...sample.anchors, ...others.flatMap((samples) => samples[index]?.anchors ?? [])],
+		anchors: [...sample.anchors, ...others.flatMap((samples) => {
+			const other = samples[index];
+			return other?.input === sample.input && other.output === sample.output ? other.anchors : [];
+		})],
 	}));
 }
 
@@ -119,7 +147,8 @@ export class AtCoderSite extends JudgeSiteBase {
 		const isTaskPage = /^\/contests\/[^/]+\/tasks\//.test(location.pathname);
 		const samples = isTaskPage ? Promise.resolve(parseSamples(document)) : this.fetchSamples(taskUri);
 		this.samplesByTask.set(taskUri, samples);
-		samples.catch(() => this.samplesByTask.delete(taskUri));
+		const forget = () => this.samplesByTask.delete(taskUri);
+		void samples.then((result) => { if (!result.length) forget(); }, forget);
 		return samples;
 	}
 

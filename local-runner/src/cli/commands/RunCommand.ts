@@ -1,4 +1,3 @@
-import type {LocalRunnerHeaderOption} from "@atcoder-tools/shared";
 import fs from "node:fs";
 import path from "node:path";
 import * as color from "../../utils/color";
@@ -36,35 +35,19 @@ export class RunCommand implements Command {
 	];
 
 	async execute(args: readonly string[]): Promise<number> {
-		const positionals: string[] = [];
 		let debug = true; // 既定で DEBUG 有効。-d/--debug で上書き。
 		let timeLimitMs: number | undefined;
-		let lang: string | undefined;
-		let header: LocalRunnerHeaderOption = true;
-		for (const arg of args) {
-			const l = options.parseLangFlag(arg);
-			if (l !== undefined) {
-				lang = l;
-				continue;
-			}
-			const h = options.parseHeaderFlag(arg);
-			if (h !== undefined) {
-				header = h;
-				continue;
-			}
-			const d = options.parseBoolFlag(arg, "--debug", "-d");
-			if (d !== undefined) {
-				debug = d;
-				continue;
+		const {positionals, lang, header} = options.parseSourceArgs(args, 2, (arg) => {
+			const debugOption = options.parseBoolFlag(arg, "--debug", "-d");
+			if (debugOption !== undefined) {
+				debug = debugOption;
+				return true;
 			}
 			const timeLimit = options.parseIntFlag(arg, "--time-limit", undefined, 1);
-			if (timeLimit !== undefined) {
-				timeLimitMs = timeLimit;
-				continue;
-			}
-			if (arg.startsWith("-")) throw new CliUsageError(`Unknown option: ${arg}`);
-			positionals.push(arg);
-		}
+			if (timeLimit === undefined) return false;
+			timeLimitMs = timeLimit;
+			return true;
+		});
 		const [sourceFilePath, inputFile] = positionals;
 		if (!sourceFilePath) throw new CliUsageError();
 
