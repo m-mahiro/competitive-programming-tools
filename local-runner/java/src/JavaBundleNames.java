@@ -21,28 +21,31 @@ final class JavaBundleNames {
 	private final Set<String> reserved = new HashSet<>();
 	/** パッケージを外すか入れ子の型を修飾したとき、その参照位置で名前を隠されるトップレベルの型。 */
 	private final Set<String> shadowedTypes = new HashSet<>();
+	private final Set<MainDeclaration> mainConflicts = new HashSet<>();
 	private final Set<String> topLevelNames = new HashSet<>();
 	private final Map<String, String> typeNames = new HashMap<>();
 	private final Map<String, String> binaryNames = new HashMap<>();
 	private final Map<String, String> fieldNames = new HashMap<>();
 	private final Map<String, Set<String>> candidates = new HashMap<>();
 	private final Set<String> qualify = new HashSet<>();
+	private final Map<String, String> preferredImports = new TreeMap<>();
 	private final TypeElement entry;
+	private final String entryBinary;
 	private boolean shortenedTypeReference;
 	private final Map<String, Integer> nextSuffix = new HashMap<>();
 
 	JavaBundleNames(final List<Unit> units, final TypeElement entry) {
 		this.units = units;
 		this.entry = entry;
-		final Set<String> bundledTopLevels = new HashSet<>();
+		entryBinary = units.getFirst().binary(entry);
+		final Map<String, String> bundledTopLevels = new HashMap<>();
 		for (final Unit unit : units) {
 			for (final Tree tree : unit.analysis.solution().getTypeDecls())
 				if (tree instanceof ClassTree && unit.analysis.trees().getElement(TreePath.getPath(unit.analysis.solution(), tree)) instanceof TypeElement type)
-					bundledTopLevels.add(unit.binary(type));
+					bundledTopLevels.put(unit.binary(type), type == entry ? "Main" : type.getSimpleName().toString());
 		}
-		for (final Unit unit : units) collectNames(unit, bundledTopLevels);
-		topLevelNames.add("Main");
-		for (final Unit unit : units) allocateNames(unit);
+		final List<TypeUse> simpleUses = new ArrayList<>();
+		for (final Unit unit : units) collectNames(unit, bundledTopLevels.keySet(), simpleUses);
 		// 別ファイルのワイルドカードから見える型は、そこで未使用でも展開後に単純名を曖昧にする。
 		if (units.size() > 1) {
 			final Set<String> scopes = new HashSet<>(Set.of("java.lang"));
@@ -60,9 +63,23 @@ final class JavaBundleNames {
 				}
 			}
 		}
-		for (final var group : candidates.entrySet()) {
-			if (group.getValue().size() > 1 || topLevelNames.contains(group.getKey())) qualify.add(group.getKey());
+		for (final var group : candidates.entrySet())
+			if (group.getValue().size() > 1) qualify.add(group.getKey());
+		final Set<String> possibleConflicts = new HashSet<>(bundledTopLevels.values());
+		possibleConflicts.addAll(qualify);
+		// 参照位置でパッケージ名が隠れる型は単純名で残し、展開する側の同名型を改名する。
+		for (final TypeUse use : simpleUses) {
+			final String simple = use.type.getSimpleName().toString();
+			if (!possibleConflicts.contains(simple) || preferredImports.containsKey(simple)) continue;
+			final TypeElement outer = use.unit.analysis.elements().getOutermostTypeElement(use.type);
+			if (bundledTopLevels.containsKey(use.unit.binary(outer))) continue;
+			final String qualified = use.type.getQualifiedName().toString();
+			final int dot = qualified.indexOf('.');
+			if (dot > 0 && !use.hiding(qualified.substring(0, dot), null).isEmpty()) preferredImports.put(simple, qualified);
 		}
+		topLevelNames.add("Main");
+		for (final Unit unit : units) allocateNames(unit);
+		qualify.addAll(topLevelNames);
 	}
 
 	private static java.util.stream.Stream<MatchResult> tokens(final String code, final int start, final int end) {
@@ -92,22 +109,11 @@ final class JavaBundleNames {
 		throw new IllegalStateException("Could not identify the declaration of " + name + " at offset " + start);
 	}
 
-	private static boolean isCanonical(final TypeElement type, final ExecutableElement constructor) {
-		final var components = type.getRecordComponents();
-		final var parameters = constructor.getParameters();
-		if (components.size() != parameters.size()) return false;
-		for (int i = 0; i < components.size(); i++)
-			if (!components.get(i).getSimpleName().equals(parameters.get(i).getSimpleName())
-					|| !components.get(i).asType().toString().equals(parameters.get(i).asType().toString()))
-				return false;
-		return true;
-	}
-
 	boolean requiresVerification() {
 		return shortenedTypeReference || units.size() > 1 || !entry.getSimpleName().contentEquals("Main") || !nextSuffix.isEmpty() || units.getFirst().analysis.hasErrors();
 	}
 
-	private void collectNames(final Unit unit, final Set<String> bundledTopLevels) {
+	private void collectNames(final Unit unit, final Set<String> bundledTopLevels, final List<TypeUse> simpleUses) {
 		new TreePathScanner<Void, Void>() {
 			@Override
 			public Void scan(final Tree node, final Void unused) {
@@ -137,15 +143,15 @@ final class JavaBundleNames {
 			private void remember() {
 				final TreePath path = getCurrentPath();
 				if (!(unit.analysis.trees().getElement(path) instanceof TypeElement type)) return;
-				candidates.computeIfAbsent(type.getSimpleName().toString(), key -> new HashSet<>()).add(unit.binary(type));
 				if (!unit.hasSourceRange(path.getLeaf())) return;
-				if ((path.getLeaf() instanceof MemberSelectTree && type.getNestingKind() == NestingKind.TOP_LEVEL)
-						|| (path.getLeaf() instanceof IdentifierTree && unit.needsImportOwner(type, path))) {
-					while (type.getEnclosingElement() instanceof TypeElement owner) type = owner;
-					final String binary = unit.binary(type);
-					if (bundledTopLevels.contains(binary) && !shadowedTypes.contains(binary) && hiddenAt(unit, type, path))
-						shadowedTypes.add(binary);
-				}
+				if (path.getLeaf() instanceof IdentifierTree) {
+					simpleUses.add(new TypeUse(unit, type, path));
+					candidates.computeIfAbsent(type.getSimpleName().toString(), key -> new HashSet<>()).add(unit.binary(type));
+					if (unit.needsImportOwner(type, path)) type = unit.analysis.elements().getOutermostTypeElement(type);
+					else if (type.getSimpleName().contentEquals("Main") || !unit.binary(type).equals(entryBinary)) return;
+				} else if (type.getNestingKind() != NestingKind.TOP_LEVEL) return;
+				final String binary = unit.binary(type);
+				if (bundledTopLevels.contains(binary) && !shadowedTypes.contains(binary)) collectConflicts(unit, type, binary, path);
 			}
 
 			@Override
@@ -162,23 +168,45 @@ final class JavaBundleNames {
 		}.scan(unit.analysis.solution(), null);
 	}
 
-	/** パッケージを外して書く型名が、この位置でローカルの宣言や継承したメンバーに隠れるか。 */
-	private static boolean hiddenAt(final Unit unit, final TypeElement type, final TreePath path) {
-		TreePath use = path;
-		while (use.getParentPath().getLeaf() instanceof MemberSelectTree select && select.getExpression() == use.getLeaf()
-				&& unit.analysis.trees().getElement(use.getParentPath()) instanceof TypeElement) use = use.getParentPath();
-		final Tree parent = use.getParentPath().getLeaf();
-		final boolean expression = parent instanceof MemberSelectTree select && select.getExpression() == use.getLeaf()
-				&& !select.getIdentifier().contentEquals("class") || parent instanceof MemberReferenceTree ref && ref.getMode() == MemberReferenceTree.ReferenceMode.INVOKE;
-		final var name = type.getSimpleName();
-		final java.util.function.Predicate<Element> hides = member -> member.getSimpleName().contentEquals(name)
-				&& (member instanceof TypeElement other && !unit.binary(other).equals(unit.binary(type))
-				|| member instanceof TypeParameterElement || expression && member instanceof VariableElement);
-		for (Scope scope = unit.analysis.trees().getScope(path); scope != null && scope.getEnclosingClass() != null; scope = scope.getEnclosingScope()) {
-			for (final Element local : scope.getLocalElements()) if (hides.test(local)) return true;
-			for (final Element member : unit.analysis.elements().getAllMembers(scope.getEnclosingClass())) if (hides.test(member)) return true;
+	/** getScope は宣言とその所属先を複製する。クラスのバイナリ名とメソッドの署名は複製前後で共通。 */
+	private record MainDeclaration(ElementKind kind, String ownerClass, String ownerMember) {
+		static MainDeclaration of(final Unit unit, final Element member) {
+			Element owner = member.getEnclosingElement();
+			final String signature = owner instanceof TypeElement ? "" : owner.toString();
+			while (owner != null && !(owner instanceof TypeElement)) owner = owner.getEnclosingElement();
+			return new MainDeclaration(member.getKind(), owner instanceof TypeElement type ? unit.binary(type) : "", signature);
 		}
-		return false;
+	}
+
+	private void collectConflicts(final Unit unit, final TypeElement type, final String binary, final TreePath path) {
+		final boolean isEntry = binary.equals(entryBinary);
+		final var hiding = new TypeUse(unit, type, path).hiding(isEntry ? "Main" : type.getSimpleName().toString(), binary);
+		if (isEntry) {
+			for (final Element member : hiding) mainConflicts.add(MainDeclaration.of(unit, member));
+		} else if (!hiding.isEmpty()) shadowedTypes.add(binary);
+	}
+
+	private record TypeUse(Unit unit, TypeElement type, TreePath path) {
+		/** 型名を修飾・短縮した後、その先頭の識別子を隠す宣言。T.class、T.this、T.super の T は常に型。 */
+		List<Element> hiding(final String name, final String target) {
+			TreePath use = path;
+			while (use.getParentPath().getLeaf() instanceof MemberSelectTree select && select.getExpression() == use.getLeaf()
+					&& unit.analysis.trees().getElement(use.getParentPath()) instanceof TypeElement) use = use.getParentPath();
+			final Tree parent = use.getParentPath().getLeaf();
+			final boolean expression = parent instanceof MemberSelectTree select && select.getExpression() == use.getLeaf()
+					&& !Set.of("class", "this", "super").contains(select.getIdentifier().toString())
+					|| parent instanceof MemberReferenceTree ref && ref.getMode() == MemberReferenceTree.ReferenceMode.INVOKE;
+			final List<Element> found = new ArrayList<>();
+			for (Scope scope = unit.analysis.trees().getScope(path); scope != null && scope.getEnclosingClass() != null; scope = scope.getEnclosingScope()) {
+				for (final var members : List.of(scope.getLocalElements(), unit.analysis.elements().getAllMembers(scope.getEnclosingClass()))) {
+					for (final Element member : members) {
+						if (member.getSimpleName().contentEquals(name) && (member instanceof TypeElement other && !unit.binary(other).equals(target)
+								|| member instanceof TypeParameterElement || expression && member instanceof VariableElement)) found.add(member);
+					}
+				}
+			}
+			return found;
+		}
 	}
 
 	private String nextName(final String base) {
@@ -193,6 +221,11 @@ final class JavaBundleNames {
 
 	private void allocateNames(final Unit unit) {
 		new TreePathScanner<Void, Void>() {
+			private boolean conflictsWithMain(final Element declaration) {
+				return declaration != null && declaration.getSimpleName().contentEquals("Main")
+						&& mainConflicts.contains(MainDeclaration.of(unit, declaration));
+			}
+
 			@Override
 			public Void visitClass(final ClassTree tree, final Void unused) {
 				final TypeElement type = (TypeElement) unit.analysis.trees().getElement(getCurrentPath());
@@ -202,7 +235,8 @@ final class JavaBundleNames {
 				String name = old;
 				if (type == entry) name = "Main";
 				// パッケージを外した型が、別のトップレベル型やスコープ内の宣言に隠れない名前を選ぶ。
-				else if (old.equals("Main") || topLevel && (topLevelNames.contains(old) || shadowedTypes.contains(binary))) name = nextName(old);
+				else if (topLevel && (topLevelNames.contains(old) || preferredImports.containsKey(old) || shadowedTypes.contains(binary))
+						|| old.equals("Main") && (unit.analysis.elements().getOutermostTypeElement(type) == entry || conflictsWithMain(type))) name = nextName(old);
 				typeNames.put(binary, name);
 				if (topLevel) {
 					topLevelNames.add(name);
@@ -219,22 +253,20 @@ final class JavaBundleNames {
 
 			@Override
 			public Void visitTypeParameter(final TypeParameterTree tree, final Void unused) {
-				if (tree.getName().contentEquals("Main"))
-					unit.localNames.put(unit.analysis.trees().getElement(getCurrentPath()), nextName("Main"));
+				final Element parameter = unit.analysis.trees().getElement(getCurrentPath());
+				if (conflictsWithMain(parameter)) unit.localNames.put(parameter, nextName("Main"));
 				return super.visitTypeParameter(tree, unused);
 			}
 
 			@Override
 			public Void visitVariable(final VariableTree tree, final Void unused) {
-				if (tree.getName().contentEquals("Main") && !entry.getSimpleName().contentEquals("Main")) {
-					final VariableElement variable = (VariableElement) unit.analysis.trees().getElement(getCurrentPath());
-					if (variable != null && unit.end(tree) >= 0 && variable.getKind() != ElementKind.ENUM_CONSTANT
-							&& !(variable.getEnclosingElement() instanceof TypeElement owner && owner.getKind() == ElementKind.RECORD)) {
-						final String name = nextName("Main");
-						unit.localNames.put(variable, name);
-						if (variable.getKind() == ElementKind.FIELD)
-							fieldNames.put(unit.binary((TypeElement) variable.getEnclosingElement()) + ".Main", name);
-					}
+				final Element variable = unit.analysis.trees().getElement(getCurrentPath());
+				if (conflictsWithMain(variable) && unit.end(tree) >= 0 && variable.getKind() != ElementKind.ENUM_CONSTANT
+						&& !(variable.getEnclosingElement().getKind() == ElementKind.RECORD && !variable.getModifiers().contains(Modifier.STATIC))) {
+					final String name = nextName("Main");
+					unit.localNames.put(variable, name);
+					if (variable.getKind() == ElementKind.FIELD)
+						fieldNames.put(unit.binary((TypeElement) variable.getEnclosingElement()) + ".Main", name);
 				}
 				return super.visitVariable(tree, unused);
 			}
@@ -255,7 +287,15 @@ final class JavaBundleNames {
 
 	boolean needsQualification(final ImportTree imported) {
 		final Tree target = imported.getQualifiedIdentifier();
-		return !imported.isStatic() && target instanceof MemberSelectTree member && qualify.contains(member.getIdentifier().toString());
+		return !imported.isStatic() && target instanceof MemberSelectTree member && needsQualification(member.getIdentifier().toString(), target.toString());
+	}
+
+	private boolean needsQualification(final String simple, final String qualified) {
+		return qualify.contains(simple) && !qualified.equals(preferredImports.get(simple));
+	}
+
+	List<String> requiredImports() {
+		return preferredImports.entrySet().stream().filter(e -> qualify.contains(e.getKey())).map(Map.Entry::getValue).toList();
 	}
 
 	void verify(final JavaSourceTransformer.Analysis output) {
@@ -406,8 +446,11 @@ final class JavaBundleNames {
 					final TypeElement type = (TypeElement) method.getEnclosingElement();
 					// package-private な record を public Main にすると、正規コンストラクターにも public が必要になる。
 					if (type == entry && type.getKind() == ElementKind.RECORD && !type.getModifiers().contains(Modifier.PUBLIC)
-							&& !method.getModifiers().contains(Modifier.PUBLIC) && isCanonical(type, method))
-						edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.start(tree), "public "));
+							&& !method.getModifiers().contains(Modifier.PUBLIC) && unit.analysis.elements().isCanonicalConstructor(method)) {
+						if (method.getModifiers().contains(Modifier.PROTECTED))
+							edits.add(declaration(unit, unit.start(tree), unit.end(tree.getModifiers()), "protected", "public", false));
+						else edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.start(tree), "public "));
+					}
 					final String old = type.getSimpleName().toString();
 					final String name = nameOf(type);
 					if (!old.equals(name)) {
@@ -452,7 +495,8 @@ final class JavaBundleNames {
 				final String name = tree.getName().toString();
 				if (symbol instanceof TypeElement type) {
 					if (replacement != null && unit.needsImportOwner(type, getCurrentPath())) replacement = bundledName(unit, type);
-					else if (replacement == null && qualify.contains(name) && !hasEnclosingInstance(getCurrentPath())) replacement = type.getQualifiedName().toString();
+					else if (replacement == null && needsQualification(name, type.getQualifiedName().toString()) && !hasEnclosingInstance(getCurrentPath()))
+						replacement = type.getQualifiedName().toString();
 				}
 				if (replacement != null && !replacement.equals(name))
 					edits.add(new JavaSourceTransformer.Edit(unit.start(tree), unit.end(tree), replacement));

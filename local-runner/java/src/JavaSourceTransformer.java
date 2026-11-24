@@ -275,6 +275,11 @@ final class JavaSourceTransformer {
 			parts.add("// ===== inlined: " + inlined.get(i - 1) + " =====\n" + applyEdits(unit.code, edits).strip());
 		}
 		hoisted.removeIf(candidate -> isCoveredBySolutionImport(candidate, analysis.solution().getImports()));
+		// 同名の型を複数のワイルドカードから取り込むときは、優先する型の単一型 import が要る。
+		for (final String preferred : names.requiredImports()) {
+			if (analysis.solution().getImports().stream().noneMatch(i -> !i.isStatic() && i.getQualifiedIdentifier().toString().equals(preferred)))
+				hoisted.add("import " + preferred + ";");
+		}
 		final VariableTree flag = findDebugFlag(main, debugFlag);
 		String transformedSolution = transformSolution(source, analysis, index, flag, debug, hoisted, names, units.getFirst());
 		if (!parts.isEmpty())

@@ -260,6 +260,7 @@ public final class JavaSourceTransformerTest {
 		final String source = """
 				class Main1 {}
 				class Main { int value() { return 7; } }
+				record Other(int Main) { static <Main> int id(int Main) { return Main; } }
 				public class /* Solver */ Solver extends Main {
 					static int y = 3;
 					Solver() {}
@@ -275,7 +276,38 @@ public final class JavaSourceTransformerTest {
 		check(result.sourceCode().contains("class Main2"), result.sourceCode());
 		check(result.sourceCode().contains("<Main3 extends Number> String pick(Main x)"), result.sourceCode());
 		check(result.sourceCode().contains("int Main4 = 1"), result.sourceCode());
+		check(result.sourceCode().contains("record Other(int Main) { static <Main> int id(int Main) { return Main; } }"), result.sourceCode());
 		check(execute(result.sourceCode()).equals("ok731"), "renaming changed execution");
+
+		final String untouched = """
+				import java.util.Date;
+				class Other { record Main(int n) {} }
+				class Solver {
+					static <Main> int value(int Main) { return Main; }
+					public static void main(String[] a) {
+						Date epoch = new Date(0);
+						var sql = new java.sql.Date(0);
+						System.out.print(new Other.Main(value(3)) + "/" + (epoch.getTime() + sql.getTime()));
+					}
+				}
+				""";
+		final SourceTransformResult ordinary = transformer.transform(untouched, root, false, "", true);
+		check(ordinary.exitCode() == 0, ordinary.diagnostics());
+		check(ordinary.sourceCode().equals(untouched.replace("class Solver", "public class Main")), ordinary.sourceCode());
+		check(execute(ordinary.sourceCode()).equals(execute(untouched, "Solver", false)), ordinary.sourceCode());
+
+		final String qualifiedEntry = """
+				package sol;
+				class Main {
+					static int value = 3;
+					public static void main(String[] a) { int Main = 2; System.out.print(sol.Main.value + Main); }
+				}
+				""";
+		final SourceTransformResult shortened = transformer.transform(qualifiedEntry, root, false, "", false);
+		check(shortened.exitCode() == 0, shortened.diagnostics());
+		check(execute(shortened.sourceCode()).equals(execute(qualifiedEntry, "sol.Main", false)), shortened.sourceCode());
+
+		checkQualificationScopes(transformer, root);
 
 		final SourceTransformResult compact = transformer.transform("record Solver$(int x) { Solver$ { } public static void main(String[] a) { new Solver$(1); } }", root, false, "", true);
 		check(compact.exitCode() == 0 && compact.sourceCode().contains("Main { }"), compact.diagnostics());
@@ -420,13 +452,70 @@ public final class JavaSourceTransformerTest {
 		return execute(source, false);
 	}
 
+	private static void checkQualificationScopes(final JavaSourceTransformer transformer, final Path root) throws Exception {
+		final String scopes = """
+				class Base { int base = 1; }
+				class Solver extends Base {
+					static int n = 7;
+					static { int Main = 1; System.out.println(Solver.n + Main); }
+					static java.util.function.IntUnaryOperator field = Main -> Solver.n + Main;
+					class Inner { int value(int Main) { return Solver.this.n + Solver.super.base + Main; } }
+					public static void main(String[] a) {
+						class Local { int value(int Main) { return Solver.n + Main; } }
+						class Nested { int value() { java.util.function.IntUnaryOperator f = Main -> Solver.n + Main; return f.applyAsInt(2); } }
+						System.out.println(new Local().value(3));
+						System.out.println(new Object() { int value(int Main) { return Solver.n + Main; } }.value(4));
+						System.out.println(new Nested().value());
+						System.out.println(field.applyAsInt(5));
+						System.out.println(new Solver().new Inner().value(6));
+					}
+				}
+				""";
+		final String bundled = checkEquivalent(transformer, root, scopes);
+		check(bundled.contains("int value(int Main) { return Main.this.n + Main.super.base + Main; }"), bundled);
+
+		final Path pkg = Files.createDirectories(root.resolve("names"));
+		Files.writeString(pkg.resolve("List.java"), "package names; public class List { public static int n() { return 2; } }");
+		for (final String imported : java.util.List.of("java.util.List", "java.util.*")) {
+			checkEquivalent(transformer, root, "import " + imported + "; class Solver { public static void main(String[] a) { int java = 1; System.out.print(List.of(java).size() + names.List.n()); } }");
+		}
+		Files.writeString(pkg.resolve("Dates.java"), "package names; import java.sql.*; public class Dates { public static Date epoch() { return new Date(0); } }");
+		checkEquivalent(transformer, root, """
+				import java.util.*;
+				class Solver { public static void main(String[] a) {
+					int java = 1;
+					System.out.print(Date.from(new Date(0).toInstant()).getTime() + names.Dates.epoch().getTime() + java);
+				} }
+				""");
+		for (final String constructor : java.util.List.of("protected Solver {}", "@Deprecated protected Solver(int n) { this.n = n; }", "public Solver {}", "Solver {}")) {
+			checkEquivalent(transformer, root, "record Solver(int n) { " + constructor + " public static void main(String[] a) { System.out.print(new Solver(4).n()); } }");
+		}
+	}
+
+	private static String checkEquivalent(final JavaSourceTransformer transformer, final Path root, final String source) throws Exception {
+		final String expected = execute(source, "Solver", false, root);
+		final SourceTransformResult result = transformer.transform(source, root, false, "", true);
+		check(result.exitCode() == 0, result.diagnostics());
+		check(execute(result.sourceCode()).equals(expected), result.sourceCode());
+		return result.sourceCode();
+	}
+
 	private static String execute(final String source, final boolean allowFailure) throws Exception {
+		return execute(source, "Main", allowFailure);
+	}
+
+	private static String execute(final String source, final String entry, final boolean allowFailure) throws Exception {
+		return execute(source, entry, allowFailure, null);
+	}
+
+	private static String execute(final String source, final String entry, final boolean allowFailure, final Path sourcePath) throws Exception {
 		final Path folder = Files.createTempDirectory("bundle-execution-");
 		try {
-			final Path file = folder.resolve("Main.java");
+			final Path file = folder.resolve(entry.substring(entry.lastIndexOf('.') + 1) + ".java");
 			Files.writeString(file, source);
-			check(javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", folder.toString(), file.toString()) == 0, source);
-			final Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", folder.toString(), "Main").start();
+			check(javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-sourcepath", (sourcePath == null ? folder : sourcePath).toString(),
+					"-d", folder.toString(), file.toString()) == 0, source);
+			final Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", folder.toString(), entry).start();
 			final String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 			final String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
 			final int status = process.waitFor();
