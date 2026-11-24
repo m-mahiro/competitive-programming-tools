@@ -24,10 +24,10 @@ cd userscripts/CpToolkit/bench
 
 `setup.sh` は次のことをします。最初に1回だけ実行します。
 
-1. Node.js、npm、git、Bun、unzip があるかを確かめる
-2. `package.json` の版の Playwright と Chromium を `bench/node_modules` に入れる
-3. 旧スクリプトを [legacy.lock.json](./legacy.lock.json) の版で取得し、sha256 を照合する。`@require` のライブラリも同じように取得して照合する
-4. Tampermonkey を Chrome ウェブストアから取得して展開する
+1. Node.js、npm、git、Bun、unzip があるかを確かめます。
+2. `package.json` の版の Playwright と Chromium を `bench/node_modules` に入れます。
+3. 旧スクリプトを [legacy.lock.json](./legacy.lock.json) の版で取得し、sha256 を照合します。`@require` のライブラリも同じように取得して照合します。
+4. Tampermonkey を Chrome ウェブストアから取得して展開します。
 
 第三者の UserScript にはライセンスの表記がないものがあるので、リポジトリには入れず、ここで取得します。取得したファイル、録画したページ、生データはすべて `bench/.work/` に置きます(Git では無視します)。
 
@@ -41,12 +41,12 @@ cd userscripts/CpToolkit/bench
 
 `run.sh` は次のことを順に行い、`reports/<版>.md` と `reports/<版>/*.json` を書き出します。
 
-1. 指定したコミットを `.work/src/` に取り出し、CP Toolkit を2通りに用意する。配布物(`dist`)と、同じ中身をソースマップ付きで整形せずにビルドしたものです。後者は、CPU 時間やメモリを機能ごとに分けるために使います
-2. その版の機能の一覧と、旧スクリプトとの対応表(`harness/conditions.mjs` の `LEGACY_TO_FEATURES`)を突き合わせる。対応が取れないときは、ここで止まります(「5. 新しい版を測るとき」を参照)
-3. AtCoder の公開ページ9つを録画する。まだ録画していない URL だけを取得し、以降の計測ではこの録画だけを返します
-4. Tampermonkey を入れた Chromium に、条件ごとにスクリプトを自動でインストールし、CPU、メモリ、ページ全体の処理時間、放置時を測る
-5. DOM への重複アクセスを、Tampermonkey の代わりのシムで数える
-6. 生データを集計してレポートを書き出す
+1. 指定したコミットを `.work/src/` に取り出し、CP Toolkit を2通りに用意します。配布物(`dist`)と、同じ中身をソースマップ付きで整形せずにビルドしたものです。後者は、CPU 時間やメモリを機能ごとに分けるために使います。
+2. その版の機能の一覧と、旧スクリプトとの対応表(`harness/conditions.mjs` の `LEGACY_TO_FEATURES`)を突き合わせます。対応が取れないときは、ここで止まります(「5. 新しい版を測るとき」を参照)。
+3. AtCoder の公開ページ9つを録画します。まだ録画していない URL だけを取得し、以降の計測ではこの録画だけを返します。
+4. Tampermonkey を入れた Chromium に、条件ごとにスクリプトを自動でインストールし、CPU、メモリ、ページ全体の処理時間、放置時を測ります。
+5. DOM への重複アクセスを、Tampermonkey の代わりのシムで数えます。
+6. 生データを集計してレポートを書き出します。
 
 途中で止まったときは、同じコマンドでやり直します。生データは `.work/results/<版>/` に残ります。ほかの重い処理と同時に動かすと、CPU の取り合いで値がゆがむので、計測中はマシンを空けておきます。
 
@@ -90,9 +90,9 @@ Tampermonkey での計測では、毎回、計測が終わったあとに読み�
 
 ## 5. 新しい版を測るとき
 
-1. その版のコミットを checkout して `./run.sh` を実行する
-2. `reports/<版>.md` と `reports/<版>/` をコミットする
-3. [PERFORMANCE.md](../PERFORMANCE.md) の「結果」を新しい版の値に書き換え、「版ごとの結果」の表に1行足す
+1. その版のコミットを checkout して `./run.sh` を実行します。
+2. `reports/<版>.md` と `reports/<版>/` をコミットします。
+3. [PERFORMANCE.md](../PERFORMANCE.md) の「結果」を新しい版の値に書き換え、「版ごとの結果」の表に1行足します。
 
 `run.sh` が「旧スクリプト ○○ に対応する機能が、この版の CP Toolkit にありません」で止まったときは、機能の ID が変わったか、機能がなくなっています。`harness/conditions.mjs` の `LEGACY_TO_FEATURES` で、その旧スクリプトの行に新しい ID の組を足します。対応する機能がなくなったときは、空の組 `[]` を足します。その旧スクリプトはその版の比較から外れ、レポートにその旨が載ります。
 
@@ -106,9 +106,9 @@ Tampermonkey での計測では、毎回、計測が終わったあとに読み�
 
 固定できないもの:
 
-- Tampermonkey: Chrome ウェブストアは最新版しか配らないので、取得した版をレポートに記録します。取得し直すときは `./setup.sh --refresh-tampermonkey` を実行します
-- AtCoder のページ: 最初の計測で録画し、以降の版も同じ録画で測ります。録画し直すときは `.work/fixtures/` を消します。別のマシンで録画すると、ページの中身が変わって値も変わります
-- マシン: 値はマシンの速さで変わります。版の間で比べるときは、同じマシンで測った値を比べてください
+- Tampermonkey: Chrome ウェブストアは最新版しか配らないので、取得した版をレポートに記録します。取得し直すときは `./setup.sh --refresh-tampermonkey` を実行します。
+- AtCoder のページ: 最初の計測で録画し、以降の版も同じ録画で測ります。録画し直すときは `.work/fixtures/` を消します。別のマシンで録画すると、ページの中身が変わって値も変わります。
+- マシン: 値はマシンの速さで変わります。版の間で比べるときは、同じマシンで測った値を比べてください。
 
 ## 7. ファイル
 
