@@ -28,7 +28,10 @@ SRC="$WORK/src/$COMMIT"
 if [ ! -d "$SRC" ]; then
 	git -C "$REPO" worktree add --detach "$SRC" "$COMMIT"
 fi
-node harness/prepare-toolkit.mjs "$SRC" "$COMMIT"
+# レポートには、CP Toolkit のコード(bench/ と文書を除く)を最後に変えたコミットを載せる。
+# 計測用のブランチで測っても、本体のどのコミットのコードかが分かるようにするため
+CODE_COMMIT=$(git -C "$REPO" log -1 --format=%H "$COMMIT" -- userscripts/CpToolkit ':(exclude)userscripts/CpToolkit/bench' ':(exclude)*.md' 2>/dev/null)
+node harness/prepare-toolkit.mjs "$SRC" "${CODE_COMMIT:-$COMMIT}"
 VERSION=$(node -p "require('$SRC/userscripts/CpToolkit/meta.json').version")
 export BENCH_VERSION=$VERSION
 OUT="$WORK/results/$VERSION"
